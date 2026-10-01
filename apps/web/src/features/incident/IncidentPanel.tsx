@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronRight, Columns2, Copy, Crosshair, Download, ExternalLink, FileJson, Info, Map as MapIcon, ShieldAlert, X } from "lucide-react";
+import { Check, ChevronRight, Columns2, Copy, Crosshair, FlaskConical, Download, ExternalLink, FileJson, Info, Map as MapIcon, ShieldAlert, X } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import type { IncidentDetail, Metric } from "../../lib/api";
 import { compareIncident } from "../../lib/compare";
+import { openSimulation } from "../../lib/simulate";
 import { exportBrief, exportGeoJson, exportJson } from "../../lib/export";
 import { focusIncident } from "../../lib/focus";
 import { coord, metricValue, observedAgo, relTime, titleCase, utcFull, utcShort } from "../../lib/format";
@@ -74,6 +75,11 @@ export function IncidentPanel({ id }: { id: string }) {
           <button type="button" className={s.action} onClick={() => compareIncident(d)} title="Swipe between satellite views from before onset and the latest day">
             <Columns2 size={13} /> Before / after
           </button>
+          {d.hazard === "earthquake" ? (
+            <button type="button" className={s.action} onClick={() => openSimulation(d)} title="What-if shaking scenario from this earthquake (simulation, not a forecast)">
+              <FlaskConical size={13} /> Scenario
+            </button>
+          ) : null}
           <ExportMenu d={d} />
           <CopyId id={d.id} />
         </div>

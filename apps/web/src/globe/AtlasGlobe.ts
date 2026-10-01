@@ -72,6 +72,8 @@ export interface ViewInfo {
 
 interface Handlers {
   onPick: (t: PickTarget | null) => void;
+  /** a click on the ground; return true to consume it (e.g. placing a scenario epicentre) */
+  onGround?: (lat: number, lon: number) => boolean;
   onHover: (h: HoverInfo | null) => void;
   onView: (v: ViewInfo) => void;
   onInteract: () => void;
@@ -123,6 +125,11 @@ export class AtlasGlobe {
   private compareTag = "";
   private terrainOn = false;
   private raster: { key: string; layer: ImageryLayer | null } = { key: "", layer: null };
+  private simFill: GroundPrimitive | null = null;
+  private simLines = new PolylineCollection();
+  private simLabels = new LabelCollection();
+  private simPoints = new PointPrimitiveCollection();
+  private pickMode = false;
   private incidentIndex = new Map<string, { billboard: Billboard; data: IncidentSummary }>();
   private pulseState: { billboard: Billboard; phase: number; color: Color; speed: number }[] = [];
   private selectedId: string | null = null;
@@ -208,6 +215,9 @@ export class AtlasGlobe {
       this.tracks,
       this.focusLines,
       this.ringLabels,
+      this.simLines,
+      this.simPoints,
+      this.simLabels,
       this.facilityMarkers,
       this.ripples,
       this.pulses,
@@ -222,6 +232,10 @@ export class AtlasGlobe {
 
     this.handler = new ScreenSpaceEventHandler(scene.canvas);
     this.handler.setInputAction((e: ScreenSpaceEventHandler.PositionedEvent) => {
+      if (this.pickMode && this.handlers.onGround) {
+        const g = this.groundAt(e.position);
+        if (g && this.handlers.onGround(g.lat, g.lon)) return;
+      }
       this.handlers.onPick(this.pickAt(e.position));
     }, ScreenSpaceEventType.LEFT_CLICK);
     this.handler.setInputAction((e: ScreenSpaceEventHandler.MotionEvent) => {
@@ -231,7 +245,7 @@ export class AtlasGlobe {
       const t = this.pickAt(e.endPosition);
       this.setHoveredMarker(t?.kind === "incident" ? t.id : null);
       this.handlers.onHover(t ? { target: t, x: e.endPosition.x, y: e.endPosition.y } : null);
-      scene.canvas.style.cursor = t ? "pointer" : "";
+      scene.canvas.style.cursor = t ? "pointer" : this.pickMode ? "crosshair" : "";
     }, ScreenSpaceEventType.MOUSE_MOVE);
 
     const interact = () => {
@@ -420,6 +434,86 @@ export class AtlasGlobe {
     layer.nightAlpha = 1;
     this.widget.imageryLayers.add(layer);
     this.raster = { key, layer };
+    this.requestRender();
+  }
+
+  // -- simulation -----------------------------------------------------------------------
+  /** Ground position under a screen point (ellipsoid), or null when pointing at space. */
+  groundAt(pos: Cartesian2): { lat: number; lon: number } | null {
+    const c = this.camera.pickEllipsoid(pos, this.widget.scene.globe.ellipsoid);
+    if (!c) return null;
+    const carto = Cartographic.fromCartesian(c);
+    return { lat: CMath.toDegrees(carto.latitude), lon: CMath.toDegrees(carto.longitude) };
+  }
+
+  setPickMode(on: boolean) {
+    this.pickMode = on;
+    this.widget.scene.canvas.style.cursor = on ? "crosshair" : "";
+  }
+
+  /** Scenario shaking bands as non-overlapping annuli (inner → outer), outlined and labelled. */
+  setSimulation(sim: { lat: number; lon: number; label: string; bands: { radius_km: number; color: string; roman: string; shaking: string }[] } | null) {
+    if (this.simFill) {
+      this.widget.scene.primitives.remove(this.simFill);
+      this.simFill = null;
+    }
+    this.simLines.removeAll();
+    this.simLabels.removeAll();
+    this.simPoints.removeAll();
+    if (!sim) {
+      this.requestRender();
+      return;
+    }
+    const instances: GeometryInstance[] = [];
+    let inner: Cartesian3[] | null = null;
+    sim.bands.forEach((b, i) => {
+      const outer = circle(sim.lat, sim.lon, b.radius_km, 160);
+      const colour = Color.fromCssColorString(b.color);
+      instances.push(
+        new GeometryInstance({
+          geometry: new PolygonGeometry({
+            polygonHierarchy: new PolygonHierarchy(outer, inner ? [new PolygonHierarchy(inner)] : []),
+          }),
+          attributes: { color: ColorGeometryInstanceAttribute.fromColor(colour.withAlpha(i === 0 ? 0.42 : 0.3 - i * 0.02)) },
+        }),
+      );
+      inner = outer;
+      this.simLines.add({ positions: outer, width: 1.6, material: Material.fromType("Color", { color: colour.withAlpha(0.95) }) });
+      this.simLabels.add({
+        position: Cartesian3.fromRadians(...destinationRad(sim.lat, sim.lon, b.radius_km), 900),
+        text: `${b.roman} · ${b.shaking}`,
+        font: "600 11px 'IBM Plex Sans Variable', sans-serif",
+        fillColor: colour,
+        outlineColor: Color.fromCssColorString("#04060a").withAlpha(0.95),
+        outlineWidth: 3,
+        style: LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset: new Cartesian2(0, -6),
+        horizontalOrigin: HorizontalOrigin.CENTER,
+        verticalOrigin: VerticalOrigin.BOTTOM,
+      });
+    });
+    if (instances.length) {
+      this.simFill = new GroundPrimitive({
+        geometryInstances: instances,
+        appearance: new PerInstanceColorAppearance({ flat: true, translucent: true }),
+        asynchronous: true,
+      });
+      this.widget.scene.primitives.add(this.simFill);
+    }
+    const epi = Cartesian3.fromDegrees(sim.lon, sim.lat, 1200);
+    this.simPoints.add({ position: epi, pixelSize: 9, color: Color.WHITE, outlineColor: Color.fromCssColorString("#c80000"), outlineWidth: 3 });
+    this.simLabels.add({
+      position: epi,
+      text: sim.label,
+      font: "700 12px 'IBM Plex Sans Variable', sans-serif",
+      fillColor: Color.WHITE,
+      outlineColor: Color.fromCssColorString("#04060a"),
+      outlineWidth: 4,
+      style: LabelStyle.FILL_AND_OUTLINE,
+      pixelOffset: new Cartesian2(0, 14),
+      horizontalOrigin: HorizontalOrigin.CENTER,
+      verticalOrigin: VerticalOrigin.TOP,
+    });
     this.requestRender();
   }
 

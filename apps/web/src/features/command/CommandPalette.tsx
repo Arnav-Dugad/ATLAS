@@ -10,6 +10,7 @@ import {
   CornerDownLeft,
   Database,
   Download,
+  FlaskConical,
   Globe2,
   History,
   Layers,
@@ -25,6 +26,7 @@ import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
 import { api, STATIC_MODE, type IncidentSummary, type SearchResponse } from "../../lib/api";
 import { compareIncident, compareView } from "../../lib/compare";
+import { openSimulation } from "../../lib/simulate";
 import { exportBrief } from "../../lib/export";
 import { focusIncident, focusPoint } from "../../lib/focus";
 import { compact, observedAgo, utcDate } from "../../lib/format";
@@ -137,6 +139,17 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
           const inc = incidents.find((i) => i.id === ui.selectedId);
           if (inc) compareIncident(inc);
           else compareView();
+        }),
+      },
+      {
+        id: "simulate",
+        section: "View",
+        label: "Simulation lab: earthquake shaking scenario",
+        icon: <FlaskConical size={15} />,
+        keywords: "what if scenario shakemap intensity mmi simulate",
+        run: done(() => {
+          if (ui.selectedId) void api.incident(ui.selectedId).then((d) => openSimulation(d));
+          else openSimulation(null);
         }),
       },
       { id: "motion", section: "Accessibility", label: ui.reducedMotion ? "Enable motion" : "Reduce motion", icon: <Accessibility size={15} />, keywords: "animation a11y", run: done(() => ui.setReducedMotion(!ui.reducedMotion)) },

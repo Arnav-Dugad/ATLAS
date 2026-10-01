@@ -9,6 +9,7 @@ import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
 import { CompareTool } from "../features/compare/CompareTool";
+import { SimulationLab } from "../features/simulation/SimulationLab";
 import { IncidentFeed } from "../features/feed/IncidentFeed";
 import { IncidentPanel } from "../features/incident/IncidentPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
@@ -78,6 +79,8 @@ export function Shell() {
       if (typing || ui.paletteOpen) return;
       if (e.key === "Escape") {
         if (ui.assistantOpen) ui.closeAssistant();
+        else if (ui.groundPick) ui.setGroundPick(null);
+        else if (ui.simulation) ui.setSimulation(null);
         else if (ui.compare) ui.setCompare(null);
         else if (ui.layersOpen) ui.setLayersOpen(false);
         else if (ui.view !== "planet") ui.setView("planet");
@@ -170,6 +173,7 @@ export function Shell() {
       )}
 
       <CompareTool />
+      <SimulationLab />
       <PlaybackBanner />
       <MapControls />
       <Attribution />

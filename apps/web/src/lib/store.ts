@@ -80,6 +80,15 @@ export interface RasterOverlay {
   label: string;
 }
 
+/** Earthquake shaking scenario (Simulation Lab). SIMULATION — NOT A FORECAST. */
+export interface SimulationState {
+  lat: number;
+  lon: number;
+  magnitude: number;
+  depth_km: number;
+  subject: string | null;
+}
+
 /** Split-screen comparison of one satellite product on two dates (Phase 3). */
 export interface CompareState {
   product: string;
@@ -128,6 +137,9 @@ interface UiState {
   rasterOverlay: RasterOverlay | null;
   assistantOpen: boolean;
   assistantSeed: string;
+  simulation: SimulationState | null;
+  /** waiting for a click on the globe to place something (the scenario epicentre) */
+  groundPick: "simulation" | "watch" | null;
 
   setView: (v: View) => void;
   select: (id: string | null, opts?: { fly?: boolean }) => void;
@@ -162,6 +174,9 @@ interface UiState {
   patchCompare: (patch: Partial<CompareState>) => void;
   setRasterOverlay: (o: RasterOverlay | null) => void;
   openAssistant: (seed?: string) => void;
+  setSimulation: (s: SimulationState | null) => void;
+  patchSimulation: (p: Partial<SimulationState>) => void;
+  setGroundPick: (p: "simulation" | "watch" | null) => void;
   closeAssistant: () => void;
 }
 
@@ -205,6 +220,8 @@ export const useUi = create<UiState>()(
       rasterOverlay: null,
       assistantOpen: false,
       assistantSeed: "",
+      simulation: null,
+      groundPick: null,
 
       setView: (view) => set({ view }),
       select: (selectedId) =>
@@ -242,8 +259,12 @@ export const useUi = create<UiState>()(
       goLive: () => set({ playhead: null, playing: false, history: null }),
       setHistory: (history) => set({ history }),
       setExaggeration: (exaggeration) => set({ exaggeration }),
-      setCompare: (compare) => set((s) => ({ compare, autoRotate: compare ? false : s.autoRotate })),
+      setCompare: (compare) => set((s) => ({ compare, autoRotate: compare ? false : s.autoRotate, simulation: compare ? null : s.simulation })),
       setRasterOverlay: (rasterOverlay) => set({ rasterOverlay }),
+      setSimulation: (simulation) =>
+        set((s) => ({ simulation, groundPick: simulation ? s.groundPick : null, autoRotate: simulation ? false : s.autoRotate, compare: simulation ? null : s.compare })),
+      patchSimulation: (p) => set((s) => (s.simulation ? { simulation: { ...s.simulation, ...p } } : {})),
+      setGroundPick: (groundPick) => set({ groundPick }),
       openAssistant: (seed = "") => set({ assistantOpen: true, assistantSeed: seed, paletteOpen: false }),
       closeAssistant: () => set({ assistantOpen: false, assistantSeed: "" }),
       patchCompare: (patch) => set((s) => (s.compare ? { compare: { ...s.compare, ...patch } } : {})),

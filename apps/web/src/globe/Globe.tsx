@@ -32,6 +32,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const exaggeration = useUi((s) => s.exaggeration);
   const compare = useUi((s) => s.compare);
   const rasterOverlay = useUi((s) => s.rasterOverlay);
+  const groundPick = useUi((s) => s.groundPick);
 
   // ---- mount ------------------------------------------------------------------------
   useEffect(() => {
@@ -46,6 +47,16 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
             const inc = instance.quakeData?.columns.incident?.[t.index] as string | null | undefined;
             if (inc) ui.select(inc);
           }
+        },
+        onGround: (lat, lon) => {
+          const ui = useUi.getState();
+          if (ui.groundPick === "simulation") {
+            if (ui.simulation) ui.patchSimulation({ lat, lon, subject: null });
+            else ui.setSimulation({ lat, lon, magnitude: 6.5, depth_km: 10, subject: null });
+            ui.setGroundPick(null);
+            return true;
+          }
+          return false;
         },
         onHover: setHover,
         onView: setView,
@@ -79,6 +90,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   useEffect(() => globe?.setTime(playhead), [globe, playhead]);
   useEffect(() => globe?.highlight(hoveredId), [globe, hoveredId]);
   useEffect(() => globe?.setTerrain(layers.terrain, exaggeration), [globe, layers.terrain, exaggeration]);
+  useEffect(() => globe?.setPickMode(groundPick !== null), [globe, groundPick]);
   useEffect(() => globe?.setRasterOverlay(rasterOverlay ? { url: rasterOverlay.url, bbox: rasterOverlay.bbox } : null), [globe, rasterOverlay]);
   const cmpProduct = compare?.product;
   const cmpBefore = compare?.before;

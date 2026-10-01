@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Columns2, X } from "lucide-react";
+import { Columns2, FlaskConical, X } from "lucide-react";
 import { useState } from "react";
 import { OVERLAYS } from "../../globe/imagery";
 import { compareView } from "../../lib/compare";
+import { openSimulation } from "../../lib/simulate";
 import { useUi, type LayerId } from "../../lib/store";
 import { cx, Toggle } from "../../ui/primitives";
 import s from "./LayerPanel.module.css";
@@ -100,6 +101,20 @@ export function LayerPanel() {
                 <span>
                   <span className={s.toolTitle}>Compare two dates</span>
                   <span className={s.toolDesc}>Swipe between daily satellite views: before / after</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={s.tool}
+                onClick={() => {
+                  openSimulation(null);
+                  setOpen(false);
+                }}
+              >
+                <FlaskConical size={14} />
+                <span>
+                  <span className={s.toolTitle}>Earthquake scenario</span>
+                  <span className={s.toolDesc}>Simulated shaking bands and residents — not a forecast</span>
                 </span>
               </button>
             </Group>
