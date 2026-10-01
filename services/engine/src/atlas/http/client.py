@@ -15,11 +15,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import ssl
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
+from importlib import resources
 from pathlib import Path
 from urllib.parse import urlencode, urlsplit
 
@@ -72,6 +74,20 @@ class HostPolicy:
     min_interval_s: float = 0.25
 
 
+def tls_context() -> ssl.SSLContext:
+    """Mozilla's CA bundle (certifi) plus a few public intermediate certificates that some
+    official servers fail to send (see http/certs/intermediates.pem). Verification stays on."""
+    import certifi
+
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    try:
+        extra = resources.files("atlas.http.certs").joinpath("intermediates.pem").read_text("ascii")
+        ctx.load_verify_locations(cadata=extra)
+    except (FileNotFoundError, ssl.SSLError) as exc:
+        log.warning("extra intermediate certificates not loaded: %s", exc)
+    return ctx
+
+
 class HttpClient:
     def __init__(
         self,
@@ -88,6 +104,7 @@ class HttpClient:
         self.max_bytes = max_bytes
         self.offline = offline
         self._client = httpx.AsyncClient(
+            verify=tls_context(),
             timeout=httpx.Timeout(timeout_s, connect=10.0),
             headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip, deflate"},
             follow_redirects=True,

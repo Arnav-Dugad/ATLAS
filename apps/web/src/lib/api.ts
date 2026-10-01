@@ -258,6 +258,35 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface AgencyEvent {
+  id: string;
+  time: string;
+  lat: number;
+  lon: number;
+  magnitude?: number | null;
+  depth_km?: number | null;
+  max_intensity?: string;
+  area?: string;
+  region?: string;
+  status?: string;
+  bulletin?: number | null;
+  bulletin_title?: string | null;
+  evaluation?: string | null;
+  delta_s: number;
+  distance_km: number;
+  url: string;
+  note?: string;
+}
+
+export interface Agencies {
+  status: "ok";
+  asked: string[];
+  errors: Record<string, string>;
+  jma?: AgencyEvent | null;
+  ncs?: AgencyEvent | null;
+  incois?: AgencyEvent | null;
+}
+
 export interface OfficialAlert {
   id: string | null;
   source: string;
@@ -674,6 +703,7 @@ const LOCAL_ONLY: RegExp[] = [
   /\/gallery\/burn-scars$/,
   /\/compound$/,
   /\/alerts$/,
+  /\/agencies$/,
   /\/alerts\/layer$/,
   /\/exposure\/zones$/,
 ];
@@ -933,6 +963,7 @@ export const api = {
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
   zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
+  agencies: (id: string, signal?: AbortSignal) => request<Agencies>(`/api/v1/incidents/${encodeURIComponent(id)}/agencies`, { signal }),
   alertsHere: (id: string, signal?: AbortSignal) => request<AlertsHere>(`/api/v1/incidents/${encodeURIComponent(id)}/alerts`, { signal }),
   alertLayer: (signal?: AbortSignal) => request<AlertLayer>("/api/v1/alerts/layer", { signal }),
   compound: (id: string, signal?: AbortSignal) => request<Compound>(`/api/v1/incidents/${encodeURIComponent(id)}/compound`, { signal }),

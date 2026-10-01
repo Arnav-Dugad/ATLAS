@@ -72,6 +72,7 @@ export function QuakeIntel({ d }: { d: IncidentDetail }) {
   return (
     <>
       <SourceAgreement observations={d.observations} />
+      {STATIC_MODE ? null : <RegionalAgencies d={d} />}
       {STATIC_MODE ? (
         <section className={s.card}>
           <Label>Official USGS products</Label>
@@ -314,6 +315,61 @@ function Activity({ a }: { a: Extract<SeismicContext["activity"], { status: "ok"
       </button>
       {open ? <p className={s.note}>{a.method}</p> : null}
     </div>
+  );
+}
+
+const AGENCY: Record<string, { name: string; full: string }> = {
+  jma: { name: "JMA", full: "Japan Meteorological Agency" },
+  ncs: { name: "NCS", full: "National Center for Seismology, India" },
+  incois: { name: "INCOIS", full: "Indian Tsunami Early Warning Centre" },
+};
+
+/** The same earthquake from national agencies, matched by time and place, never merged. */
+function RegionalAgencies({ d }: { d: IncidentDetail }) {
+  const q = useQuery({ queryKey: ["agencies", d.id], queryFn: ({ signal }) => api.agencies(d.id, signal), staleTime: 5 * 60_000, retry: 1 });
+  const data = q.data;
+  if (!data || data.asked.length === 0) return null;
+  const rows = (["jma", "ncs", "incois"] as const).filter((k) => data.asked.includes(k));
+  return (
+    <section className={s.card}>
+      <Label right={<ProvenanceBadge kind="real" compact />}>
+        <span className={s.titleRow}>
+          <ShieldCheck size={12} aria-hidden /> National agencies
+        </span>
+      </Label>
+      <ul className={s.agencyList}>
+        {rows.map((k) => {
+          const e = data[k];
+          return (
+            <li key={k} className={s.agency}>
+              <span className={s.agencyName} title={AGENCY[k]!.full}>
+                {AGENCY[k]!.name}
+              </span>
+              {e ? (
+                <span className={s.agencyBody}>
+                  <span>
+                    {e.magnitude != null ? `M${decimal(e.magnitude)}${k === "jma" ? " (Mj)" : ""}` : ""}
+                    {e.depth_km != null ? ` · ${dist(e.depth_km)} deep` : ""}
+                    {e.max_intensity ? ` · max intensity ${e.max_intensity} (JMA scale)` : ""}
+                    {e.area ? ` · ${e.area}` : ""}
+                    {k === "incois" && e.bulletin ? ` · bulletin ${e.bulletin}` : ""}
+                  </span>
+                  {e.evaluation ? <q className={s.quote}>{e.evaluation}</q> : null}
+                  <span className={s.dim}>
+                    matched {e.delta_s} s and {dist(e.distance_km, 1)} from the USGS solution ·{" "}
+                    <a href={e.url} target="_blank" rel="noreferrer noopener">
+                      source <ExternalLink size={10} aria-hidden />
+                    </a>
+                  </span>
+                </span>
+              ) : (
+                <span className={s.dim}>{data.errors[k] ? `Unavailable: ${data.errors[k]}` : "No matching report (yet)."}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

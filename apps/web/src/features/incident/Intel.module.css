@@ -646,3 +646,42 @@
   white-space: pre-wrap;
   color: var(--text-2);
 }
+
+.agencyList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agency {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--text-1);
+}
+
+.agencyName {
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.agencyBody {
+  display: grid;
+  gap: 3px;
+}
+
+.agencyBody a {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--accent);
+}
+
+.quote {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  font-style: italic;
+}

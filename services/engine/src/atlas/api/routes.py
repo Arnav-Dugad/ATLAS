@@ -228,6 +228,24 @@ async def incident_usgs(request: Request, incident_id: str) -> dict[str, Any]:
         raise HTTPException(503, {"code": "source_unavailable", "source": "usgs", "message": str(exc)}) from exc
 
 
+@router.get("/incidents/{incident_id}/agencies")
+async def incident_agencies(request: Request, incident_id: str) -> dict[str, Any]:
+    """The same earthquake as reported by regional agencies (JMA, NCS India, INCOIS), matched by time and place."""
+    from atlas.engine import agencies
+
+    r = rt(request)
+    lat, lon, _ids = _usgs_ids(r, incident_id)
+    with r.db.read() as cur:
+        row = cur.execute(
+            "SELECT event_time, magnitude FROM observations WHERE incident_id = ? AND hazard = 'earthquake' "
+            "ORDER BY (source = 'usgs') DESC, last_seen_at DESC LIMIT 1",
+            [incident_id],
+        ).fetchone()
+    if row is None:
+        raise HTTPException(404, "no earthquake observation for this incident")
+    return await agencies.for_quake(r.http, row[0], lat, lon, row[1])
+
+
 @router.get("/incidents/{incident_id}/seismic-context")
 async def incident_seismic_context(request: Request, incident_id: str) -> dict[str, Any]:
     """Largest earthquakes nearby since 1900, and this week's activity against the 10-year rate."""
