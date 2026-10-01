@@ -161,8 +161,23 @@ def neighbours(cur: Any, node: Node, limit: int = 30) -> list[tuple[Node, Edge]]
         [node.id, node.lat - dlat, node.lat + dlat, node.started_at - timedelta(days=span), node.last_at + timedelta(days=span)],
     )  # fmt: skip
     out = [(c, e) for c in cands if (e := relate(node, c)) is not None]
+    out = sequence_view(node, out)
     out.sort(key=lambda x: haversine_km(node.lat, node.lon, x[0].lat, x[0].lon))
     return out[:limit]
+
+
+SEQUENCE = frozenset({"aftershock", "foreshock"})
+
+
+def sequence_view(node: Node, found: list[tuple[Node, Edge]]) -> list[tuple[Node, Edge]]:
+    """In an earthquake sequence every event belongs to the mainshock (the largest event whose
+    window contains it), not to its neighbours: a smaller event links only to that mainshock,
+    and only the mainshock fans out to the rest of the sequence."""
+    parents = [(c, e) for c, e in found if e.type in SEQUENCE and e.target == node.id]
+    if not parents:
+        return found
+    main = max(parents, key=lambda x: (x[0].magnitude or 0.0, -x[0].started_at.timestamp()))
+    return [main] + [(c, e) for c, e in found if e.type not in SEQUENCE]
 
 
 def graph(cur: Any, incident_id: str, depth: int = 1, max_nodes: int = 40) -> dict[str, Any] | None:
@@ -195,4 +210,4 @@ def distance_km(a: Node, b: Node) -> float:
     return round(haversine_km(a.lat, a.lon, b.lat, b.lon), 1)
 
 
-__all__ = ["METHOD", "NOTE", "Edge", "Node", "distance_km", "gk_window", "graph", "neighbours", "relate"]
+__all__ = ["METHOD", "NOTE", "Edge", "Node", "distance_km", "gk_window", "graph", "neighbours", "relate", "sequence_view"]

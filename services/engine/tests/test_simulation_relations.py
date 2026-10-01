@@ -126,3 +126,17 @@ class TestRelations:
             }
         ]
         assert g["method"] == relations.METHOD
+
+
+def test_sequence_members_link_to_the_mainshock_not_to_each_other() -> None:
+    main = node("main", "earthquake", 0.0, 0.0, 0, 6.6)
+    a = node("a", "earthquake", 0.1, 0.0, 1, 5.4)
+    b = node("b", "earthquake", 0.12, 0.02, 2, 5.0)
+    fire = node("fire", "wildfire", 0.1, 0.1, 1)
+    found = [(c, e) for c in (main, b, fire) if (e := relations.relate(a, c)) is not None]
+    assert {e.type for _c, e in found} == {"aftershock"}  # a→main and a(main)→b before the sequence view
+    view = relations.sequence_view(a, found)
+    assert [(c.id, e.type) for c, e in view] == [("main", "aftershock")]
+    # the mainshock itself keeps every member
+    found_main = [(c, e) for c in (a, b) if (e := relations.relate(main, c)) is not None]
+    assert len(relations.sequence_view(main, found_main)) == 2
