@@ -553,6 +553,46 @@
         "Shown as context on the overview, not as incidents: geomagnetic storms have no single location.",
         "The outlook is SWPC's forecast, quoted as issued; ATLAS adds no prediction."
       ]
+    },
+    {
+      "id": "celestrak",
+      "name": "CelesTrak — NORAD two-line element sets",
+      "provider": "CelesTrak (T.S. Kelso)",
+      "category": "context",
+      "hazards": [],
+      "homepage": "https://celestrak.org/",
+      "docs_url": "https://celestrak.org/NORAD/documentation/gp-data-formats.php",
+      "hosts": [
+        "celestrak.org"
+      ],
+      "license": {
+        "name": "Free public data (derived from U.S. Space Force public catalog)",
+        "url": "https://celestrak.org/webmaster.php",
+        "commercial_use": true
+      },
+      "attribution": "Orbits: CelesTrak (NORAD two-line elements)",
+      "update_interval": "Several times a day",
+      "expected_latency": "Hours",
+      "coverage": {
+        "geographic": "Global",
+        "temporal": "Current orbit"
+      },
+      "resolution": "Orbital elements (SGP4)",
+      "historical_depth": "Current only",
+      "rate_limits": "Please do not request the same data more than every 2 hours; ATLAS caches for 6 h",
+      "auth": {
+        "required": false
+      },
+      "cache_strategy": "HTTP cache 6 h",
+      "reliability": {
+        "rating": "A",
+        "rationale": "Long-standing public orbital data service"
+      },
+      "parser_version": "tle/1",
+      "default_enabled": true,
+      "limitations": [
+        "Ground tracks and overpass times are predictions from public orbits (a few km accuracy for days); whether an image is actually taken depends on each mission's acquisition plan and on clouds."
+      ]
     }
   ]
 }

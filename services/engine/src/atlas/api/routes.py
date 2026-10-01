@@ -266,6 +266,28 @@ async def space_weather(request: Request) -> dict[str, Any]:
         raise HTTPException(503, {"code": "source_unavailable", "source": "swpc", "message": str(exc)}) from exc
 
 
+@router.get("/context/aurora")
+async def aurora(request: Request) -> dict[str, Any]:
+    """NOAA SWPC OVATION aurora probability (1° grid, short-term model forecast)."""
+    from atlas.engine import orbits
+
+    try:
+        return await orbits.aurora(rt(request).http)
+    except (FetchError, ValueError) as exc:
+        raise HTTPException(503, {"code": "source_unavailable", "source": "swpc", "message": str(exc)}) from exc
+
+
+@router.get("/context/satellites")
+async def satellites(request: Request) -> dict[str, Any]:
+    """Current orbits (TLE) of Sentinel-2A/B/C and Landsat 8/9 from CelesTrak, for ground tracks and overpasses."""
+    from atlas.engine import orbits
+
+    try:
+        return await orbits.satellites(rt(request).http)
+    except (FetchError, ValueError) as exc:
+        raise HTTPException(503, {"code": "source_unavailable", "source": "celestrak", "message": str(exc)}) from exc
+
+
 @router.get("/incidents/{incident_id}/graph")
 def incident_graph(request: Request, incident_id: str, depth: Annotated[int, Query(ge=1, le=2)] = 1) -> dict[str, Any]:
     """Knowledge graph around an incident: documented, rule-based relations (aftershock windows,

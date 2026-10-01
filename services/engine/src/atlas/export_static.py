@@ -172,18 +172,25 @@ def export_static(rt: Runtime, out: Path) -> dict[str, Any]:
 
 
 async def export_context(rt: Runtime, out: Path) -> bool:
-    """Context products fetched at export time (space weather)."""
-    from atlas.engine import spaceweather
-
-    try:
-        data = await spaceweather.fetch(rt.http)
-    except Exception as exc:
-        log.warning("static export: space weather unavailable: %s", exc)
-        return False
+    """Context products fetched at export time (space weather, aurora, satellite orbits)."""
     import asyncio
 
-    await asyncio.to_thread(_write, out / "api" / "v1", "context/space-weather", data)
-    return True
+    from atlas.engine import orbits, spaceweather
+
+    ok = True
+    for path, fetch in (
+        ("context/space-weather", spaceweather.fetch),
+        ("context/aurora", orbits.aurora),
+        ("context/satellites", orbits.satellites),
+    ):
+        try:
+            data = await fetch(rt.http)
+        except Exception as exc:
+            log.warning("static export: %s unavailable: %s", path, exc)
+            ok = False
+            continue
+        await asyncio.to_thread(_write, out / "api" / "v1", path, data)
+    return ok
 
 
 async def export_air_quality(rt: Runtime, out: Path, *, limit: int = 10, candidates: int = 40, budget_s: float = 180.0) -> int:
