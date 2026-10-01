@@ -186,9 +186,7 @@ async def export_context(rt: Runtime, out: Path) -> bool:
     return True
 
 
-async def export_air_quality(
-    rt: Runtime, out: Path, *, limit: int = 10, candidates: int = 40, budget_s: float = 180.0
-) -> int:
+async def export_air_quality(rt: Runtime, out: Path, *, limit: int = 10, candidates: int = 40, budget_s: float = 180.0) -> int:
     """Air quality near significant open incidents (needs ATLAS_OPENAQ_API_KEY).
 
     The most severe incidents are often remote fires or storms at sea with no station nearby,
