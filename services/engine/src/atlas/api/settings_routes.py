@@ -53,6 +53,8 @@ def _current(r: Runtime, name: str) -> str | None:
         return r.settings.openaq_api_key.get_secret_value() if r.settings.openaq_api_key else None
     if name == "reliefweb_appname":
         return r.settings.reliefweb_appname
+    if name == "hdx_app_identifier":
+        return r.settings.hdx_app_identifier.get_secret_value() if r.settings.hdx_app_identifier else None
     raise KeyError(name)
 
 
@@ -129,6 +131,20 @@ async def _test(r: Runtime, name: str) -> dict[str, Any]:
                 return {"ok": False, "message": "OpenAQ rejected this key. Copy it again from explore.openaq.org/account."}
             return {"ok": False, "message": f"Couldn't reach OpenAQ to check the key ({exc}). It is saved; try again later."}
         return {"ok": True, "message": "OpenAQ accepted the key. Incidents near monitoring stations now show air quality."}
+    if name == "hdx_app_identifier":
+        try:
+            await r.http.get(
+                "https://hapi.humdata.org/api/v2/metadata/location", params={"app_identifier": value, "limit": 1, "output_format": "json"},
+                ttl=timedelta(seconds=1), force=True, attempts=1, timeout_s=20, max_bytes=1 << 20, source_id="hdx-hapi",
+            )  # fmt: skip
+        except FetchError as exc:
+            if exc.status in (400, 401, 403, 422):
+                return {
+                    "ok": False,
+                    "message": "HDX rejected this identifier. Generate it again at hapi.humdata.org/docs (encode_app_identifier).",
+                }
+            return {"ok": False, "message": f"Couldn't reach HDX to check the identifier ({exc}). It is saved; try again later."}
+        return {"ok": True, "message": "HDX accepted the identifier. Country context now appears in each incident's Context tab."}
     try:
         await r.http.get(
             "https://api.reliefweb.int/v2/disasters", params={"appname": value, "limit": 1},

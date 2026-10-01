@@ -30,6 +30,7 @@ const QuakeIntel = lazy(() => import("./QuakeIntel").then((m) => ({ default: m.Q
 const FireGrowthCard = lazy(() => import("./HazardIntel").then((m) => ({ default: m.FireGrowthCard })));
 const SeaLevelCard = lazy(() => import("./SeaLevelCard").then((m) => ({ default: m.SeaLevelCard })));
 const RiversCard = lazy(() => import("./RiversCard").then((m) => ({ default: m.RiversCard })));
+const CountryContext = lazy(() => import("./CountryContext").then((m) => ({ default: m.CountryContext })));
 const CemsLinks = lazy(() => import("./CemsLinks").then((m) => ({ default: m.CemsLinks })));
 const OfficialAlerts = lazy(() => import("./OfficialAlerts").then((m) => ({ default: m.OfficialAlerts })));
 const CompoundCard = lazy(() => import("./CompoundCard").then((m) => ({ default: m.CompoundCard })));
@@ -301,6 +302,9 @@ function ContextTab({ d }: { d: IncidentDetail }) {
       </Suspense>
       <WeatherCard id={d.id} />
       <AirQualityCard id={d.id} />
+      <Suspense fallback={null}>
+        <CountryContext d={d} />
+      </Suspense>
       <section>
         <Label right="Natural Earth · derived">Nearby places</Label>
         <ul className={s.places}>

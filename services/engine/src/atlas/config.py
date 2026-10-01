@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     firms_map_key: SecretStr | None = None
     reliefweb_appname: str | None = None
     openaq_api_key: SecretStr | None = None
+    # HDX HAPI app identifier (base64 of "app name:email", generated free by HDX)
+    hdx_app_identifier: SecretStr | None = None
 
     # Local AI (Phase 4): an Ollama server on this machine. Loopback addresses only.
     ai_base_url: str = "http://127.0.0.1:11434"

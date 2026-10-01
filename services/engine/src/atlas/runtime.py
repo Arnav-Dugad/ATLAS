@@ -88,6 +88,8 @@ class Runtime:
             self.settings.openaq_api_key = SecretStr(value) if value else None
         elif name == "reliefweb_appname":
             self.settings.reliefweb_appname = value or None
+        elif name == "hdx_app_identifier":
+            self.settings.hdx_app_identifier = SecretStr(value) if value else None
         else:
             raise KeyError(name)
 

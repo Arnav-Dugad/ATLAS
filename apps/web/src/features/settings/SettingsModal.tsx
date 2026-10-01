@@ -239,7 +239,7 @@ function SourcesSection({ data }: { data?: AppSettings }) {
   return (
     <>
       <Header title="Data sources">
-        Two optional free services add more to ATLAS. Everything else works without them. Keys are encrypted for your Windows account on this PC and only
+        Three optional free services add more to ATLAS. Everything else works without them. Keys are encrypted for your Windows account on this PC and only
         ever sent to the service they belong to.
       </Header>
 
@@ -283,6 +283,25 @@ function SourcesSection({ data }: { data?: AppSettings }) {
           <>
             Enter the same appname below and press Save. You can save it before approval: ATLAS keeps retrying (at most hourly) and starts using ReliefWeb
             as soon as it is approved.
+          </>,
+        ]}
+      />
+
+      <CredentialCard
+        name="hdx_app_identifier"
+        title="HDX HAPI — country humanitarian context"
+        what="OCHA's Humanitarian API: INFORM risk, people in need, food insecurity (IPC) and appeal funding for the incident's country."
+        status={data?.credentials.hdx_app_identifier}
+        secret
+        placeholder="Paste your encoded app identifier"
+        steps={[
+          <>
+            Open <ExtLink href="https://hapi.humdata.org/docs#/Generate%20App%20Identifier">hapi.humdata.org/docs → Generate App Identifier</ExtLink>.
+          </>,
+          <>Press &ldquo;Try it out&rdquo;, enter an application name (for example ATLAS) and your email, and press Execute.</>,
+          <>
+            Copy the <code>encoded_app_identifier</code> value, paste it below and press Save. It is your app name and email encoded, so ATLAS keeps it
+            encrypted like a key and sends it only to HDX.
           </>,
         ]}
       />

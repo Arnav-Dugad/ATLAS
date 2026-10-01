@@ -40,6 +40,9 @@ SPECS: dict[str, CredentialSpec] = {
     "reliefweb_appname": CredentialSpec(
         "reliefweb_appname", "ATLAS_RELIEFWEB_APPNAME", "ReliefWeb appname", False, re.compile(r"[A-Za-z0-9._\-]{3,100}")
     ),
+    "hdx_app_identifier": CredentialSpec(
+        "hdx_app_identifier", "ATLAS_HDX_APP_IDENTIFIER", "HDX HAPI app identifier", True, re.compile(r"[A-Za-z0-9+/=]{8,300}")
+    ),
 }
 
 

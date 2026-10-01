@@ -372,6 +372,21 @@ async def incident_alerts(request: Request, incident_id: str) -> dict[str, Any]:
     return await _alerts(r).at(float(row[0]), float(row[1]), row[2])  # type: ignore[no-any-return]
 
 
+@router.get("/context/country/{iso3}")
+async def country_context(request: Request, iso3: str) -> dict[str, Any]:
+    """Humanitarian context for a country from HDX HAPI (needs a free app identifier)."""
+    from atlas.engine import hapi
+
+    r = rt(request)
+    if not r.settings.hdx_app_identifier:
+        return {"status": "unavailable", "provenance": "unavailable", "action": "configure",
+                "reason": "Country humanitarian context needs a free HDX HAPI app identifier (set ATLAS_HDX_APP_IDENTIFIER, or add it in Settings in the Windows app)."}  # fmt: skip
+    try:
+        return await hapi.country(r.http, r.settings.hdx_app_identifier.get_secret_value(), iso3.upper())
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
 @router.get("/context/cems")
 async def cems_recent(request: Request) -> dict[str, Any]:
     """Copernicus EMS rapid-mapping activations of the last 30 days."""

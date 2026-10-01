@@ -258,6 +258,26 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface CountryContextData {
+  status: "ok";
+  iso3: string;
+  errors: string[];
+  attribution: string;
+  risk?: {
+    risk_class: string | null;
+    global_rank: number | null;
+    overall_risk: number | null;
+    hazard_exposure_risk: number | null;
+    vulnerability_risk: number | null;
+    coping_capacity_risk: number | null;
+    reference_period_start: string | null;
+    reference_period_end: string | null;
+  };
+  people_in_need?: { population: number; period_end: string | null };
+  ipc3_plus?: { population: number; fraction: number | null; period_end: string | null };
+  funding?: { appeal_name: string | null; appeal_type: string | null; requirements_usd: number | null; funding_usd: number | null; funding_pct: number | null };
+}
+
 export interface CemsActivation {
   code: string;
   name: string;
@@ -799,6 +819,7 @@ const LOCAL_ONLY: RegExp[] = [
   /\/exposure\/worldpop$/,
   /\/exposure\/buildings$/,
   /\/cems$/,
+  /\/context\/country\//,
   /\/alerts\/layer$/,
   /\/exposure\/zones$/,
 ];
@@ -974,7 +995,7 @@ export interface IncidentQuery {
 }
 
 // ---------------------------------------------------------------- Windows app Settings
-export type CredentialName = "openaq_api_key" | "reliefweb_appname";
+export type CredentialName = "openaq_api_key" | "reliefweb_appname" | "hdx_app_identifier";
 
 export interface CredentialStatus {
   label: string;
@@ -1058,6 +1079,8 @@ export const api = {
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
   zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
+  countryContext: (iso3: string, signal?: AbortSignal) =>
+    request<CountryContextData | (Unavailable & { action?: string })>(`/api/v1/context/country/${encodeURIComponent(iso3)}`, { signal }),
   cems: (id: string, signal?: AbortSignal) => request<{ status: "ok"; items: CemsActivation[] } | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/cems`, { signal }),
   buildings: (id: string, signal?: AbortSignal) => request<BuildingRings | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/buildings`, { signal }),
   worldpop: (id: string, signal?: AbortSignal) => request<WorldPopCompare | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/worldpop`, { signal }),
