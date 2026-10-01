@@ -186,9 +186,18 @@ async def export_context(rt: Runtime, out: Path) -> bool:
     return True
 
 
-async def export_air_quality(rt: Runtime, out: Path, *, limit: int = 10) -> int:
-    """Air quality near the most significant active incidents (needs ATLAS_OPENAQ_API_KEY)."""
+async def export_air_quality(
+    rt: Runtime, out: Path, *, limit: int = 10, candidates: int = 40, budget_s: float = 180.0
+) -> int:
+    """Air quality near significant open incidents (needs ATLAS_OPENAQ_API_KEY).
+
+    The most severe incidents are often remote fires or storms at sea with no station nearby,
+    so open incidents are ranked by residents within the station radius (GHSL, when the
+    Population Pack is installed; severity otherwise) and walked until `limit` have stations
+    (bounded by `candidates` and wall time). Results without a station are written too: "no
+    station within 25 km" is an answer, where a missing file would read as "unavailable"."""
     import asyncio
+    import time
 
     from atlas.engine import airquality
 
@@ -197,12 +206,28 @@ async def export_air_quality(rt: Runtime, out: Path, *, limit: int = 10) -> int:
     key = rt.settings.openaq_api_key.get_secret_value()
     with rt.db.read() as cur:
         rows = cur.execute(
-            "SELECT id, lat, lon FROM incidents WHERE status = 'active' AND lat IS NOT NULL "
-            "ORDER BY severity_level DESC, last_observation_at DESC LIMIT ?",
-            [limit],
+            "SELECT id, lat, lon FROM incidents WHERE status <> 'closed' AND lat IS NOT NULL "
+            "ORDER BY severity_level DESC, last_observation_at DESC LIMIT 300"
         ).fetchall()
-    done = 0
+    population = rt.population
+    if population is not None:
+        radius = airquality.RADIUS_M / 1000
+
+        def residents(row: tuple[str, float, float]) -> float:
+            try:
+                return population.rings(float(row[1]), float(row[2]), [radius])[0]
+            except Exception:
+                return 0.0
+
+        people = await asyncio.to_thread(lambda: [residents(r) for r in rows])
+        order = sorted(range(len(rows)), key=lambda i: -people[i])  # stable: severity breaks ties
+        rows = [rows[i] for i in order]
+    rows = rows[:candidates]
+    started = time.monotonic()
+    with_stations = written = 0
     for iid, lat, lon in rows:
+        if with_stations >= limit or time.monotonic() - started > budget_s:
+            break
         try:
             res = await airquality.nearby(rt.http, key, float(lat), float(lon))
         except Exception as exc:  # one failure must not sink the snapshot
@@ -210,9 +235,10 @@ async def export_air_quality(rt: Runtime, out: Path, *, limit: int = 10) -> int:
             continue
         if res.get("status") == "ok":
             await asyncio.to_thread(_write, out / "api" / "v1", f"incidents/{iid}/air-quality", res)
-            done += 1
-    log.info("static air quality: %d incidents", done)
-    return done
+            written += 1
+            with_stations += bool(res.get("stations"))
+    log.info("static air quality: %d incidents, %d with stations nearby", written, with_stations)
+    return with_stations
 
 
 async def export_spectral(rt: Runtime, out: Path, *, limit: int = 6, budget_s: float = 240.0) -> list[str]:
