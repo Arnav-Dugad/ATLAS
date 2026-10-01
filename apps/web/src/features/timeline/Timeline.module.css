@@ -1,0 +1,122 @@
+.bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  height: 100%;
+  padding: 0 16px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart {
+  position: relative;
+  height: 44px;
+  min-width: 0;
+  margin-right: 28px;
+}
+.svg {
+  width: 100%;
+  height: 44px;
+  display: block;
+  border-bottom: 1px solid var(--line-2);
+}
+.col rect {
+  transition: opacity var(--dur-1) var(--ease-out);
+}
+.colOn rect:first-child {
+  fill: rgba(156, 201, 255, 0.08);
+}
+.now {
+  position: absolute;
+  right: -1px;
+  top: -4px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+.now span {
+  position: absolute;
+  top: -2px;
+  left: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+}
+.ticks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 47px;
+  height: 12px;
+}
+.ticks span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.ticks span:first-child {
+  transform: none;
+}
+.tip {
+  position: absolute;
+  bottom: 52px;
+  transform: translateX(-50%);
+  padding: 6px 9px;
+  border-radius: var(--r-sm);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-pop);
+  font-size: var(--fs-2xs);
+  color: var(--text-2);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.tipTime {
+  font-family: var(--font-mono);
+  color: var(--text-1);
+  margin-bottom: 2px;
+}
+
+.imagery {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  padding: 0 4px 0 9px;
+  border-radius: var(--r-sm);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.imageryIdle {
+  color: var(--text-3);
+}
+.dayBtn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  color: var(--text-2);
+}
+.dayBtn:hover {
+  background: rgba(150, 168, 194, 0.1);
+  color: var(--text-1);
+}
+.date {
+  border: 0;
+  background: none;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  width: 104px;
+  color-scheme: dark;
+}

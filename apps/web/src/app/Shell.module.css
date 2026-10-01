@@ -1,0 +1,142 @@
+.shell {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--void);
+}
+
+.skip {
+  position: absolute;
+  top: -40px;
+  left: 12px;
+  z-index: 100;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: #07101b;
+}
+.skip:focus {
+  top: 8px;
+}
+
+/* Floating glass rails: justified glass, because the planet is behind them. */
+.rail,
+.panel,
+.timeline {
+  position: absolute;
+  z-index: var(--z-chrome);
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(145%);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  box-shadow: var(--shadow-2), inset 0 0 0 1px var(--line-1);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.rail {
+  top: calc(var(--topbar-h) + var(--gutter));
+  left: var(--gutter);
+  bottom: calc(var(--timeline-h) + var(--gutter) * 2);
+  width: var(--rail-w);
+}
+
+.panel {
+  top: calc(var(--topbar-h) + var(--gutter));
+  right: var(--gutter);
+  bottom: calc(var(--timeline-h) + var(--gutter) * 2);
+  width: var(--panel-w);
+}
+.panelInner {
+  height: 100%;
+}
+
+.timeline {
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: var(--gutter);
+  height: var(--timeline-h);
+  overflow: visible;
+}
+
+.boot {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
+  background: radial-gradient(60% 60% at 50% 48%, #0c1726, var(--void) 70%);
+}
+.bootOrb {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #1d3550, #08121d 70%);
+  box-shadow:
+    0 0 80px -10px rgba(156, 201, 255, 0.35),
+    inset -18px -22px 40px rgba(0, 0, 0, 0.6);
+  animation: atlas-breathe 2.2s var(--ease-in-out) infinite;
+}
+.bootText {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+}
+
+/* Ultrawide: give the planet more room and the panels more air */
+@media (min-width: 2200px) {
+  :root {
+    --rail-w: 420px;
+    --panel-w: 480px;
+  }
+}
+
+/* Laptops */
+@media (max-width: 1440px) {
+  :root {
+    --rail-w: 336px;
+    --panel-w: 384px;
+  }
+}
+
+/* Tablets: incident panel becomes an overlay sheet */
+@media (max-width: 1100px) {
+  :root {
+    --rail-w: 300px;
+    --panel-w: 360px;
+  }
+}
+
+/* Phones: focused global-event viewer — globe on top, stream below */
+@media (max-width: 760px) {
+  :root {
+    --timeline-h: 0px;
+    --gutter: 8px;
+  }
+  .rail {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: 46vh;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+  }
+  .panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: 72vh;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    z-index: calc(var(--z-chrome) + 1);
+  }
+  .panel:has(> div > div[class*="OverviewPanel"]) {
+    display: none;
+  }
+  .timeline {
+    display: none;
+  }
+}

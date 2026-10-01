@@ -1,0 +1,111 @@
+import { Activity, Command, Database, Globe2, Layers, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { relTime } from "../../lib/format";
+import { useLive } from "../../lib/live";
+import { useUi, type View } from "../../lib/store";
+import { cx, Dot, Kbd } from "../../ui/primitives";
+import s from "./TopBar.module.css";
+
+function useUtcClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return now;
+}
+
+const VIEWS: { id: View; label: string; icon: typeof Globe2; key: string }[] = [
+  { id: "planet", label: "Planet", icon: Globe2, key: "1" },
+  { id: "sources", label: "Sources", icon: Database, key: "2" },
+  { id: "health", label: "Health", icon: Activity, key: "3" },
+];
+
+export function TopBar() {
+  const view = useUi((st) => st.view);
+  const setView = useUi((st) => st.setView);
+  const openPalette = useUi((st) => st.openPalette);
+  const layersOpen = useUi((st) => st.layersOpen);
+  const setLayersOpen = useUi((st) => st.setLayersOpen);
+  const live = useLive((st) => st.status);
+  const lastEventAt = useLive((st) => st.lastEventAt);
+  const now = useUtcClock();
+  const hh = String(now.getUTCHours()).padStart(2, "0");
+  const mm = String(now.getUTCMinutes()).padStart(2, "0");
+  const ss = String(now.getUTCSeconds()).padStart(2, "0");
+  const date = now.toISOString().slice(0, 10);
+
+  const liveColor = live === "live" ? "var(--ok)" : live === "connecting" ? "var(--warn)" : "var(--bad)";
+  const liveText = live === "live" ? "Live" : live === "connecting" ? "Connecting" : "Engine offline";
+
+  return (
+    <header className={s.bar}>
+      <div className={s.left}>
+        <button type="button" className={s.brand} onClick={() => setView("planet")} aria-label="ATLAS home">
+          <Logo />
+          <span className={s.wordmark}>ATLAS</span>
+        </button>
+        <nav className={s.nav} aria-label="Primary">
+          {VIEWS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              className={cx(s.navBtn, view === v.id && s.navOn)}
+              onClick={() => setView(v.id)}
+              aria-current={view === v.id ? "page" : undefined}
+              title={`${v.label} (Alt+${v.key})`}
+            >
+              <v.icon size={14} strokeWidth={1.8} aria-hidden />
+              {v.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <button type="button" className={s.search} onClick={() => openPalette()} aria-label="Search and commands">
+        <Search size={14} aria-hidden />
+        <span className={s.searchText}>Search places, incidents, or try “M6+ in Japan since 2020”</span>
+        <span className={s.searchKeys}>
+          <Kbd>
+            <Command size={10} aria-hidden />
+          </Kbd>
+          <Kbd>K</Kbd>
+        </span>
+      </button>
+
+      <div className={s.right}>
+        <button
+          type="button"
+          className={cx(s.chip, layersOpen && s.chipOn)}
+          onClick={() => setLayersOpen(!layersOpen)}
+          aria-pressed={layersOpen}
+          title="Layers (L)"
+        >
+          <Layers size={14} aria-hidden /> Layers
+        </button>
+        <div className={s.live} title={lastEventAt ? `Last stream event ${relTime(lastEventAt)}` : "Waiting for the live stream"}>
+          <Dot color={liveColor} pulse={live === "live"} />
+          <span>{liveText}</span>
+        </div>
+        <div className={s.clock} aria-label={`Coordinated Universal Time ${hh}:${mm}`}>
+          <span className={s.clockTime}>
+            {hh}:{mm}
+            <span className={s.clockSec}>:{ss}</span>
+          </span>
+          <span className={s.clockZone}>UTC · {date}</span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+export function Logo({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden>
+      <circle cx="32" cy="32" r="17" stroke="#e8ecf2" strokeWidth="3" />
+      <ellipse cx="32" cy="32" rx="27" ry="9.5" transform="rotate(-24 32 32)" stroke="#9cc9ff" strokeWidth="3" strokeLinecap="round" strokeDasharray="58 8" />
+      <circle cx="54.6" cy="21.4" r="3.6" fill="#9cc9ff" />
+      <path d="M32 15v34" stroke="#e8ecf2" strokeOpacity=".35" strokeWidth="2" />
+    </svg>
+  );
+}
