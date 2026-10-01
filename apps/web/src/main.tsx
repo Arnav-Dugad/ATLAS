@@ -9,6 +9,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ApiError, DESKTOP, setApiBase, STATIC_MODE } from "./lib/api";
 import { engineUrl } from "./lib/desktop";
+import { trackVisits } from "./lib/lastVisit";
 import { Shell } from "./app/Shell";
 
 const client = new QueryClient({
@@ -41,6 +42,7 @@ async function boot(el: HTMLElement) {
     const url = await engineUrl(); // the Windows app picks a free port when 8787 is taken
     if (url) setApiBase(url);
   }
+  trackVisits();
   createRoot(el).render(
     <StrictMode>
       <QueryClientProvider client={client}>

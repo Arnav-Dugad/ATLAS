@@ -10,6 +10,7 @@ import { useOverview } from "../../lib/queries";
 import { useUi } from "../../lib/store";
 import { AnimatedNumber } from "../../ui/AnimatedNumber";
 import { Dot, ErrorState, HazardGlyph, Label, SeverityMeter, Skeleton, AsOf } from "../../ui/primitives";
+import { SinceLastVisit } from "./SinceLastVisit";
 import s from "./OverviewPanel.module.css";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -46,6 +47,8 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
         <div className="label">Planetary state</div>
         <div className={s.stamp}>{data ? utcFull(data.generated_at) : "—"}</div>
       </header>
+
+      <SinceLastVisit incidents={incidents} />
 
       <button type="button" className={s.storyBtn} onClick={() => useUi.getState().setStory({ index: 0, playing: true })} disabled={!data}>
         <span className={s.storyIcon}>
