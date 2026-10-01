@@ -53,7 +53,7 @@ import {
 import type { Columnar, Facility, FireClusterFeature, IncidentDetail, IncidentSummary } from "../lib/api";
 import { EXPOSURE_RINGS_KM, FACILITY_META, hazardMeta, severityColor, type FacilityKey, type HazardId } from "../lib/hazards";
 import { gpuInfo } from "../lib/media";
-import type { FlyRequest, LayerId } from "../lib/store";
+import { rank, type FlyRequest, type LayerId } from "../lib/store";
 import { BASE, BASE_FALLBACK, compareUrl, NIGHT_LIGHTS, OVERLAYS, overlayDate, type CompareProduct, type ImageryDef } from "./imagery";
 import { GlobeEffects, WAVE_LIFETIME_S, type SatelliteTrack, type WaveSource } from "./effects";
 import { createTerrariumProvider } from "./terrain";
@@ -770,6 +770,26 @@ export class AtlasGlobe {
       this.widget.imageryLayers.add(layer);
       this.overlays.set(key, layer);
     }
+    this.applyOverlayStyle();
+  }
+
+  private overlayStyle: { opacity: Record<string, number>; order: string[] } = { opacity: {}, order: [] };
+
+  /** Per-overlay opacity and stacking order (Layers panel). */
+  setOverlayStyle(opacity: Record<string, number>, order: string[]) {
+    this.overlayStyle = { opacity, order };
+    this.applyOverlayStyle();
+  }
+
+  private applyOverlayStyle() {
+    const { opacity, order } = this.overlayStyle;
+    const ids = [...this.overlays.keys()].filter((id) => id !== "labels");
+    for (const id of ids) {
+      const def = OVERLAYS.find((o) => o.id === id);
+      const layer = this.overlays.get(id)!;
+      layer.alpha = opacity[id] ?? def?.alpha ?? 1;
+    }
+    for (const id of ids.sort((a, b) => rank(order, a) - rank(order, b))) this.widget.imageryLayers.raiseToTop(this.overlays.get(id)!);
     // keep labels and night lights on top of overlays
     const labels = this.overlays.get("labels");
     if (labels) this.widget.imageryLayers.raiseToTop(labels);

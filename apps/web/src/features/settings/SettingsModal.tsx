@@ -41,6 +41,8 @@ import {
   resolveQuality,
   type SettingsSection,
   type Surface,
+  type LayoutPreset,
+  PRESET_WIDTHS,
   type Units,
   useSettings,
 } from "../../lib/settings";
@@ -649,6 +651,39 @@ function AppearanceSection() {
   );
 }
 
+function LayoutCard() {
+  const layout = useSettings((st) => st.layout);
+  const setLayout = useSettings((st) => st.setLayout);
+  return (
+    <section className={s.card}>
+      <div className={s.cardHead}>
+        <div>
+          <h4>Layout</h4>
+          <p className={s.muted}>Drag the inner edge of either panel to resize it; double-click it to reset.</p>
+        </div>
+      </div>
+      <div className={s.group} role="radiogroup" aria-label="Layout">
+        {(Object.keys(PRESET_WIDTHS) as LayoutPreset[]).map((p) => (
+          <button
+            key={p}
+            type="button"
+            role="radio"
+            aria-checked={layout.preset === p}
+            className={cx(s.choice, layout.preset === p && s.choiceOn)}
+            onClick={() => setLayout({ preset: p, streamW: null, panelW: null })}
+          >
+            <span className={s.choiceText}>
+              <strong>{PRESET_WIDTHS[p].label}</strong>
+              <span>{PRESET_WIDTHS[p].hint}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <Toggle checked={layout.swap} onChange={(swap) => setLayout({ swap })} label="Swap sides" description="Intelligence on the left, incident stream on the right." />
+    </section>
+  );
+}
+
 function PersonalSection() {
   const accent = useSettings((st) => st.accent);
   const setAccent = useSettings((st) => st.setAccent);
@@ -681,6 +716,7 @@ function PersonalSection() {
           ))}
         </div>
       </section>
+      <LayoutCard />
       <section className={s.card}>
         <div className={s.kv}>
           <span>Density</span>

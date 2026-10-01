@@ -1,4 +1,4 @@
-import { Activity, Command, Database, Eye, Globe2, Layers, Search, Settings, Sparkles } from "lucide-react";
+import { Activity, Command, Database, Eye, Globe2, LayoutGrid, Layers, Search, Settings, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { fetchSnapshotInfo, STATIC_MODE, WINDOWS_APP } from "../../lib/api";
@@ -23,8 +23,9 @@ function useUtcClock() {
 
 const VIEWS: { id: View; label: string; icon: typeof Globe2; key: string }[] = [
   { id: "planet", label: "Planet", icon: Globe2, key: "1" },
-  { id: "sources", label: "Sources", icon: Database, key: "2" },
-  { id: "health", label: "Health", icon: Activity, key: "3" },
+  { id: "board", label: "Board", icon: LayoutGrid, key: "2" },
+  { id: "sources", label: "Sources", icon: Database, key: "3" },
+  { id: "health", label: "Health", icon: Activity, key: "4" },
 ];
 
 export function TopBar() {

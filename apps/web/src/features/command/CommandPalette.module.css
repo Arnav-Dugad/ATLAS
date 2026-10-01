@@ -12,6 +12,7 @@
 
 .panel {
   width: min(680px, calc(100vw - 32px));
+  transition: width var(--dur-2) var(--ease-out);
   max-height: 72vh;
   display: flex;
   flex-direction: column;
@@ -226,4 +227,86 @@
 }
 .footRight {
   margin-left: auto;
+}
+
+/* list + preview */
+.body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+.body > .list {
+  flex: 1;
+  min-width: 0;
+}
+.panel:has(.withPreview) {
+  width: min(940px, calc(100vw - 32px));
+}
+.preview {
+  flex: none;
+  width: 280px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-left: 1px solid var(--line-1);
+  background: rgba(150, 168, 194, 0.03);
+  overflow-y: auto;
+}
+.pvKicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--hz, var(--text-3));
+}
+.pvTitle {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.pvText {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.pvFacts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: var(--fs-xs);
+}
+.pvFacts dt {
+  color: var(--text-3);
+}
+.pvFacts dd {
+  margin: 0;
+  color: var(--text-1);
+}
+.pvMetric {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  background: rgba(150, 168, 194, 0.06);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.pvMetric strong {
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+.pvHint {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+@media (max-width: 760px) {
+  .preview {
+    display: none;
+  }
 }

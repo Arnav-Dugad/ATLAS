@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Columns2, FlaskConical, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Columns2, FlaskConical, X } from "lucide-react";
 import { useState } from "react";
 import { OVERLAYS } from "../../globe/imagery";
 import { compareView } from "../../lib/compare";
 import { gpuInfo } from "../../lib/media";
 import { openSimulation } from "../../lib/simulate";
-import { useUi, type LayerId } from "../../lib/store";
+import { rank, useUi, type LayerId } from "../../lib/store";
 import { cx, Toggle } from "../../ui/primitives";
 import s from "./LayerPanel.module.css";
 
@@ -24,6 +24,7 @@ const PLANET: { id: LayerId; label: string; desc: string }[] = [
   { id: "nightLights", label: "City lights", desc: "VIIRS Black Marble on the night side" },
   { id: "borders", label: "Country borders", desc: "Natural Earth 1:110m" },
   { id: "terrain", label: "3D terrain", desc: "Open elevation tiles (SRTM, GMTED, EU-DEM…), land only" },
+  { id: "minimap", label: "Mini-map", desc: "Where you are on a flat world map once zoomed in; click it to fly" },
 ];
 
 const EFFECTS: { id: LayerId; label: string; desc: string }[] = [
@@ -35,6 +36,37 @@ const EFFECTS: { id: LayerId; label: string; desc: string }[] = [
 ];
 
 const EXAGGERATION = [1, 1.5, 2, 3];
+
+/** Opacity slider and up/down stacking for an active imagery overlay. */
+function OverlayControls({ id, defaultAlpha }: { id: string; defaultAlpha: number }) {
+  const opacity = useUi((st) => st.overlayOpacity[id] ?? defaultAlpha);
+  const setOpacity = useUi((st) => st.setOverlayOpacity);
+  const move = useUi((st) => st.moveOverlay);
+  const layers = useUi((st) => st.layers);
+  const order = useUi((st) => st.overlayOrder);
+  const visible: string[] = OVERLAYS.filter((o) => layers[o.id as LayerId]).map((o) => o.id);
+  const sorted = [...visible].sort((a, b) => rank(order, a) - rank(order, b));
+  const pos = sorted.indexOf(id);
+  return (
+    <div className={s.overlayCtl}>
+      <label className={s.opacity}>
+        <span>Opacity</span>
+        <input type="range" min={10} max={100} step={5} value={Math.round(opacity * 100)} onChange={(e) => setOpacity(id, Number(e.target.value) / 100)} aria-label="Overlay opacity" />
+        <span className="num">{Math.round(opacity * 100)}%</span>
+      </label>
+      {visible.length > 1 ? (
+        <span className={s.stack}>
+          <button type="button" onClick={() => move(id, 1, visible)} disabled={pos === sorted.length - 1} aria-label="Draw above the next overlay" title="Move up">
+            <ChevronUp size={13} />
+          </button>
+          <button type="button" onClick={() => move(id, -1, visible)} disabled={pos <= 0} aria-label="Draw below the previous overlay" title="Move down">
+            <ChevronDown size={13} />
+          </button>
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 export function LayerPanel() {
   const open = useUi((st) => st.layersOpen);
@@ -140,6 +172,7 @@ export function LayerPanel() {
                   {defs.map((o) => (
                     <div key={o.id}>
                       <Toggle checked={Boolean(layers[o.id as LayerId])} onChange={(v) => toggleOverlay(o.id as LayerId, v)} label={o.title} description={o.description} />
+                      {layers[o.id as LayerId] ? <OverlayControls id={o.id} defaultAlpha={o.alpha} /> : null}
                       {layers[o.id as LayerId] && o.legend ? (
                         <div className={s.legend}>
                           <div className={s.legendBar} style={{ background: `linear-gradient(90deg, ${o.legend.gradient.join(",")})` }} />

@@ -29,18 +29,62 @@ import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
 import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary, type SearchResponse } from "../../lib/api";
 import { compareIncident, compareView } from "../../lib/compare";
-import { ACCENTS, type Accent, openSettings, useSettings } from "../../lib/settings";
+import { ACCENTS, type Accent, openSettings, PRESET_WIDTHS, useSettings } from "../../lib/settings";
 import { openSimulation } from "../../lib/simulate";
 import { useWatch } from "../../lib/watch";
 import { exportBrief } from "../../lib/export";
 import { focusIncident, focusPoint } from "../../lib/focus";
-import { compact, observedAgo, utcDate } from "../../lib/format";
+import { compact, metricValue, observedAgo, utcDate } from "../../lib/format";
 import { fuzzy } from "../../lib/fuzzy";
 import { HAZARDS, hazardMeta, type HazardId } from "../../lib/hazards";
 import { startHistoricalReplay, useHistoricalCatalog } from "../../lib/history";
 import { useUi, type LayerId, type TimeWindow } from "../../lib/store";
 import { cx, HazardGlyph, Highlight, Kbd, SeverityMeter } from "../../ui/primitives";
 import s from "./CommandPalette.module.css";
+
+function Preview({ item }: { item: Item }) {
+  const inc = item.preview?.incident;
+  if (!inc) {
+    return (
+      <aside className={s.preview} aria-live="polite">
+        <div className={s.pvKicker}>{item.section}</div>
+        <div className={s.pvTitle}>{item.label}</div>
+        {item.preview?.text ? <p className={s.pvText}>{item.preview.text}</p> : null}
+      </aside>
+    );
+  }
+  const meta = hazardMeta(inc.hazard);
+  return (
+    <aside className={s.preview} aria-live="polite" style={{ "--hz": meta.color } as React.CSSProperties}>
+      <div className={s.pvKicker}>
+        <HazardGlyph hazard={inc.hazard} size={13} /> {meta.label} · {inc.status}
+      </div>
+      <div className={s.pvTitle}>{inc.title}</div>
+      <SeverityMeter level={inc.severity.level} showLabel />
+      <dl className={s.pvFacts}>
+        {inc.place?.description ? (
+          <>
+            <dt>Where</dt>
+            <dd>{inc.place.description}</dd>
+          </>
+        ) : null}
+        <dt>Began</dt>
+        <dd>{utcDate(inc.started_at)}</dd>
+        <dt>Latest data</dt>
+        <dd>{observedAgo(inc.last_observation_at)}</dd>
+        <dt>Sources</dt>
+        <dd>{inc.source_count}</dd>
+      </dl>
+      {inc.headline.slice(0, 3).map((m) => (
+        <div key={`${m.key}-${m.source}`} className={s.pvMetric}>
+          <span>{m.label}</span>
+          <strong>{metricValue(m.value, m.unit)}</strong>
+        </div>
+      ))}
+      <div className={s.pvHint}>↵ open on the globe</div>
+    </aside>
+  );
+}
 
 interface Item {
   id: string;
@@ -52,6 +96,8 @@ interface Item {
   indices?: number[];
   score: number;
   run: () => void;
+  /** shown beside the list while the item is highlighted */
+  preview?: { incident?: IncidentSummary; text?: string };
 }
 
 const LAYER_LABELS: Partial<Record<LayerId, string>> = {
@@ -190,6 +236,10 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
         const st = useSettings.getState();
         const u = st.units;
         return [
+          ...(["monitoring", "analysis", "presentation"] as const)
+            .filter((p) => p !== st.layout.preset)
+            .map((p) => ({ id: `layout-${p}`, section: "Layout", label: `Layout: ${PRESET_WIDTHS[p].label}`, icon: <Columns2 size={15} />, keywords: `layout panels ${PRESET_WIDTHS[p].hint}`, run: done(() => st.setLayout({ preset: p, streamW: null, panelW: null })) })),
+          { id: "layout-swap", section: "Layout", label: st.layout.swap ? "Stream on the left again" : "Swap sides (intelligence on the left)", icon: <Columns2 size={15} />, keywords: "layout panels swap left right", run: done(() => st.setLayout({ swap: !st.layout.swap })) },
           { id: "density", section: "Appearance", label: st.density === "compact" ? "Comfortable density" : "Compact density (more rows)", icon: <Layers size={15} />, keywords: "dense small laptop rows spacing", run: done(() => st.setDensity(st.density === "compact" ? "comfortable" : "compact")) },
           { id: "units-distance", section: "Units", label: u.distance === "km" ? "Show distances in miles" : "Show distances in kilometres", icon: <Settings size={15} />, keywords: "units miles km imperial metric", run: done(() => st.setUnits({ distance: u.distance === "km" ? "mi" : "km" })) },
           { id: "units-temp", section: "Units", label: u.temperature === "C" ? "Show temperatures in °F" : "Show temperatures in °C", icon: <Settings size={15} />, keywords: "units fahrenheit celsius", run: done(() => st.setUnits({ temperature: u.temperature === "C" ? "F" : "C" })) },
@@ -221,11 +271,11 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
       out.push({ id: `win-${w}`, section: "Time", label: `Time window: ${label}`, icon: <Clock size={15} />, keywords: "timeline period range", run: done(() => ui.setWindow(w)) });
     }
     for (const [id, label] of Object.entries(LAYER_LABELS) as [LayerId, string][]) {
-      out.push({ id: `layer-${id}`, section: "Layers", label: `${ui.layers[id] ? "Hide" : "Show"} ${label}`, icon: <Layers size={15} />, keywords: "toggle layer", run: done(() => ui.toggleLayer(id)) });
+      out.push({ id: `layer-${id}`, section: "Layers", label: `${ui.layers[id] ? "Hide" : "Show"} ${label}`, icon: <Layers size={15} />, keywords: "toggle layer", preview: { text: `${label} is ${ui.layers[id] ? "on" : "off"}. Every layer is listed with its source in Layers (L).` }, run: done(() => ui.toggleLayer(id)) });
     }
     for (const def of OVERLAYS) {
       const id = def.id as LayerId;
-      out.push({ id: `ov-${id}`, section: "Layers", label: `${ui.layers[id] ? "Hide" : "Show"} ${def.title}`, icon: <Layers size={15} />, keywords: `satellite imagery overlay ${def.group}`, run: done(() => ui.toggleLayer(id)) });
+      out.push({ id: `ov-${id}`, section: "Layers", label: `${ui.layers[id] ? "Hide" : "Show"} ${def.title}`, icon: <Layers size={15} />, keywords: `satellite imagery overlay ${def.group}`, preview: { text: def.description }, run: done(() => ui.toggleLayer(id)) });
     }
     for (const ev of catalog.data?.events ?? []) {
       out.push({
@@ -270,6 +320,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
             indices: fuzzy(query, inc.title)?.indices ?? [],
             icon: <HazardGlyph hazard={inc.hazard} size={15} />,
             hint: <SeverityMeter level={inc.severity.level} size="sm" />,
+            preview: { incident: inc },
             score: m.score + 4 + inc.severity.level,
             run: () => {
               focusIncident(inc);
@@ -451,6 +502,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
           </div>
         ) : null}
 
+        <div className={cx(s.body, items[cursor]?.preview && s.withPreview)}>
         <div className={s.list} id="palette-list" role="listbox" ref={listRef}>
           {items.map((it, i) => {
             const header = it.section !== lastSection ? it.section : null;
@@ -488,6 +540,8 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
                   : "No matches. Try a place name, an incident, or a question."}
             </div>
           ) : null}
+        </div>
+        {items[cursor]?.preview ? <Preview item={items[cursor]} /> : null}
         </div>
         <footer className={s.foot}>
           <span>

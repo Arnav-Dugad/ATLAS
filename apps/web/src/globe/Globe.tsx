@@ -2,7 +2,8 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary } from "../lib/api";
 import { compact, coord, decimal, observedAgo, relTime, utcShort } from "../lib/format";
-import { hazardMeta } from "../lib/hazards";
+import { hazardMeta, severityColor } from "../lib/hazards";
+import { MiniWorld } from "../ui/MiniWorld";
 import { qk, useCountries, useEarthquakeLayer, useFireClusters, useFireGrid, useIncident } from "../lib/queries";
 import { QUALITY, resolveQuality, useSettings } from "../lib/settings";
 import { useUi } from "../lib/store";
@@ -39,6 +40,8 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const groundPick = useUi((s) => s.groundPick);
   const watches = useWatch((s) => s.watches);
   const quality = useSettings((s) => s.quality);
+  const overlayOpacity = useUi((s) => s.overlayOpacity);
+  const overlayOrder = useUi((s) => s.overlayOrder);
   const aurora = useQuery({
     queryKey: ["aurora"],
     queryFn: ({ signal }) => api.aurora(signal),
@@ -105,6 +108,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   useEffect(() => {
     if (WINDOWS_APP) globe?.setQuality(QUALITY[resolveQuality(quality)]);
   }, [globe, quality]);
+  useEffect(() => globe?.setOverlayStyle(overlayOpacity, overlayOrder), [globe, overlayOpacity, overlayOrder, layers, imageryDate]);
   useEffect(
     () => globe?.setEffects({ waves: layers.waves, terminator: layers.terminator, aurora: layers.aurora, satellites: layers.satellites, embers: layers.embers }),
     [globe, layers.waves, layers.terminator, layers.aurora, layers.satellites, layers.embers],
@@ -249,6 +253,20 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
       <div ref={host} className={styles.host} aria-label="Interactive 3D globe of active hazards" role="application" />
       <div className={styles.vignette} aria-hidden />
       {hover && globe && <HoverCard info={hover} globe={globe} incidents={incidents} />}
+      {layers.minimap && view?.bbox && view.height < 8_000_000 && appView === "planet" ? (
+        <div className={styles.minimap} title="Where you are — click to fly there">
+          <MiniWorld
+            width={220}
+            height={110}
+            view={view.bbox}
+            label="Mini-map of the current view"
+            points={incidents
+              .filter((i) => i.lat != null && i.lon != null && i.severity.level >= 3)
+              .map((i) => ({ lat: i.lat!, lon: i.lon!, color: severityColor(i.severity.level), r: 1.6 + i.severity.level * 0.3 }))}
+            onPick={(lat, lon) => useUi.getState().flyTo({ lat, lon, height: view.height })}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

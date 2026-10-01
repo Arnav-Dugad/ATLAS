@@ -5,7 +5,7 @@ import type { HistoricalEvent } from "./history";
 import type { HazardId } from "./hazards";
 
 export type TimeWindow = "1h" | "24h" | "7d" | "30d";
-export type View = "planet" | "sources" | "health";
+export type View = "planet" | "board" | "sources" | "health";
 export type StatusFilter = "active" | "open" | "all";
 
 export const WINDOW_HOURS: Record<TimeWindow, number> = { "1h": 1, "24h": 24, "7d": 24 * 7, "30d": 24 * 30 };
@@ -24,6 +24,9 @@ export interface FlyRequest {
   /** arrive at an oblique angle and orbit slowly until the user takes over */
   cinematic?: boolean;
 }
+
+/** imagery overlays in catalogue order (see globe/imagery.ts) */
+const OVERLAY_IDS = ["imagery.truecolor", "imagery.precip", "imagery.sst", "imagery.no2", "imagery.so2", "imagery.aerosol", "imagery.lst", "imagery.flood", "imagery.water", "imagery.ndvi", "imagery.population", "imagery.relief"];
 
 export type LayerId =
   | "incidents"
@@ -52,7 +55,8 @@ export type LayerId =
   | "terminator"
   | "aurora"
   | "satellites"
-  | "embers";
+  | "embers"
+  | "minimap";
 
 export const DEFAULT_LAYERS: Record<LayerId, boolean> = {
   waves: true,
@@ -60,6 +64,7 @@ export const DEFAULT_LAYERS: Record<LayerId, boolean> = {
   aurora: true,
   satellites: false,
   embers: true,
+  minimap: true,
   incidents: true,
   earthquakes: true,
   fires: true,
@@ -137,6 +142,10 @@ interface UiState {
   workspace: boolean;
   facilities: Facility[];
   shortcutsOpen: boolean;
+  /** imagery overlay opacity (0.1–1) by overlay id; missing = the overlay's default */
+  overlayOpacity: Record<string, number>;
+  /** imagery overlays from bottom to top (ids); ones not listed keep their catalogue order */
+  overlayOrder: string[];
   /** Shift+drag on the timeline: only incidents that began inside [from, to] (ms). */
   timeRange: [number, number] | null;
   /** Historical playback cursor (ms since epoch); null = live. */
@@ -186,6 +195,8 @@ interface UiState {
   setPlayhead: (t: number | null) => void;
   setTimeRange: (r: [number, number] | null) => void;
   setShortcutsOpen: (open: boolean) => void;
+  setOverlayOpacity: (id: string, opacity: number) => void;
+  moveOverlay: (id: string, direction: 1 | -1, visible: string[]) => void;
   setPlaying: (on: boolean) => void;
   setSpeed: (hoursPerSecond: number) => void;
   goLive: () => void;
@@ -203,6 +214,12 @@ interface UiState {
   patchSimulation: (p: Partial<SimulationState>) => void;
   setGroundPick: (p: "simulation" | "watch" | null) => void;
   closeAssistant: () => void;
+}
+
+/** Position of an overlay in the user's order (unlisted ones keep catalogue order, below listed ones). */
+export function rank(order: string[], id: string): number {
+  const i = order.indexOf(id);
+  return i < 0 ? -1000 + OVERLAY_IDS.indexOf(id) : i;
 }
 
 function yesterdayUtc(): string {
@@ -239,6 +256,8 @@ export const useUi = create<UiState>()(
       playhead: null,
       timeRange: null,
       shortcutsOpen: false,
+      overlayOpacity: {},
+      overlayOrder: [],
       playing: false,
       speed: 6,
       history: null,
@@ -286,6 +305,17 @@ export const useUi = create<UiState>()(
       setPlayhead: (playhead) => set({ playhead, autoRotate: false }),
       setTimeRange: (timeRange) => set({ timeRange }),
       setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
+      setOverlayOpacity: (id, opacity) => set((s) => ({ overlayOpacity: { ...s.overlayOpacity, [id]: Math.min(1, Math.max(0.1, opacity)) } })),
+      moveOverlay: (id, direction, visible) =>
+        set((s) => {
+          // order the visible overlays as currently drawn, then swap with the neighbour
+          const order = [...visible].sort((a, b) => rank(s.overlayOrder, a) - rank(s.overlayOrder, b));
+          const i = order.indexOf(id);
+          const j = i + direction;
+          if (i < 0 || j < 0 || j >= order.length) return {};
+          [order[i], order[j]] = [order[j]!, order[i]!];
+          return { overlayOrder: [...s.overlayOrder.filter((x) => !order.includes(x)), ...order] };
+        }),
       setPlaying: (playing) => set({ playing }),
       setSpeed: (speed) => set({ speed }),
       goLive: () => set({ playhead: null, playing: false, history: null }),
@@ -320,6 +350,8 @@ export const useUi = create<UiState>()(
         speed: s.speed,
         exaggeration: s.exaggeration,
         pinned: s.pinned,
+        overlayOpacity: s.overlayOpacity,
+        overlayOrder: s.overlayOrder,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<UiState>;

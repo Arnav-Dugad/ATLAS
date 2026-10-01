@@ -13,6 +13,22 @@ export type Quality = "saver" | "balanced" | "high";
 export type QualityChoice = "auto" | Quality;
 export type SettingsSection = "sources" | "packs" | "appearance" | "graphics" | "app" | "about";
 export type Density = "comfortable" | "compact";
+export type LayoutPreset = "monitoring" | "analysis" | "presentation";
+
+export interface Layout {
+  preset: LayoutPreset;
+  /** intelligence panel on the left, incident stream on the right */
+  swap: boolean;
+  /** widths in CSS px, null = the preset's default */
+  streamW: number | null;
+  panelW: number | null;
+}
+export const DEFAULT_LAYOUT: Layout = { preset: "monitoring", swap: false, streamW: null, panelW: null };
+export const PRESET_WIDTHS: Record<LayoutPreset, { stream: number; panel: number; label: string; hint: string }> = {
+  monitoring: { stream: 372, panel: 420, label: "Monitoring", hint: "Stream and intelligence side by side" },
+  analysis: { stream: 320, panel: 560, label: "Analysis", hint: "A wider intelligence panel for reading incidents" },
+  presentation: { stream: 0, panel: 0, label: "Presentation", hint: "The globe alone, for a big screen (P to leave)" },
+};
 export type Accent = "atlas" | "aurora" | "solar" | "nebula" | "ember";
 
 export interface Units {
@@ -90,6 +106,8 @@ interface SettingsState {
   density: Density;
   accent: Accent;
   units: Units;
+  layout: Layout;
+  setLayout: (l: Partial<Layout>) => void;
   setDensity: (d: Density) => void;
   setAccent: (a: Accent) => void;
   setUnits: (u: Partial<Units>) => void;
@@ -109,6 +127,8 @@ export const useSettings = create<SettingsState>()(
       density: "comfortable",
       accent: "atlas",
       units: DEFAULT_UNITS,
+      layout: DEFAULT_LAYOUT,
+      setLayout: (l) => set((s) => ({ layout: { ...s.layout, ...l } })),
       setDensity: (density) => set({ density }),
       setAccent: (accent) => set({ accent }),
       setUnits: (u) => set((s) => ({ units: { ...s.units, ...u } })),
@@ -121,10 +141,10 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "atlas.settings.v1",
-      partialize: (s) => ({ surface: s.surface, quality: s.quality, density: s.density, accent: s.accent, units: s.units }),
+      partialize: (s) => ({ surface: s.surface, quality: s.quality, density: s.density, accent: s.accent, units: s.units, layout: s.layout }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<SettingsState>;
-        return { ...current, ...p, units: { ...DEFAULT_UNITS, ...(p.units ?? {}) } };
+        return { ...current, ...p, units: { ...DEFAULT_UNITS, ...(p.units ?? {}) }, layout: { ...DEFAULT_LAYOUT, ...(p.layout ?? {}) } };
       },
     },
   ),

@@ -144,3 +144,39 @@
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
+
+/* ---- layouts (Settings → Appearance, palette, P) ---- */
+:global([data-swap="1"]) .rail {
+  left: auto;
+  right: var(--gutter);
+  width: var(--panel-w);
+}
+:global([data-swap="1"]) .panel {
+  right: auto;
+  left: var(--gutter);
+  width: var(--rail-w);
+}
+:global([data-layout="presentation"]) .rail,
+:global([data-layout="presentation"]) .panel,
+:global([data-layout="presentation"]) .timeline {
+  display: none;
+}
+.leavePresentation {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: var(--z-chrome);
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  background: var(--glass-strong);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  opacity: 0.6;
+  transition: opacity var(--dur-1) var(--ease-out);
+}
+.leavePresentation:hover {
+  opacity: 1;
+  color: var(--text-1);
+}

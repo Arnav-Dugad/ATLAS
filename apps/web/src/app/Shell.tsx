@@ -6,7 +6,7 @@ import { WINDOWS_APP } from "../lib/api";
 import { connectLive } from "../lib/live";
 import { PHONE_QUERY, supportsWebGL, useMediaQuery } from "../lib/media";
 import { useIncidentFeed } from "../lib/queries";
-import { ACCENTS, useSettings } from "../lib/settings";
+import { ACCENTS, PRESET_WIDTHS, useSettings } from "../lib/settings";
 import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
@@ -15,6 +15,7 @@ import { useNativeIntents } from "../lib/useNativeIntents";
 import { useWatchAlerts } from "../lib/useWatchAlerts";
 import { useWatch } from "../lib/watch";
 import { IncidentFeed } from "../features/feed/IncidentFeed";
+import { HoverPreview } from "../features/feed/HoverPreview";
 import { IncidentPanel } from "../features/incident/IncidentPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
 import { OverviewPanel } from "../features/overview/OverviewPanel";
@@ -25,6 +26,7 @@ import { TopBar } from "../features/topbar/TopBar";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
 import s from "./Shell.module.css";
 import { UndoToast } from "../features/chrome/UndoToast";
+import { ResizeHandle } from "./ResizeHandle";
 
 // The globe pulls in CesiumJS (~4 MB); load it as its own chunk so the shell paints first.
 const Globe = lazy(() => import("../globe/Globe").then((m) => ({ default: m.Globe })));
@@ -39,6 +41,7 @@ const CompareTray = lazy(() => import("../features/comparison/IncidentComparison
 const IncidentComparison = lazy(() => import("../features/comparison/IncidentComparison").then((m) => ({ default: m.IncidentComparison })));
 const WatchPanel = lazy(() => import("../features/watch/WatchPanel").then((m) => ({ default: m.WatchPanel })));
 const HealthView = lazy(() => import("../features/sources/HealthView").then((m) => ({ default: m.HealthView })));
+const BoardView = lazy(() => import("../features/board/BoardView").then((m) => ({ default: m.BoardView })));
 const ShortcutsSheet = lazy(() => import("../features/help/ShortcutsSheet").then((m) => ({ default: m.ShortcutsSheet })));
 const SettingsModal = lazy(() => import("../features/settings/SettingsModal").then((m) => ({ default: m.SettingsModal })));
 
@@ -69,6 +72,7 @@ export function Shell() {
   const settingsOpen = useSettings((st) => st.open) && WINDOWS_APP;
   const surface = useSettings((st) => st.surface);
   const density = useSettings((st) => st.density);
+  const layout = useSettings((st) => st.layout);
   const accent = useSettings((st) => st.accent);
   const phone = useMediaQuery(PHONE_QUERY);
   const webgl = useMemo(() => supportsWebGL(), []);
@@ -99,6 +103,15 @@ export function Shell() {
       root.dataset.surface = surface; // the website keeps its glass panels
     }
     root.dataset.density = density;
+    // Layout: the CSS variables describe what is on the left and right, so every overlay that
+    // positions itself by --rail-w / --panel-w follows a swap or a resize.
+    const preset = PRESET_WIDTHS[layout.preset];
+    const stream = layout.preset === "presentation" ? 0 : (layout.streamW ?? preset.stream);
+    const panel = layout.preset === "presentation" ? 0 : (layout.panelW ?? preset.panel);
+    root.dataset.layout = layout.preset;
+    root.dataset.swap = layout.swap ? "1" : "0";
+    root.style.setProperty("--rail-w", `${layout.swap ? panel : stream}px`);
+    root.style.setProperty("--panel-w", `${layout.swap ? stream : panel}px`);
     const [a, strong, soft, line] = ACCENTS[accent].colors;
     root.style.setProperty("--accent", a);
     root.style.setProperty("--accent-strong", strong);
@@ -106,7 +119,7 @@ export function Shell() {
     root.style.setProperty("--accent-line", line);
     root.style.setProperty("--info", a);
     root.style.setProperty("--prov-derived", a);
-  }, [reducedMotion, highContrast, surface, density, accent]);
+  }, [reducedMotion, highContrast, surface, density, accent, layout]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -127,15 +140,22 @@ export function Shell() {
         else ui.openPalette();
         return;
       }
-      if (e.altKey && ["1", "2", "3"].includes(e.key)) {
+      if (e.altKey && ["1", "2", "3", "4"].includes(e.key)) {
         e.preventDefault();
-        ui.setView((["planet", "sources", "health"] as const)[Number(e.key) - 1]!);
+        ui.setView((["planet", "board", "sources", "health"] as const)[Number(e.key) - 1]!);
         return;
       }
       if (typing || ui.paletteOpen) return;
       if (e.key === "?") {
         e.preventDefault();
         ui.setShortcutsOpen(!ui.shortcutsOpen);
+        return;
+      }
+      if (e.key.toLowerCase() === "p" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const st = useSettings.getState();
+        const next = st.layout.preset === "presentation" ? "monitoring" : "presentation";
+        st.setLayout({ preset: next });
+        if (next === "presentation") ui.setLayersOpen(false);
         return;
       }
       if (e.key.toLowerCase() === "n" && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -145,6 +165,7 @@ export function Shell() {
       }
       if (e.key === "Escape") {
         if (ui.shortcutsOpen) ui.setShortcutsOpen(false);
+        else if (useSettings.getState().layout.preset === "presentation") useSettings.getState().setLayout({ preset: "monitoring" });
         else if (ui.comparingIncidents) ui.setComparingIncidents(false);
         else if (ui.story) ui.setStory(null);
         else if (ui.assistantOpen) ui.closeAssistant();
@@ -225,6 +246,7 @@ export function Shell() {
               <IncidentFeed incidents={incidents} loading={feed.isLoading} error={feed.error as Error | null} onRetry={() => void feed.refetch()} />
             </ErrorBoundary>
           </aside>
+          <HoverPreview incidents={incidents} />
 
           <aside className={s.panel} aria-label={selectedId ? "Incident intelligence" : "Planetary overview"}>
             <AnimatePresence mode="wait" initial={false}>
@@ -243,6 +265,16 @@ export function Shell() {
             </AnimatePresence>
           </aside>
 
+          {layout.preset !== "presentation" ? (
+            <>
+              <ResizeHandle which="stream" />
+              <ResizeHandle which="panel" />
+            </>
+          ) : (
+            <button type="button" className={s.leavePresentation} onClick={() => useSettings.getState().setLayout({ preset: "monitoring" })}>
+              Leave presentation (P)
+            </button>
+          )}
           <footer className={s.timeline}>
             <Timeline incidents={feed.data?.items ?? []} />
           </footer>
@@ -270,6 +302,11 @@ export function Shell() {
       <LiveTicker incidents={incidents} />
 
       <AnimatePresence>
+        {view === "board" ? (
+          <Suspense key="board" fallback={null}>
+            <BoardView />
+          </Suspense>
+        ) : null}
         {view === "sources" ? (
           <Suspense key="sources" fallback={null}>
             <SourcesView />

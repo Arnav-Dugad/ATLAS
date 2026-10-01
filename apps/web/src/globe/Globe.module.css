@@ -83,3 +83,25 @@
   color: var(--text-1);
   margin-bottom: var(--s-2);
 }
+
+.minimap {
+  position: absolute;
+  left: calc(var(--rail-w) + var(--gutter) * 2);
+  bottom: calc(var(--timeline-h) + var(--gutter) * 2 + 10px);
+  z-index: 2;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    var(--shadow-1);
+  opacity: 0.92;
+  transition: opacity var(--dur-1) var(--ease-out);
+}
+.minimap:hover {
+  opacity: 1;
+}
+@media (max-width: 760px) {
+  .minimap {
+    display: none;
+  }
+}
