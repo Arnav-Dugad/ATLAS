@@ -372,6 +372,34 @@ async def incident_alerts(request: Request, incident_id: str) -> dict[str, Any]:
     return await _alerts(r).at(float(row[0]), float(row[1]), row[2])  # type: ignore[no-any-return]
 
 
+@router.get("/context/cems")
+async def cems_recent(request: Request) -> dict[str, Any]:
+    """Copernicus EMS rapid-mapping activations of the last 30 days."""
+    from atlas.engine import cems
+
+    try:
+        acts = await cems.activations(rt(request).http)
+    except FetchError as exc:
+        raise HTTPException(503, {"code": "source_unavailable", "source": "copernicus-ems", "message": str(exc)}) from exc
+    return cems.summary(acts, utcnow())
+
+
+@router.get("/incidents/{incident_id}/cems")
+async def incident_cems(request: Request, incident_id: str) -> dict[str, Any]:
+    """Copernicus EMS activations matching this incident (same hazard, within 500 km and 14 days)."""
+    from atlas.engine import cems
+
+    r = rt(request)
+    hazard, lat, lon = _incident_point(r, incident_id)
+    with r.db.read() as cur:
+        started = cur.execute("SELECT started_at FROM incidents WHERE id = ?", [incident_id]).fetchone()[0]
+    try:
+        acts = await cems.activations(r.http)
+    except FetchError as exc:
+        return {"status": "unavailable", "provenance": "unavailable", "reason": f"Copernicus EMS did not answer ({exc})."}
+    return {"status": "ok", "provenance": "real", "items": cems.match(acts, hazard.value, lat, lon, started)}
+
+
 @router.get("/gallery/burn-scars")
 async def burn_scar_gallery(request: Request) -> dict[str, Any]:
     """Every Sentinel-2 burn-scar map on disk (computed on request or automatically), largest first."""

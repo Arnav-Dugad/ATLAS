@@ -258,6 +258,23 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface CemsActivation {
+  code: string;
+  name: string;
+  category: string;
+  hazard: string | null;
+  countries: string[];
+  lat: number;
+  lon: number;
+  event_time: string | null;
+  activation_time: string | null;
+  last_update: string | null;
+  closed: boolean;
+  products: number | null;
+  url: string;
+  distance_km: number;
+}
+
 export interface BuildingRings {
   status: "ok";
   release: string;
@@ -781,6 +798,7 @@ const LOCAL_ONLY: RegExp[] = [
   /\/sea-level$/,
   /\/exposure\/worldpop$/,
   /\/exposure\/buildings$/,
+  /\/cems$/,
   /\/alerts\/layer$/,
   /\/exposure\/zones$/,
 ];
@@ -1040,6 +1058,7 @@ export const api = {
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
   zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
+  cems: (id: string, signal?: AbortSignal) => request<{ status: "ok"; items: CemsActivation[] } | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/cems`, { signal }),
   buildings: (id: string, signal?: AbortSignal) => request<BuildingRings | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/buildings`, { signal }),
   worldpop: (id: string, signal?: AbortSignal) => request<WorldPopCompare | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/worldpop`, { signal }),
   seaLevel: (id: string, signal?: AbortSignal) => request<SeaLevel>(`/api/v1/incidents/${encodeURIComponent(id)}/sea-level`, { signal }),

@@ -30,6 +30,7 @@ const QuakeIntel = lazy(() => import("./QuakeIntel").then((m) => ({ default: m.Q
 const FireGrowthCard = lazy(() => import("./HazardIntel").then((m) => ({ default: m.FireGrowthCard })));
 const SeaLevelCard = lazy(() => import("./SeaLevelCard").then((m) => ({ default: m.SeaLevelCard })));
 const RiversCard = lazy(() => import("./RiversCard").then((m) => ({ default: m.RiversCard })));
+const CemsLinks = lazy(() => import("./CemsLinks").then((m) => ({ default: m.CemsLinks })));
 const OfficialAlerts = lazy(() => import("./OfficialAlerts").then((m) => ({ default: m.OfficialAlerts })));
 const CompoundCard = lazy(() => import("./CompoundCard").then((m) => ({ default: m.CompoundCard })));
 const CycloneIntel = lazy(() => import("./HazardIntel").then((m) => ({ default: m.CycloneIntel })));
@@ -254,6 +255,9 @@ function BriefTab({ d }: { d: IncidentDetail }) {
             </li>
           ))}
         </ul>
+        <Suspense fallback={null}>
+          <CemsLinks d={d} />
+        </Suspense>
         <p className={s.officialNote}>ATLAS is a research tool, not an alerting service. Always follow official warnings and local authorities.</p>
       </section>
 
