@@ -261,6 +261,13 @@ class QueryService:
                 links.append(OfficialLink(label="Smithsonian GVP weekly report", url=o.url, authority="Smithsonian / USGS"))
             elif o.source == "eonet":
                 links.append(OfficialLink(label="NASA EONET record", url=o.url, authority="NASA"))
+            elif o.source == "emsc":
+                links.append(
+                    OfficialLink(label="EMSC event page", url=o.url, authority="European-Mediterranean Seismological Centre")
+                )
+            elif o.source == "tsunami":
+                links.insert(0, OfficialLink(label=f"Tsunami {o.metrics.get('tsunami_message') or 'message'} bulletin ({o.metrics.get('tsunami_centre')})",
+                                             url=o.url, authority="NOAA Tsunami Warning Center"))  # fmt: skip
         if rec.hazard is Hazard.EARTHQUAKE:
             links.append(OfficialLink(label="Tsunami warning centres", url="https://www.tsunami.gov/", authority="NOAA"))
         if rec.hazard is Hazard.WILDFIRE and rec.lat is not None:

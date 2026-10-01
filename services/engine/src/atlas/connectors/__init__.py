@@ -10,16 +10,20 @@ from atlas.connectors.base import (
     FetchOutcome,
     Job,
 )
+from atlas.connectors.emsc import EmscConnector
 from atlas.connectors.eonet import EonetConnector
 from atlas.connectors.firms import FirmsConnector
 from atlas.connectors.gdacs import GdacsConnector
 from atlas.connectors.gvp import GvpConnector
 from atlas.connectors.nhc import NhcConnector
 from atlas.connectors.reliefweb import ReliefWebConnector
+from atlas.connectors.tsunami import TsunamiConnector
 from atlas.connectors.usgs import UsgsConnector
 
 CONNECTORS: list[type[DataConnector]] = [
     UsgsConnector,
+    EmscConnector,
+    TsunamiConnector,
     GdacsConnector,
     NhcConnector,
     EonetConnector,

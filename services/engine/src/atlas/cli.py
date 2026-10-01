@@ -104,12 +104,13 @@ async def _packs(action: str, pack_id: str | None) -> int:
 async def _export_static(out: str) -> int:
     from pathlib import Path
 
-    from atlas.export_static import export_spectral, export_static
+    from atlas.export_static import export_context, export_spectral, export_static
 
     rt = _runtime()
     try:
         snap = await asyncio.to_thread(export_static, rt, Path(out))
         snap["spectral"] = await export_spectral(rt, Path(out))
+        snap["space_weather"] = await export_context(rt, Path(out))
         (Path(out) / "snapshot.json").write_text(json.dumps(snap, indent=2), "utf-8")
         print(json.dumps(snap, indent=2))
     finally:

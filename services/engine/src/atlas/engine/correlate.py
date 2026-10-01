@@ -154,10 +154,32 @@ def _name_similarity(obs: Observation, inc: IncidentKey) -> float | None:
     return max(fuzz.token_set_ratio(a, b) for a in names for b in theirs) / 100.0
 
 
+TSUNAMI_WINDOW = timedelta(hours=3)
+TSUNAMI_MAX_KM = 400.0
+
+
+def _tsunami_score(obs: Observation, inc: IncidentKey) -> float | None:
+    """A tsunami-centre message is issued minutes to hours after its earthquake, at (about) the
+    same epicentre and preliminary magnitude."""
+    if inc.hazard is not Hazard.EARTHQUAKE or not obs.has_location() or inc.lat is None or inc.lon is None:
+        return None
+    dt = obs.event_time - inc.started_at
+    if dt < timedelta(minutes=-5) or dt > TSUNAMI_WINDOW:
+        return None
+    d = haversine_km(obs.lat, obs.lon, inc.lat, inc.lon)  # type: ignore[arg-type]
+    if d > TSUNAMI_MAX_KM:
+        return None
+    if obs.magnitude is not None and inc.magnitude is not None and abs(obs.magnitude - inc.magnitude) > 1.0:
+        return None
+    return 1.0 - 0.5 * (d / TSUNAMI_MAX_KM) - 0.3 * (max(dt, timedelta(0)) / TSUNAMI_WINDOW)
+
+
 def score(obs: Observation, inc: IncidentKey) -> float | None:
     """Match score in (0, 1.5], or None when the pair is incompatible."""
     if inc.hazard not in COMPATIBLE.get(obs.hazard, frozenset({obs.hazard})):
         return None
+    if obs.source == "tsunami":
+        return _tsunami_score(obs, inc)
     rule = RULES.get(obs.hazard, DEFAULT_RULE)
     obs_end = obs.end_time or obs.source_updated_at or obs.event_time
     if obs.hazard is Hazard.EARTHQUAKE:

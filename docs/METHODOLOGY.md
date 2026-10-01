@@ -27,7 +27,11 @@ Order of evidence (`engine/correlate.py`):
    and outside the incident's extent. Upstream identifiers are occasionally reused (GDACS
    once issued the same GLIDE number, `TC-2026-000184-MEX`, to storms Polo and Nolo), so a
    rejected link is logged and the observation falls through to scoring.
-2. **Space–time–name scoring** with hazard-specific tolerances:
+2. **Tsunami messages** (NOAA NTWC/PTWC) attach to the earthquake they follow: issued up to
+   3 h after its origin time, within 400 km of its epicentre, preliminary magnitude within
+   1.0. Information statements only attach; warnings, watches, advisories and threat
+   messages may open an incident.
+3. **Space–time–name scoring** with hazard-specific tolerances:
 
 | Hazard | Max distance | Max time gap | Extra rules |
 |---|---|---|---|
@@ -43,7 +47,7 @@ positive score wins. Storm names are normalised (`"Tropical Storm Hanna"`, `"HAN
 `hanna`). For storms the incident's bounding box is not used as a shortcut, because a
 track's extent can enclose a different, later storm. Tolerances reflect feed positional and timing uncertainty and are unit-tested.
 
-## ATLAS Severity Scale v1.1
+## ATLAS Severity Scale v1.2
 
 An **ordinal intensity scale (0–5)** used to sort and colour incidents of different hazard
 types consistently. It is **not** a risk or impact estimate. The basis string shown in the
@@ -62,6 +66,7 @@ Floors from impact models and flags (each labelled as such):
 - USGS PAGER yellow → ≥ 3, orange → ≥ 4, red → 5 (loss model)
 - GDACS orange → ≥ 4, red → 5 (impact model); green floods/droughts → 2
 - USGS tsunami flag → ≥ 3
+- Official NOAA tsunami warning (NTWC/PTWC) → 5; tsunami watch, advisory or threat message → ≥ 4
 - Volcanoes: GVP "new activity" → 3, ongoing → 2; aviation colour ORANGE → 3, RED → 4
 
 **v1.1 change (2026-10-01):** GDACS's cyclone wind is the storm's *lifetime peak*, not its
@@ -69,6 +74,10 @@ current intensity. Current intensity now comes only from NHC advisories or EONET
 fix; the GDACS peak is shown separately as *Lifetime peak wind* and used (one level lower)
 only when no current value exists. Methodology changes are written to the audit trail as
 `reassessed` events, never as real-world changes.
+
+**v1.2 change (2026-10-01):** official tsunami messages from the NOAA warning centres raise
+an earthquake incident's floor (above). The earthquake magnitude comes from USGS, then EMSC;
+a tsunami bulletin's preliminary magnitude is never used as the magnitude.
 
 ## ATLAS Confidence Heuristic v1
 

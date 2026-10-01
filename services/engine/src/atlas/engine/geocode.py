@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+import re
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,6 +38,8 @@ from atlas.util.geo import (
 log = logging.getLogger("atlas.geocode")
 
 OFFSHORE_MAX_KM = 400.0
+# Natural Earth names occasionally carry invisible direction marks (seen: "Granada" + U+200E).
+_BIDI = re.compile("[‎‏‪-‮⁦-⁩]")
 
 
 @dataclass
@@ -112,7 +115,7 @@ class Geocoder:
             self.place_names.append(_fold(str(p.get("nameascii") or p["name"])))
             self.place_meta.append(
                 {
-                    "name": p["name"],
+                    "name": _BIDI.sub("", str(p["name"])).strip(),
                     "country": p.get("adm0name"),
                     "country_iso3": p.get("adm0_a3"),
                     "admin1": p.get("adm1name"),

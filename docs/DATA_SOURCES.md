@@ -27,6 +27,9 @@ observed status and payload shape are noted.
 | OpenStreetMap / Overpass | 🔜 Phase 2 | none | ODbL | per incident |
 | GHSL GHS-POP R2023A | ✅ Population Pack | none | CC BY 4.0 | once (~484 MB) |
 | Sentinel-2 L2A (Earth Search STAC + AWS COGs) | ✅ on demand | none | Copernicus open data | per analysis |
+| EMSC-CSEM (FDSN event service) | ✅ live connector | none | CC BY 4.0 | 5 min |
+| NOAA Tsunami Warning Centers (NTWC, PTWC) | ✅ live connector | none | Public domain | 3 min |
+| NOAA SWPC (NOAA scales) | ✅ overview context | none | Public domain | 10 min |
 | Terrain Tiles (Terrarium, AWS Open Data) | ✅ browser terrain | none | mixed open, attribution list | per view |
 
 ## Details
@@ -103,6 +106,25 @@ returned GeoJSON items (verified 2026-10-01: 32 items for a 0.2° box over 55 da
 A 700 × 700 overview window read with rasterio took ~3.6 s. No key, no account. Asset URLs
 are accepted only from that bucket (https). Attribution: "Contains modified Copernicus
 Sentinel data [year], processed by ATLAS".
+
+### EMSC-CSEM — Phase 6
+`GET https://www.seismicportal.eu/fdsnws/event/1/query?format=json&starttime=…&minmag=4&orderby=time`
+returned GeoJSON (verified 2026-10-01) with `properties.{unid, time, lastupdate, lat, lon,
+depth, mag, magtype, flynn_region, evtype, auth, source_catalog}`. The service pages state the
+data are CC BY 4.0. Event pages: `https://www.seismicportal.eu/eventdetails.html?unid=…`.
+EMSC matches USGS incidents through the ordinary earthquake rule (origin within 150 s,
+120 km, |ΔM| ≤ 1.0); incidents need M ≥ 4.5, as for USGS.
+
+### NOAA Tsunami Warning Centers — Phase 6
+Atom feeds `https://www.tsunami.gov/events/xml/PAAQAtom.xml` (NTWC) and `PHEBAtom.xml`
+(PTWC) returned 200 (verified 2026-10-01). Each entry carries the category, issue time,
+preliminary magnitude, epicentre, affected region, a bulletin link and a CAP document.
+Parsed with defusedxml; ATLAS links to the bulletin and never rewrites its guidance.
+
+### NOAA SWPC — Phase 6
+`https://services.swpc.noaa.gov/products/noaa-scales.json` gives the current R/S/G levels
+and SWPC's three-day outlook (verified 2026-10-01). Shown on the overview as attributed
+context; the outlook is SWPC's forecast, quoted as issued.
 
 ### Terrain Tiles (Terrarium) — Phase 3
 `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png` returned 200 with

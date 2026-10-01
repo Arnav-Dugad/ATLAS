@@ -472,6 +472,87 @@
         "Change between two dates also reflects season, harvest, tides and illumination, not only the hazard.",
         "Index thresholds are published conventions (USGS dNBR classes, MNDWI > 0) and are not calibrated for every landscape."
       ]
+    },
+    {
+      "id": "emsc",
+      "name": "EMSC-CSEM earthquakes (FDSN event service)",
+      "provider": "European-Mediterranean Seismological Centre",
+      "category": "hazard",
+      "hazards": ["earthquake"],
+      "homepage": "https://www.emsc-csem.org/",
+      "docs_url": "https://www.seismicportal.eu/fdsn-wsevent.html",
+      "hosts": ["www.seismicportal.eu"],
+      "license": { "name": "CC BY 4.0", "url": "https://www.seismicportal.eu/terms.html", "commercial_use": true },
+      "attribution": "Earthquake data: EMSC-CSEM (European-Mediterranean Seismological Centre), CC BY 4.0",
+      "update_interval": "Real time (automatic solutions revised within minutes)",
+      "expected_latency": "Minutes",
+      "coverage": { "geographic": "Global; densest in the Euro-Mediterranean region", "temporal": "1998 – present" },
+      "resolution": "Event (hypocentre, magnitude)",
+      "historical_depth": "Catalogue from 1998",
+      "rate_limits": "Polled every 5 min for the last 24 h, M ≥ 4.0",
+      "auth": { "required": false },
+      "cache_strategy": "HTTP cache 4 min",
+      "reliability": { "rating": "A", "rationale": "Established seismological agency; independent of USGS" },
+      "parser_version": "fdsn-json/1",
+      "default_enabled": true,
+      "limitations": [
+        "Automatic solutions are revised; magnitude types (mb, Mw, ML) differ from USGS for the same event.",
+        "Incident threshold M ≥ 4.5, as for USGS; smaller events corroborate only."
+      ]
+    },
+    {
+      "id": "tsunami",
+      "name": "NOAA Tsunami Warning Centers (NTWC & PTWC)",
+      "provider": "NOAA National Weather Service — National Tsunami Warning Center and Pacific Tsunami Warning Center",
+      "category": "hazard",
+      "hazards": ["earthquake"],
+      "homepage": "https://www.tsunami.gov/",
+      "docs_url": "https://www.tsunami.gov/?page=productRetrieval",
+      "hosts": ["www.tsunami.gov"],
+      "license": { "name": "Public domain (U.S. Government work)", "url": "https://www.weather.gov/disclaimer", "commercial_use": true },
+      "attribution": "Tsunami messages: NOAA National Tsunami Warning Center and Pacific Tsunami Warning Center (tsunami.gov)",
+      "update_interval": "Event-driven",
+      "expected_latency": "Minutes after an earthquake",
+      "coverage": { "geographic": "Messages for U.S. and Pacific/Caribbean areas of responsibility; information statements for large global events", "temporal": "Current messages" },
+      "resolution": "Message (category, preliminary magnitude, epicentre, bulletin)",
+      "historical_depth": "Feed holds recent messages only",
+      "rate_limits": "Two small Atom feeds polled every 3 min",
+      "auth": { "required": false },
+      "cache_strategy": "HTTP cache 2 min",
+      "reliability": { "rating": "A", "rationale": "Official warning authority" },
+      "parser_version": "atom/1",
+      "default_enabled": true,
+      "limitations": [
+        "ATLAS links to the official bulletin and never rewrites tsunami guidance.",
+        "Other national tsunami warning systems (Japan, Indonesia, Chile, India…) are not yet ingested; always follow your national authority."
+      ]
+    },
+    {
+      "id": "swpc",
+      "name": "NOAA Space Weather Prediction Center — NOAA scales",
+      "provider": "NOAA National Weather Service — Space Weather Prediction Center",
+      "category": "context",
+      "hazards": [],
+      "homepage": "https://www.swpc.noaa.gov/",
+      "docs_url": "https://www.swpc.noaa.gov/noaa-scales-explanation",
+      "hosts": ["services.swpc.noaa.gov"],
+      "license": { "name": "Public domain (U.S. Government work)", "url": "https://www.weather.gov/disclaimer", "commercial_use": true },
+      "attribution": "Space weather: NOAA Space Weather Prediction Center (SWPC)",
+      "update_interval": "Minutes (current levels); daily outlook",
+      "expected_latency": "Minutes",
+      "coverage": { "geographic": "Global (near-Earth space)", "temporal": "Current and 3-day outlook" },
+      "resolution": "NOAA R, S and G scales (0–5)",
+      "historical_depth": "Current only in this product",
+      "rate_limits": "One small JSON, cached 10 min, fetched when the overview is open",
+      "auth": { "required": false },
+      "cache_strategy": "HTTP cache 10 min",
+      "reliability": { "rating": "A", "rationale": "Official space weather authority" },
+      "parser_version": "noaa-scales/1",
+      "default_enabled": true,
+      "limitations": [
+        "Shown as context on the overview, not as incidents: geomagnetic storms have no single location.",
+        "The outlook is SWPC's forecast, quoted as issued; ATLAS adds no prediction."
+      ]
     }
   ]
 }

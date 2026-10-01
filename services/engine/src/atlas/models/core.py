@@ -164,7 +164,7 @@ class Severity(BaseModel):
     level: int = Field(ge=0, le=5)  # 0 = unknown
     label: str
     basis: str
-    method: str = "atlas-severity-v1.1"
+    method: str = "atlas-severity-v1.2"
     provenance: Provenance = Provenance.DERIVED
 
 

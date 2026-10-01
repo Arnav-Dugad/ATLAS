@@ -64,8 +64,12 @@ def assess(hazard: Hazard, observations: Sequence[Observation]) -> Severity:
             bump(2, "GDACS green alert → 2")
 
     if hazard is Hazard.EARTHQUAKE:
-        mags = [o for o in observations if o.magnitude is not None]
-        primary = next((o for o in mags if o.source == "usgs"), mags[0] if mags else None)
+        # Magnitude from a seismological agency (USGS first, then EMSC); a tsunami bulletin's
+        # preliminary magnitude is never the primary value.
+        mags = [o for o in observations if o.magnitude is not None and o.source != "tsunami"]
+        primary = next(
+            (o for o in mags if o.source == "usgs"), next((o for o in mags if o.source == "emsc"), mags[0] if mags else None)
+        )
         if primary and primary.magnitude is not None:
             lvl = _band(primary.magnitude, EQ_BANDS)
             bump(lvl, f"M{primary.magnitude:.1f} ({primary.source.upper()}) → magnitude band {lvl}")
@@ -75,6 +79,11 @@ def assess(hazard: Hazard, observations: Sequence[Observation]) -> Severity:
                 bump(f, f"USGS PAGER {o.alert_level} (loss model) → ≥{f}")
             if o.metrics.get("tsunami"):
                 bump(3, "Tsunami flag set by USGS → ≥3")
+            message = o.metrics.get("tsunami_message") if o.source == "tsunami" else None
+            if message == "warning":
+                bump(5, f"Official NOAA tsunami warning ({o.metrics.get('tsunami_centre')}) → ≥5")
+            elif message in ("watch", "advisory", "threat"):
+                bump(4, f"Official NOAA tsunami {message} ({o.metrics.get('tsunami_centre')}) → ≥4")
 
     elif hazard is Hazard.TROPICAL_CYCLONE:
         current = current_wind(observations)

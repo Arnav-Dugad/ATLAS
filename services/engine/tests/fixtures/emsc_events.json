@@ -1,0 +1,79 @@
+{"type":"FeatureCollection","metadata":{"count":3},"features":[{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      123.8639,
+      6.1055,
+      -9.4
+    ]
+  },
+  "id": "20261001_0000070",
+  "properties": {
+    "source_id": "2067870",
+    "source_catalog": "EMSC-RTS",
+    "lastupdate": "2026-10-01T06:39:56.27175Z",
+    "time": "2026-10-01T05:34:10.8Z",
+    "flynn_region": "MORO GULF, MINDANAO, PHILIPPINES",
+    "lat": 6.1055,
+    "lon": 123.8639,
+    "depth": 9.4,
+    "evtype": "ke",
+    "auth": "EMSC",
+    "mag": 5.0,
+    "magtype": "mb",
+    "unid": "20261001_0000070"
+  }
+},{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      130.2528,
+      -6.1712,
+      -88.6
+    ]
+  },
+  "id": "20261001_0000048",
+  "properties": {
+    "source_id": "2067819",
+    "source_catalog": "EMSC-RTS",
+    "lastupdate": "2026-10-01T06:39:13.434394Z",
+    "time": "2026-10-01T02:09:18.27Z",
+    "flynn_region": "BANDA SEA",
+    "lat": -6.1712,
+    "lon": 130.2528,
+    "depth": 88.6,
+    "evtype": "ke",
+    "auth": "EMSC",
+    "mag": 4.5,
+    "magtype": "mb",
+    "unid": "20261001_0000048"
+  }
+},{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      123.2942,
+      -0.7816,
+      -100.0
+    ]
+  },
+  "id": "20261001_0000027",
+  "properties": {
+    "source_id": "2067797",
+    "source_catalog": "EMSC-RTS",
+    "lastupdate": "2026-10-01T06:38:56.414958Z",
+    "time": "2026-10-01T01:31:22.26Z",
+    "flynn_region": "SULAWESI, INDONESIA",
+    "lat": -0.7816,
+    "lon": 123.2942,
+    "depth": 100.0,
+    "evtype": "ke",
+    "auth": "EMSC",
+    "mag": 4.6,
+    "magtype": "mb",
+    "unid": "20261001_0000027"
+  }
+}]}

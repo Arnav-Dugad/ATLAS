@@ -38,5 +38,7 @@ ATLAS is built vertically: each phase is usable end to end before the next begin
   story mode, offline region packs, watchlists with desktop notifications
 
 ## Phase 6 — Breadth & polish
+- ✅ EMSC earthquakes (independent corroboration), NOAA tsunami-centre messages (official
+  bulletins, severity floors), NOAA SWPC space weather on the overview
 - More sources (ReliefWeb with appname, OpenAQ with key, national agencies, river gauges)
 - Tauri desktop app, performance profiles (Eco → Extreme), visual regression suite

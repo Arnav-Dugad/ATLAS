@@ -171,6 +171,21 @@ def export_static(rt: Runtime, out: Path) -> dict[str, Any]:
     return snapshot
 
 
+async def export_context(rt: Runtime, out: Path) -> bool:
+    """Context products fetched at export time (space weather)."""
+    from atlas.engine import spaceweather
+
+    try:
+        data = await spaceweather.fetch(rt.http)
+    except Exception as exc:
+        log.warning("static export: space weather unavailable: %s", exc)
+        return False
+    import asyncio
+
+    await asyncio.to_thread(_write, out / "api" / "v1", "context/space-weather", data)
+    return True
+
+
 async def export_spectral(rt: Runtime, out: Path, *, limit: int = 6, budget_s: float = 240.0) -> list[str]:
     """Precompute Sentinel-2 change maps for a few significant fires and floods (the public
     snapshot cannot run the analysis on demand). Bounded by count and wall time; results are
