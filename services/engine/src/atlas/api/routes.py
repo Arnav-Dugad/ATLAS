@@ -266,6 +266,55 @@ async def space_weather(request: Request) -> dict[str, Any]:
         raise HTTPException(503, {"code": "source_unavailable", "source": "swpc", "message": str(exc)}) from exc
 
 
+class PolygonBody(BaseModel):
+    coordinates: list[tuple[float, float]] = Field(min_length=3, max_length=200)
+
+
+@router.post("/exposure/polygon")
+async def polygon_exposure(request: Request, body: PolygonBody) -> dict[str, Any]:
+    """Residents (GHSL) and mapped facilities (OpenStreetMap) inside a drawn area (measure tool)."""
+    for lon, lat in body.coordinates:
+        if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+            raise HTTPException(400, "coordinates must be [lon, lat] in degrees")
+    r = rt(request)
+    try:
+        return await exposure.polygon_exposure(r.http, r.population, [(float(a), float(b)) for a, b in body.coordinates])
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
+@router.get("/context/point")
+async def point_context(
+    request: Request,
+    lat: Annotated[float, Query(ge=-90, le=90)],
+    lon: Annotated[float, Query(ge=-180, le=180)],
+) -> dict[str, Any]:
+    """What's here? Nearest place, elevation (Copernicus DEM), residents within 10 km (GHSL) and time zone."""
+    from atlas.engine import point
+
+    r = rt(request)
+    place = r.geocoder.describe(lat, lon) if r.geocoder.available else None
+    residents = None
+    if r.population is not None:
+        residents = await asyncio.to_thread(lambda: r.population.rings(lat, lon, [10.0])[0] if r.population else None)
+    elevation, tz = await asyncio.gather(point.elevation(lat, lon), point.time_zone(r.http, r.packs.path("core"), lat, lon))
+    return {
+        "lat": lat,
+        "lon": lon,
+        "place": place.model_dump() if place else None,
+        "elevation": {**elevation, "attribution": point.DEM_ATTRIBUTION},
+        "residents_10km": {
+            "value": round(residents) if residents is not None else None,
+            "provenance": "model" if residents is not None else "unavailable",
+            "note": "GHSL 2025 residential population, cells with centres within 10 km"
+            if residents is not None
+            else "Install the Population Pack for residents",
+        },
+        "time_zone": tz,
+        "time_zone_note": "Standard time from Natural Earth time zones; daylight saving is not applied, and borders are approximate",
+    }
+
+
 @router.get("/context/aurora")
 async def aurora(request: Request) -> dict[str, Any]:
     """NOAA SWPC OVATION aurora probability (1° grid, short-term model forecast)."""

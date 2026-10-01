@@ -24,6 +24,12 @@ export function sunElevation(lat: number, lon: number, ms: number): number {
   return 90 - Math.acos(Math.max(-1, Math.min(1, c))) / r;
 }
 
+/** Apparent (sundial) solar time in hours: noon is when the sun crosses the meridian. */
+export function apparentSolarHour(lon: number, ms: number): number {
+  const s = subsolarPoint(ms);
+  return (((12 + (lon - s.lon) / 15) % 24) + 24) % 24;
+}
+
 /** Local mean solar time (hours) at a longitude. */
 export function localSolarHour(lon: number, ms: number): number {
   const utcH = (ms / 3_600_000) % 24;

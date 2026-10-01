@@ -106,6 +106,20 @@ class PopulationGrid:
         data[~np.isfinite(data) | (data < 0)] = 0.0
         return data, lats, lons
 
+    def polygon(self, coords: list[tuple[float, float]]) -> float:
+        """Residents in GHSL cells whose centres fall inside the (lon, lat) polygon."""
+        import shapely
+        from shapely.geometry import Polygon
+
+        poly = Polygon(coords)
+        west, south, east, north = poly.bounds
+        data, lats, lons = self._read(west, south, east, north)
+        if data.size == 0:
+            return 0.0
+        lat_g, lon_g = np.meshgrid(lats, lons, indexing="ij")
+        inside = shapely.contains_xy(poly, lon_g, lat_g)
+        return float(data[inside].sum())
+
     def rings(self, lat: float, lon: float, rings_km: list[float]) -> list[float]:
         west, south, east, north = bbox_around(lat, lon, max(rings_km))
         parts = [(west, south, east, north)]
@@ -154,6 +168,21 @@ def population_exposure(grid: PopulationGrid | None, hazard: Hazard, lat: float,
 
 
 # ------------------------------------------------------------------------------- infrastructure
+def polygon_area_km2(coords: list[tuple[float, float]]) -> float:
+    """Area of a (lon, lat) ring on a sphere of the mean Earth radius (within ~0.5% of WGS84)."""
+    total = 0.0
+    n = len(coords)
+    for i in range(n):
+        lon1, lat1 = coords[i]
+        lon2, lat2 = coords[(i + 1) % n]
+        total += math.radians(lon2 - lon1) * (2 + math.sin(math.radians(lat1)) + math.sin(math.radians(lat2)))
+    return abs(total) * EARTH_RADIUS_KM**2 / 2
+
+
+MAX_POLYGON_DEG = 25.0  # bbox side: keeps a population read to a few million cells
+MAX_OVERPASS_KM2 = 5_000.0  # a fair-use scan of the free Overpass service
+
+
 @dataclass(frozen=True)
 class Category:
     key: str
@@ -306,6 +335,69 @@ async def infrastructure_exposure(http: HttpClient, hazard: Hazard, lat: float, 
         return _unavailable("infrastructure", f"Overpass returned an incomplete result ({remark or exc}).", action="retry")
     out["from_cache"] = res.from_cache or res.not_modified
     out["fetched_at"] = iso_z(res.fetched_at)
+    return out
+
+
+def build_polygon_query(coords: list[tuple[float, float]]) -> tuple[str, list[str]]:
+    poly = " ".join(f"{lat:.5f} {lon:.5f}" for lon, lat in coords)
+    parts = ["[out:json][timeout:90];"]
+    order = []
+    for i, cat in enumerate(CATEGORIES):
+        union = "".join(f'{sel}(poly:"{poly}");' for sel in cat.selectors)
+        parts.append(f"({union})->.c{i};.c{i} out count;")
+        order.append(cat.key)
+    return "".join(parts), order
+
+
+async def polygon_exposure(http: HttpClient, grid: PopulationGrid | None, coords: list[tuple[float, float]]) -> dict[str, Any]:
+    """Residents (GHSL) and mapped facilities (OpenStreetMap) inside a drawn polygon."""
+    import asyncio
+
+    if coords[0] != coords[-1]:
+        coords = [*coords, coords[0]]
+    area = polygon_area_km2(coords)
+    lons = [c[0] for c in coords]
+    lats = [c[1] for c in coords]
+    if max(lons) - min(lons) > MAX_POLYGON_DEG or max(lats) - min(lats) > MAX_POLYGON_DEG:
+        raise ValueError(f"Draw an area smaller than {MAX_POLYGON_DEG:.0f}° across.")
+    out: dict[str, Any] = {"status": "ok", "area_km2": round(area, 1), "computed_at": iso_z(utcnow())}
+    if grid is not None:
+        residents = await asyncio.to_thread(grid.polygon, coords)
+        out["residents"] = {
+            "value": round(residents),
+            "provenance": "model",
+            "method": "GHSL 2025 30″ cells with centres inside the area",
+        }
+    else:
+        out["residents"] = {"value": None, "provenance": "unavailable", "method": "Install the Population Pack for residents"}
+    if area > MAX_OVERPASS_KM2:
+        out["facilities"] = {
+            "status": "unavailable",
+            "reason": f"Areas over {MAX_OVERPASS_KM2:,.0f} km² are too large for a fair-use OpenStreetMap scan.",
+        }
+        return out
+    query, order = build_polygon_query(coords)
+    try:
+        res = await http.get(OVERPASS, params={"data": query}, ttl=timedelta(hours=24), source_id="osm-overpass",
+                             max_bytes=4 * 1024 * 1024, attempts=2, timeout_s=100)  # fmt: skip
+        counts = [e for e in orjson.loads(res.content).get("elements") or [] if e.get("type") == "count"]
+    except (FetchError, orjson.JSONDecodeError) as exc:
+        out["facilities"] = {"status": "unavailable", "reason": f"OpenStreetMap Overpass did not respond ({exc})."}
+        return out
+    if len(counts) != len(order):
+        out["facilities"] = {"status": "unavailable", "reason": "Overpass returned an incomplete result."}
+        return out
+    labels = {c.key: c.label for c in CATEGORIES}
+    out["facilities"] = {
+        "status": "ok",
+        "provenance": "derived",
+        "counts": [
+            {"key": k, "label": labels[k], "count": int((c.get("tags") or {}).get("total", 0))}
+            for k, c in zip(order, counts, strict=True)
+        ],
+        "attribution": "© OpenStreetMap contributors (ODbL)",
+        "note": "Mapped facilities only; OpenStreetMap completeness varies by country.",
+    }
     return out
 
 

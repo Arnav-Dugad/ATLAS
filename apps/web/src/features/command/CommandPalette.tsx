@@ -20,6 +20,7 @@ import {
   Mountain,
   RefreshCw,
   RotateCw,
+  Ruler,
   Search,
   Settings,
   Sparkles,
@@ -30,6 +31,7 @@ import { OVERLAYS } from "../../globe/imagery";
 import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary, type SearchResponse } from "../../lib/api";
 import { compareIncident, compareView } from "../../lib/compare";
 import { ACCENTS, type Accent, openSettings, PRESET_WIDTHS, useSettings } from "../../lib/settings";
+import { useMeasure } from "../../lib/measure";
 import { openSimulation } from "../../lib/simulate";
 import { useWatch } from "../../lib/watch";
 import { exportBrief } from "../../lib/export";
@@ -209,6 +211,28 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
         run: done(() => {
           useWatch.getState().setPanelOpen(true);
           ui.setGroundPick("watch");
+        }),
+      },
+      {
+        id: "measure-distance",
+        section: "View",
+        label: "Measure a distance",
+        icon: <Ruler size={15} />,
+        keywords: "ruler length how far great circle bearing M",
+        run: done(() => {
+          ui.setView("planet");
+          useMeasure.getState().start("distance");
+        }),
+      },
+      {
+        id: "measure-area",
+        section: "View",
+        label: "Measure an area — and who lives inside it",
+        icon: <Ruler size={15} />,
+        keywords: "polygon area km2 residents population facilities inside draw",
+        run: done(() => {
+          ui.setView("planet");
+          useMeasure.getState().start("area");
         }),
       },
       {

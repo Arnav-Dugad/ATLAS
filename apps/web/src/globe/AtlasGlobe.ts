@@ -52,7 +52,9 @@ import {
 } from "cesium";
 import type { Columnar, Facility, FireClusterFeature, IncidentDetail, IncidentSummary } from "../lib/api";
 import { EXPOSURE_RINGS_KM, FACILITY_META, hazardMeta, severityColor, type FacilityKey, type HazardId } from "../lib/hazards";
+import { convert, dist, int } from "../lib/format";
 import { gpuInfo } from "../lib/media";
+import { areaKm2, pathKm, type LatLon, type MeasureMode } from "../lib/measure";
 import { rank, type FlyRequest, type LayerId } from "../lib/store";
 import { BASE, BASE_FALLBACK, compareUrl, NIGHT_LIGHTS, OVERLAYS, overlayDate, type CompareProduct, type ImageryDef } from "./imagery";
 import { GlobeEffects, WAVE_LIFETIME_S, type SatelliteTrack, type WaveSource } from "./effects";
@@ -85,6 +87,8 @@ interface Handlers {
   onHover: (h: HoverInfo | null) => void;
   onView: (v: ViewInfo) => void;
   onInteract: () => void;
+  /** right-click on the ground: "what's here?" */
+  onContext?: (lat: number, lon: number, x: number, y: number) => void;
 }
 
 const MARKER_ALT = 1500;
@@ -151,6 +155,12 @@ export class AtlasGlobe {
   private watchLines = new PolylineCollection();
   private watchLabels = new LabelCollection();
   private watchDraft = new PolylineCollection();
+  private measureLines = new PolylineCollection();
+  private measurePoints = new PointPrimitiveCollection();
+  private measureLabels = new LabelCollection();
+  private measureFill: GroundPrimitive | null = null;
+  private measureRubber: Polyline | null = null;
+  private measureState: { points: LatLon[]; mode: MeasureMode; drawing: boolean } | null = null;
   private incidentIndex = new Map<string, { billboard: Billboard; data: IncidentSummary }>();
   private pulseState: { billboard: Billboard; phase: number; color: Color; speed: number }[] = [];
   private selectedId: string | null = null;
@@ -251,6 +261,9 @@ export class AtlasGlobe {
       this.watchLines,
       this.watchLabels,
       this.watchDraft,
+      this.measureLines,
+      this.measurePoints,
+      this.measureLabels,
       this.facilityMarkers,
       this.ripples,
       this.pulses,
@@ -276,10 +289,18 @@ export class AtlasGlobe {
       if (ground) this.effects.clickRipple(ground.lat, ground.lon);
       this.handlers.onPick(this.pickAt(e.position));
     }, ScreenSpaceEventType.LEFT_CLICK);
+    this.handler.setInputAction((e: ScreenSpaceEventHandler.PositionedEvent) => {
+      const ground = this.groundAt(e.position);
+      if (ground && this.handlers.onContext) {
+        this.effects.clickRipple(ground.lat, ground.lon);
+        this.handlers.onContext(ground.lat, ground.lon, e.position.x, e.position.y);
+      }
+    }, ScreenSpaceEventType.RIGHT_CLICK);
     this.handler.setInputAction((e: ScreenSpaceEventHandler.MotionEvent) => {
       const now = performance.now();
       if (now - this.lastHover < 40) return;
       this.lastHover = now;
+      if (this.measureState?.drawing) this.updateRubber(this.groundAt(e.endPosition));
       const t = this.pickAt(e.endPosition);
       this.setHoveredMarker(t?.kind === "incident" ? t.id : null);
       this.handlers.onHover(t ? { target: t, x: e.endPosition.x, y: e.endPosition.y } : null);
@@ -673,6 +694,99 @@ export class AtlasGlobe {
       horizontalOrigin: HorizontalOrigin.CENTER,
       verticalOrigin: VerticalOrigin.TOP,
     });
+    this.requestRender();
+  }
+
+  /** The measuring tool's path or area: geodesic edges, numbered vertices, running totals. */
+  setMeasure(m: { points: LatLon[]; mode: MeasureMode; drawing: boolean } | null) {
+    this.measureState = m && (m.points.length || m.drawing) ? m : null;
+    this.measureLines.removeAll();
+    this.measurePoints.removeAll();
+    this.measureLabels.removeAll();
+    this.measureRubber = null;
+    if (this.measureFill) {
+      this.widget.scene.primitives.remove(this.measureFill);
+      this.measureFill = null;
+    }
+    if (!m || !m.points.length) {
+      this.requestRender();
+      return;
+    }
+    const pts = m.points;
+    const accent = Color.fromCssColorString("#ffd166");
+    const area = m.mode === "area";
+    const edges: Cartesian3[] = [];
+    for (let i = 1; i < pts.length; i++) edges.push(...geodesic(pts[i - 1]!, pts[i]!, i > 1));
+    if (area && pts.length > 2) edges.push(...geodesic(pts[pts.length - 1]!, pts[0]!, true));
+    if (edges.length) {
+      this.measureLines.add({ positions: edges, width: 3, material: Material.fromType("PolylineGlow", { color: accent, glowPower: 0.18, taperPower: 1 }) });
+    }
+    if (area && pts.length > 2) {
+      this.measureFill = new GroundPrimitive({
+        geometryInstances: new GeometryInstance({
+          geometry: new PolygonGeometry({ polygonHierarchy: new PolygonHierarchy(pts.map((p) => Cartesian3.fromDegrees(p.lon, p.lat))) }),
+          attributes: { color: ColorGeometryInstanceAttribute.fromColor(accent.withAlpha(0.16)) },
+        }),
+        appearance: new PerInstanceColorAppearance({ flat: true, translucent: true }),
+        asynchronous: true,
+      });
+      this.widget.scene.primitives.add(this.measureFill);
+    }
+    const label = (pos: Cartesian3, text: string, strong = false) =>
+      this.measureLabels.add({
+        position: pos,
+        text,
+        font: `${strong ? 700 : 600} ${strong ? 13 : 11}px 'IBM Plex Sans Variable', sans-serif`,
+        fillColor: strong ? Color.WHITE : accent,
+        outlineColor: Color.fromCssColorString("#04060a").withAlpha(0.95),
+        outlineWidth: 4,
+        style: LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset: new Cartesian2(0, -12),
+        horizontalOrigin: HorizontalOrigin.CENTER,
+        verticalOrigin: VerticalOrigin.BOTTOM,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      });
+    let run = 0;
+    pts.forEach((p, i) => {
+      const pos = Cartesian3.fromDegrees(p.lon, p.lat, 900);
+      this.measurePoints.add({
+        position: pos,
+        pixelSize: i === 0 ? 10 : 8,
+        color: i === 0 ? accent : Color.WHITE,
+        outlineColor: Color.fromCssColorString("#04060a"),
+        outlineWidth: 2,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      });
+      if (i > 0) run += pathKm([pts[i - 1]!, p]);
+      if (!area && i > 0) label(pos, dist(run, run < 10 ? 2 : run < 100 ? 1 : 0), i === pts.length - 1);
+    });
+    if (area && pts.length > 2) {
+      const c = centroid(pts);
+      const a = convert(areaKm2(pts), "km²");
+      label(Cartesian3.fromDegrees(c.lon, c.lat, 900), `${a.value < 10 ? a.value.toFixed(2) : int(Math.round(a.value))} ${a.unit}`, true);
+    }
+    this.requestRender();
+  }
+
+  /** The dashed edge from the last point to the cursor while drawing. */
+  private updateRubber(ground: LatLon | null) {
+    const m = this.measureState;
+    if (!m || !m.points.length) return;
+    const last = m.points[m.points.length - 1]!;
+    const positions = ground
+      ? [...geodesic(last, ground, false), ...(m.mode === "area" && m.points.length > 1 ? geodesic(ground, m.points[0]!, true) : [])]
+      : [];
+    if (!this.measureRubber) {
+      if (!positions.length) return;
+      this.measureRubber = this.measureLines.add({
+        positions,
+        width: 1.6,
+        material: Material.fromType("PolylineDash", { color: Color.fromCssColorString("#ffd166").withAlpha(0.85), gapColor: Color.TRANSPARENT, dashLength: 10 }),
+      });
+    } else {
+      this.measureRubber.show = positions.length > 1;
+      if (positions.length > 1) this.measureRubber.positions = positions;
+    }
     this.requestRender();
   }
 
@@ -1500,6 +1614,33 @@ function polygonHierarchies(geom: GeoJSON.Geometry | null | undefined): PolygonH
 }
 
 export type { PointPrimitive, Polyline };
+
+/** Great-circle edge a → b, densified so it hugs the globe (skipping a's own vertex when chaining). */
+function geodesic(a: LatLon, b: LatLon, skipFirst: boolean): Cartesian3[] {
+  const km = haversine(a.lat, a.lon, b.lat, b.lon);
+  const n = Math.max(2, Math.min(128, Math.ceil(km / 40)));
+  const out: Cartesian3[] = [];
+  for (let i = skipFirst ? 1 : 0; i <= n; i++) {
+    const [lon, lat] = intermediate(a.lat, a.lon, b.lat, b.lon, i / n);
+    out.push(Cartesian3.fromDegrees(lon, lat, 600));
+  }
+  return out;
+}
+
+/** Mean of unit vectors: a fair label position for small and antimeridian-crossing shapes. */
+function centroid(pts: LatLon[]): LatLon {
+  let x = 0;
+  let y = 0;
+  let z = 0;
+  for (const p of pts) {
+    const la = CMath.toRadians(p.lat);
+    const lo = CMath.toRadians(p.lon);
+    x += Math.cos(la) * Math.cos(lo);
+    y += Math.cos(la) * Math.sin(lo);
+    z += Math.sin(la);
+  }
+  return { lat: CMath.toDegrees(Math.atan2(z, Math.hypot(x, y))), lon: CMath.toDegrees(Math.atan2(y, x)) };
+}
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const p1 = CMath.toRadians(lat1);

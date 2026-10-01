@@ -1,5 +1,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence } from "motion/react";
 import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary } from "../lib/api";
 import { compact, coord, decimal, observedAgo, relTime, utcShort } from "../lib/format";
 import { hazardMeta, severityColor } from "../lib/hazards";
@@ -8,6 +10,8 @@ import { qk, useCountries, useEarthquakeLayer, useFireClusters, useFireGrid, use
 import { QUALITY, resolveQuality, useSettings } from "../lib/settings";
 import { useUi } from "../lib/store";
 import { matches, useWatch } from "../lib/watch";
+import { useMeasure } from "../lib/measure";
+import { WhatsHere } from "./WhatsHere";
 import { AtlasGlobe, DETAIL_HEIGHT, type HoverInfo, type ViewInfo } from "./AtlasGlobe";
 import { compareProduct } from "./imagery";
 import styles from "./Globe.module.css";
@@ -22,6 +26,11 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [view, setView] = useState<ViewInfo | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  const [context, setContext] = useState<{ lat: number; lon: number; x: number; y: number } | null>(null);
+  const measureActive = useMeasure((s) => s.active);
+  const measurePoints = useMeasure((s) => s.points);
+  const measureMode = useMeasure((s) => s.mode);
+  const measureDrawing = useMeasure((s) => s.drawing);
 
   const layers = useUi((s) => s.layers);
   const imageryDate = useUi((s) => s.imageryDate);
@@ -73,6 +82,11 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
           }
         },
         onGround: (lat, lon) => {
+          const m = useMeasure.getState();
+          if (m.active && m.drawing) {
+            m.add({ lat, lon });
+            return true;
+          }
           const ui = useUi.getState();
           if (ui.groundPick === "watch") {
             useWatch.getState().setDraft({ lat, lon });
@@ -90,6 +104,10 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
         onHover: setHover,
         onView: setView,
         onInteract: () => useUi.getState().setAutoRotate(false),
+        onContext: (lat, lon, x, y) => {
+          const rect = host.current?.getBoundingClientRect();
+          setContext({ lat, lon, x: x + (rect?.left ?? 0), y: y + (rect?.top ?? 0) });
+        },
       });
     } catch (err) {
       setFailed((err as Error).message || "WebGL is unavailable");
@@ -157,7 +175,11 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   useEffect(() => globe?.setTime(playhead), [globe, playhead]);
   useEffect(() => globe?.highlight(hoveredId), [globe, hoveredId]);
   useEffect(() => globe?.setTerrain(layers.terrain, exaggeration), [globe, layers.terrain, exaggeration]);
-  useEffect(() => globe?.setPickMode(groundPick !== null), [globe, groundPick]);
+  useEffect(() => globe?.setPickMode(groundPick !== null || (measureActive && measureDrawing)), [globe, groundPick, measureActive, measureDrawing]);
+  useEffect(
+    () => globe?.setMeasure(measureActive ? { points: measurePoints, mode: measureMode, drawing: measureDrawing } : null),
+    [globe, measureActive, measurePoints, measureMode, measureDrawing],
+  );
   useEffect(
     () => globe?.setWatches(watches.map((w) => ({ lat: w.lat, lon: w.lon, radius_km: w.radius_km, name: w.name, active: matches(w, incidents).length > 0 }))),
     [globe, watches, incidents],
@@ -253,6 +275,14 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
       <div ref={host} className={styles.host} aria-label="Interactive 3D globe of active hazards" role="application" />
       <div className={styles.vignette} aria-hidden />
       {hover && globe && <HoverCard info={hover} globe={globe} incidents={incidents} />}
+      {createPortal(
+        <AnimatePresence>
+          {context ? (
+            <WhatsHere key={`${context.lat},${context.lon}`} lat={context.lat} lon={context.lon} x={context.x} y={context.y} onClose={() => setContext(null)} />
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      )}
       {layers.minimap && view?.bbox && view.height < 8_000_000 && appView === "planet" ? (
         <div className={styles.minimap} title="Where you are — click to fly there">
           <MiniWorld

@@ -159,6 +159,26 @@ export interface AirQualityUnavailable {
   action: string | null;
 }
 
+export interface PointContext {
+  lat: number;
+  lon: number;
+  place: { description: string; name: string; country: string | null; distance_km: number } | null;
+  elevation: { value_m: number | null; status: "ok" | "water" | "unavailable"; note: string; provenance: Provenance; attribution: string };
+  residents_10km: { value: number | null; provenance: Provenance; note: string };
+  time_zone: { utc_offset_hours: number | null; label: string | null; places: string | null } | null;
+  time_zone_note: string;
+}
+
+export interface PolygonExposure {
+  status: "ok";
+  area_km2: number;
+  computed_at: string;
+  residents: { value: number | null; provenance: Provenance; method: string };
+  facilities:
+    | { status: "ok"; provenance: Provenance; counts: { key: string; label: string; count: number }[]; attribution: string; note: string }
+    | { status: "unavailable"; reason: string };
+}
+
 export interface AuroraData {
   status: "ok";
   observed_at: string | null;
@@ -494,6 +514,7 @@ const LOCAL_ONLY: RegExp[] = [
   /\/packs\//,
   /\/layers\/fires\/detections$/,
   /\/search$/,
+  /\/context\/point$/,
 ];
 
 export function isLocalOnly(err: unknown): boolean {
@@ -745,6 +766,15 @@ export const api = {
     request<AirQuality | AirQualityUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/air-quality`, { signal }),
   spaceWeather: (signal?: AbortSignal) => request<SpaceWeather>("/api/v1/context/space-weather", { signal }),
   aurora: (signal?: AbortSignal) => request<AuroraData>("/api/v1/context/aurora", { signal }),
+  pointContext: (lat: number, lon: number, signal?: AbortSignal) =>
+    request<PointContext>(`/api/v1/context/point${qs({ lat: lat.toFixed(5), lon: lon.toFixed(5) })}`, { signal }),
+  polygonExposure: (points: { lat: number; lon: number }[], signal?: AbortSignal) =>
+    request<PolygonExposure>("/api/v1/exposure/polygon", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ coordinates: points.map((p) => [p.lon, p.lat]) }),
+      signal,
+    }),
   satellites: (signal?: AbortSignal) => request<SatellitesData>("/api/v1/context/satellites", { signal }),
   graph: (id: string, depth: 1 | 2, signal?: AbortSignal) =>
     request<IncidentGraph>(`/api/v1/incidents/${encodeURIComponent(id)}/graph${STATIC_MODE ? "" : qs({ depth })}`, { signal }),

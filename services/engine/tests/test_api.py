@@ -77,3 +77,18 @@ def test_sources_and_layers(client: TestClient) -> None:
 def test_search_parses(client: TestClient) -> None:
     res = client.get("/api/v1/search", params={"q": "recent earthquakes"}).json()
     assert res["structured"]["parsed"]["hazards"] == ["earthquake"]
+
+
+def test_polygon_exposure_validates_and_skips_overpass_for_large_areas(client: TestClient) -> None:
+    bad = client.post("/api/v1/exposure/polygon", json={"coordinates": [[0, 0], [1, 1]]})
+    assert bad.status_code == 422
+    out_of_range = client.post("/api/v1/exposure/polygon", json={"coordinates": [[0, 0], [200, 0], [0, 1]]})
+    assert out_of_range.status_code == 400
+    too_wide = client.post("/api/v1/exposure/polygon", json={"coordinates": [[0, 0], [40, 0], [40, 1], [0, 1]]})
+    assert too_wide.status_code == 400
+    # ~1.2 million km²: residents need the Population Pack (absent here), facilities are refused
+    # without any network request because the area exceeds the fair-use cap.
+    big = client.post("/api/v1/exposure/polygon", json={"coordinates": [[0, 0], [10, 0], [10, 10], [0, 10]]}).json()
+    assert big["area_km2"] > 1_000_000
+    assert big["residents"]["provenance"] == "unavailable"
+    assert big["facilities"]["status"] == "unavailable"

@@ -593,6 +593,47 @@
       "limitations": [
         "Ground tracks and overpass times are predictions from public orbits (a few km accuracy for days); whether an image is actually taken depends on each mission's acquisition plan and on clouds."
       ]
+    },
+    {
+      "id": "copernicus-dem",
+      "name": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "provider": "European Space Agency / Copernicus (data © DLR, Airbus)",
+      "category": "reference",
+      "hazards": [],
+      "homepage": "https://spacedata.copernicus.eu/collections/copernicus-digital-elevation-model",
+      "docs_url": "https://registry.opendata.aws/copernicus-dem/",
+      "hosts": [
+        "copernicus-dem-30m.s3.amazonaws.com"
+      ],
+      "license": {
+        "name": "Copernicus DEM licence (free, attribution required)",
+        "url": "https://spacedata.copernicus.eu/documents/20123/121286/CSCDA_ESA_Mission-specific+Annex_31_Oct_22.pdf",
+        "commercial_use": true
+      },
+      "attribution": "Copernicus DEM GLO-30 © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA",
+      "update_interval": "Static",
+      "expected_latency": "n/a",
+      "coverage": {
+        "geographic": "Global land",
+        "temporal": "2011–2015 acquisition"
+      },
+      "resolution": "30 m (1 arc-second)",
+      "historical_depth": "n/a",
+      "rate_limits": "One pixel read per right-click (cached)",
+      "auth": {
+        "required": false
+      },
+      "cache_strategy": "In-memory, per point",
+      "reliability": {
+        "rating": "A",
+        "rationale": "Official Copernicus product on AWS Open Data"
+      },
+      "parser_version": "cog-point/1",
+      "default_enabled": true,
+      "limitations": [
+        "A surface model: heights include buildings and trees.",
+        "Land only: open water has no tile."
+      ]
     }
   ]
 }

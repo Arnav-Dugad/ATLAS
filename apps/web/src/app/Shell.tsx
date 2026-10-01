@@ -10,6 +10,7 @@ import { ACCENTS, PRESET_WIDTHS, useSettings } from "../lib/settings";
 import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
+import { toggleMeasure, useMeasure } from "../lib/measure";
 import { useNotices } from "../lib/notifications";
 import { useNativeIntents } from "../lib/useNativeIntents";
 import { useWatchAlerts } from "../lib/useWatchAlerts";
@@ -43,6 +44,7 @@ const WatchPanel = lazy(() => import("../features/watch/WatchPanel").then((m) =>
 const HealthView = lazy(() => import("../features/sources/HealthView").then((m) => ({ default: m.HealthView })));
 const BoardView = lazy(() => import("../features/board/BoardView").then((m) => ({ default: m.BoardView })));
 const ShortcutsSheet = lazy(() => import("../features/help/ShortcutsSheet").then((m) => ({ default: m.ShortcutsSheet })));
+const MeasurePanel = lazy(() => import("../features/measure/MeasurePanel").then((m) => ({ default: m.MeasurePanel })));
 const SettingsModal = lazy(() => import("../features/settings/SettingsModal").then((m) => ({ default: m.SettingsModal })));
 
 const WINDOWS: TimeWindow[] = ["1h", "24h", "7d", "30d"];
@@ -65,6 +67,7 @@ export function Shell() {
   }, [feed.data, timeRange]);
   const comparing = useUi((st) => st.compare !== null);
   const simulating = useUi((st) => st.simulation !== null || st.groundPick === "simulation");
+  const measuring = useMeasure((st) => st.active);
   const storyOn = useUi((st) => st.story !== null);
   const pinnedAny = useUi((st) => st.pinned.length > 0);
   const watchOpen = useWatch((st) => st.panelOpen);
@@ -156,6 +159,10 @@ export function Shell() {
         const next = st.layout.preset === "presentation" ? "monitoring" : "presentation";
         st.setLayout({ preset: next });
         if (next === "presentation") ui.setLayersOpen(false);
+        return;
+      }
+      if (e.key.toLowerCase() === "m" && !e.ctrlKey && !e.metaKey && !e.altKey && ui.view === "planet") {
+        toggleMeasure();
         return;
       }
       if (e.key.toLowerCase() === "n" && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -284,6 +291,7 @@ export function Shell() {
       <Suspense fallback={null}>
         {comparing ? <CompareTool /> : null}
         {simulating ? <SimulationLab /> : null}
+        <AnimatePresence>{measuring && !phone ? <MeasurePanel key="measure" /> : null}</AnimatePresence>
         {storyOn ? <StoryPlayer incidents={incidents} /> : null}
         {pinnedAny ? <CompareTray incidents={incidents} /> : null}
         {pinnedAny ? <IncidentComparison /> : null}
