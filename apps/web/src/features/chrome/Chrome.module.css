@@ -309,3 +309,12 @@
     flex-direction: column;
   }
 }
+
+.attrSub {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 3px;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}

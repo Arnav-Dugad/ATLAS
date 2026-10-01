@@ -3,6 +3,7 @@ import { Compass, Home, Info, Minus, Pause, Play, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
+import { TERRAIN_ATTRIBUTION, TERRAIN_CREDIT } from "../../globe/terrain";
 import { STATIC_MODE, type IncidentSummary } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
 import { relTime } from "../../lib/format";
@@ -41,10 +42,17 @@ export function MapControls() {
 
 export function Attribution() {
   const layers = useUi((st) => st.layers);
+  const comparing = useUi((st) => st.compare !== null);
   const [open, setOpen] = useState(false);
   const meta = useMeta();
   const overlays = OVERLAYS.filter((o) => layers[o.id as LayerId]);
-  const imagery = ["EOxCloudless 2024 (contains modified Copernicus Sentinel data)", "NASA GIBS", ...new Set(overlays.length ? ["GIBS overlays"] : [])];
+  const imagery = [
+    "EOxCloudless 2024 (contains modified Copernicus Sentinel data)",
+    "NASA GIBS",
+    ...new Set(overlays.length ? ["GIBS overlays"] : []),
+    ...(comparing ? ["before/after: NASA GIBS / LANCE daily imagery"] : []),
+    ...(layers.terrain ? [TERRAIN_CREDIT] : []),
+  ];
   return (
     <>
       <div className={s.attr}>
@@ -78,6 +86,16 @@ export function Attribution() {
                 {(meta.data?.attribution ?? []).map((a) => (
                   <li key={a}>{a}</li>
                 ))}
+                {layers.terrain ? (
+                  <li>
+                    {TERRAIN_CREDIT}:
+                    <ul className={s.attrSub}>
+                      {TERRAIN_ATTRIBUTION.map((a) => (
+                        <li key={a}>{a}</li>
+                      ))}
+                    </ul>
+                  </li>
+                ) : null}
                 <li>3D globe rendering: CesiumJS (Apache-2.0). Interface icons: Lucide (ISC).</li>
               </ul>
               <p className={s.modalNote}>

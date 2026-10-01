@@ -36,6 +36,7 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   SkyAtmosphere,
+  SplitDirection,
   UrlTemplateImageryProvider,
   VerticalOrigin,
   type Billboard,
@@ -45,7 +46,8 @@ import {
 import type { Columnar, Facility, FireClusterFeature, IncidentDetail, IncidentSummary } from "../lib/api";
 import { EXPOSURE_RINGS_KM, FACILITY_META, hazardMeta, severityColor, type FacilityKey, type HazardId } from "../lib/hazards";
 import type { FlyRequest, LayerId } from "../lib/store";
-import { BASE, BASE_FALLBACK, NIGHT_LIGHTS, OVERLAYS, overlayDate, type ImageryDef } from "./imagery";
+import { BASE, BASE_FALLBACK, compareUrl, NIGHT_LIGHTS, OVERLAYS, overlayDate, type CompareProduct, type ImageryDef } from "./imagery";
+import { createTerrariumProvider } from "./terrain";
 import { facilitySprite, incidentSprite, reticleSprite, ringSprite } from "./sprites";
 
 export type PickTarget =
@@ -114,6 +116,11 @@ export class AtlasGlobe {
   private trackFill: GroundPrimitive | null = null;
   private overlays = new Map<string, ImageryLayer>();
   private nightLayer: ImageryLayer | null = null;
+  private lightingWanted = true;
+  private nightWanted = true;
+  private compareLayers: ImageryLayer[] = [];
+  private compareTag = "";
+  private terrainOn = false;
   private incidentIndex = new Map<string, { billboard: Billboard; data: IncidentSummary }>();
   private pulseState: { billboard: Billboard; phase: number; color: Color; speed: number }[] = [];
   private selectedId: string | null = null;
@@ -337,15 +344,66 @@ export class AtlasGlobe {
   }
 
   setLighting(on: boolean) {
-    const g = this.widget.scene.globe;
-    g.enableLighting = on;
-    g.dynamicAtmosphereLighting = on;
-    if (this.nightLayer) this.nightLayer.show = on && this.nightLayer.show;
-    this.requestRender();
+    this.lightingWanted = on;
+    this.applyLighting();
   }
 
   setNightLights(on: boolean) {
-    if (this.nightLayer) this.nightLayer.show = on;
+    this.nightWanted = on;
+    this.applyLighting();
+  }
+
+  /** Sun lighting and city lights, paused while a date comparison needs evenly lit imagery. */
+  private applyLighting() {
+    const g = this.widget.scene.globe;
+    const lit = this.lightingWanted && this.compareLayers.length === 0;
+    g.enableLighting = lit;
+    g.dynamicAtmosphereLighting = lit;
+    if (this.nightLayer) this.nightLayer.show = lit && this.nightWanted;
+    this.requestRender();
+  }
+
+  // -- terrain -------------------------------------------------------------------------
+  /** Real relief from open elevation tiles; exaggeration makes landforms legible from orbit. */
+  setTerrain(on: boolean, exaggeration: number) {
+    const scene = this.widget.scene;
+    if (on !== this.terrainOn) {
+      this.terrainOn = on;
+      scene.terrainProvider = on ? createTerrariumProvider() : new EllipsoidTerrainProvider();
+    }
+    scene.verticalExaggeration = on ? exaggeration : 1;
+    this.requestRender();
+  }
+
+  // -- before/after comparison --------------------------------------------------------
+  /** One product on two dates, split by a vertical divider (left = before, right = after). */
+  setCompare(c: { product: CompareProduct; before: string; after: string; position: number } | null) {
+    const tag = c ? `${c.product.id}|${c.before}|${c.after}` : "";
+    if (tag !== this.compareTag) {
+      for (const l of this.compareLayers) this.widget.imageryLayers.remove(l, true);
+      this.compareLayers = [];
+      this.compareTag = tag;
+      if (c) {
+        const sides: [string, SplitDirection][] = [
+          [c.before, SplitDirection.LEFT],
+          [c.after, SplitDirection.RIGHT],
+        ];
+        for (const [date, dir] of sides) {
+          const provider = new UrlTemplateImageryProvider({ url: compareUrl(c.product, date), maximumLevel: c.product.level, enablePickFeatures: false });
+          const layer = new ImageryLayer(provider);
+          layer.splitDirection = dir;
+          this.widget.imageryLayers.add(layer);
+          this.compareLayers.push(layer);
+        }
+      }
+      this.applyLighting();
+    }
+    if (c) this.setSplitPosition(c.position);
+    this.requestRender();
+  }
+
+  setSplitPosition(fraction: number) {
+    this.widget.scene.splitPosition = Math.max(0, Math.min(1, fraction));
     this.requestRender();
   }
 

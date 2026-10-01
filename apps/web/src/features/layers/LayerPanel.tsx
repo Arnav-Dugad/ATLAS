@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
-import { X } from "lucide-react";
+import { Columns2, X } from "lucide-react";
 import { useState } from "react";
 import { OVERLAYS } from "../../globe/imagery";
+import { compareView } from "../../lib/compare";
 import { useUi, type LayerId } from "../../lib/store";
-import { Toggle } from "../../ui/primitives";
+import { cx, Toggle } from "../../ui/primitives";
 import s from "./LayerPanel.module.css";
 
 /** Raster overlays cost GPU memory and bandwidth; cap concurrent ones so combinations stay smooth. */
@@ -20,13 +21,18 @@ const PLANET: { id: LayerId; label: string; desc: string }[] = [
   { id: "lighting", label: "Day / night lighting", desc: "Real-time sun position" },
   { id: "nightLights", label: "City lights", desc: "VIIRS Black Marble on the night side" },
   { id: "borders", label: "Country borders", desc: "Natural Earth 1:110m" },
+  { id: "terrain", label: "3D terrain", desc: "Open elevation tiles (SRTM, GMTED, EU-DEM…), land only" },
 ];
+
+const EXAGGERATION = [1, 1.5, 2, 3];
 
 export function LayerPanel() {
   const open = useUi((st) => st.layersOpen);
   const setOpen = useUi((st) => st.setLayersOpen);
   const layers = useUi((st) => st.layers);
   const toggle = useUi((st) => st.toggleLayer);
+  const exaggeration = useUi((st) => st.exaggeration);
+  const setExaggeration = useUi((st) => st.setExaggeration);
   const [notice, setNotice] = useState<string | null>(null);
 
   const activeOverlays = OVERLAYS.filter((o) => o.id !== "labels" && layers[o.id as LayerId]);
@@ -70,6 +76,32 @@ export function LayerPanel() {
               {PLANET.map((l) => (
                 <Toggle key={l.id} checked={layers[l.id]} onChange={(v) => toggle(l.id, v)} label={l.label} description={l.desc} />
               ))}
+              {layers.terrain ? (
+                <div className={s.segment} role="radiogroup" aria-label="Vertical exaggeration">
+                  <span className={s.segmentLabel}>Relief ×</span>
+                  {EXAGGERATION.map((x) => (
+                    <button key={x} type="button" role="radio" aria-checked={exaggeration === x} className={cx(s.segmentBtn, exaggeration === x && s.segmentOn)} onClick={() => setExaggeration(x)}>
+                      {x}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </Group>
+            <Group title="Tools">
+              <button
+                type="button"
+                className={s.tool}
+                onClick={() => {
+                  compareView();
+                  setOpen(false);
+                }}
+              >
+                <Columns2 size={14} />
+                <span>
+                  <span className={s.toolTitle}>Compare two dates</span>
+                  <span className={s.toolDesc}>Swipe between daily satellite views: before / after</span>
+                </span>
+              </button>
             </Group>
             {groups.map((g) => {
               const defs = OVERLAYS.filter((o) => o.group === g);

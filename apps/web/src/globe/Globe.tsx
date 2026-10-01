@@ -6,6 +6,7 @@ import { hazardMeta } from "../lib/hazards";
 import { qk, useCountries, useEarthquakeLayer, useFireClusters, useFireGrid, useIncident } from "../lib/queries";
 import { useUi } from "../lib/store";
 import { AtlasGlobe, DETAIL_HEIGHT, type HoverInfo, type ViewInfo } from "./AtlasGlobe";
+import { compareProduct } from "./imagery";
 import styles from "./Globe.module.css";
 import { globeRef } from "./ref";
 
@@ -28,6 +29,8 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const playhead = useUi((s) => s.playhead);
   const history = useUi((s) => s.history);
   const appView = useUi((s) => s.view);
+  const exaggeration = useUi((s) => s.exaggeration);
+  const compare = useUi((s) => s.compare);
 
   // ---- mount ------------------------------------------------------------------------
   useEffect(() => {
@@ -74,6 +77,19 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   useEffect(() => globe?.setHistory(history ? history.sequence.columns : null), [globe, history]);
   useEffect(() => globe?.setTime(playhead), [globe, playhead]);
   useEffect(() => globe?.highlight(hoveredId), [globe, hoveredId]);
+  useEffect(() => globe?.setTerrain(layers.terrain, exaggeration), [globe, layers.terrain, exaggeration]);
+  const cmpProduct = compare?.product;
+  const cmpBefore = compare?.before;
+  const cmpAfter = compare?.after;
+  const cmpPosition = compare?.position;
+  useEffect(() => {
+    if (!globe) return;
+    globe.setCompare(
+      cmpProduct && cmpBefore && cmpAfter
+        ? { product: compareProduct(cmpProduct), before: cmpBefore, after: cmpAfter, position: cmpPosition ?? 0.5 }
+        : null,
+    );
+  }, [globe, cmpProduct, cmpBefore, cmpAfter, cmpPosition]);
   useEffect(() => {
     if (globe && fly) globe.fly(fly);
   }, [globe, fly]);

@@ -245,3 +245,80 @@ export function overlayDate(def: ImageryDef, selected: string): string {
   d.setUTCDate(d.getUTCDate() - def.latencyDays);
   return d.toISOString().slice(0, 10);
 }
+
+/**
+ * Products for the before/after split comparison. All are NASA GIBS daily composites
+ * (keyless WMTS). Each pass covers the planet once a day; clouds, smoke and swath gaps are
+ * part of the picture, so two dates are compared, never a single "truth" image.
+ */
+export interface CompareProduct {
+  id: string;
+  title: string;
+  short: string;
+  layer: string;
+  level: number;
+  ext: "jpg" | "png";
+  description: string;
+}
+
+export const COMPARE_PRODUCTS: CompareProduct[] = [
+  {
+    id: "viirs-truecolor",
+    title: "True colour — VIIRS NOAA-20",
+    short: "True colour",
+    layer: "VIIRS_NOAA20_CorrectedReflectance_TrueColor",
+    level: 9,
+    ext: "jpg",
+    description: "What the eye would see from orbit at ~375 m: clouds, smoke plumes, sediment and snow.",
+  },
+  {
+    id: "viirs-firecolor",
+    title: "False colour M11-I2-I1 — VIIRS NOAA-20",
+    short: "Burn scars & water",
+    layer: "VIIRS_NOAA20_CorrectedReflectance_BandsM11-I2-I1",
+    level: 9,
+    ext: "jpg",
+    description: "Shortwave-infrared false colour: burn scars show red-brown, active fire bright orange, water black-blue, vegetation green.",
+  },
+  {
+    id: "modis-721",
+    title: "False colour 7-2-1 — MODIS Terra",
+    short: "MODIS 7-2-1",
+    layer: "MODIS_Terra_CorrectedReflectance_Bands721",
+    level: 9,
+    ext: "jpg",
+    description: "Bands 7-2-1 at 250–500 m: flood water and burn scars stand out from vegetation and bare ground.",
+  },
+  {
+    id: "modis-truecolor",
+    title: "True colour — MODIS Terra",
+    short: "MODIS true colour",
+    layer: "MODIS_Terra_CorrectedReflectance_TrueColor",
+    level: 9,
+    ext: "jpg",
+    description: "Morning-overpass true colour at 250 m; useful when the afternoon VIIRS pass is cloudy.",
+  },
+];
+
+export function compareProduct(id: string): CompareProduct {
+  return COMPARE_PRODUCTS.find((p) => p.id === id) ?? COMPARE_PRODUCTS[0]!;
+}
+
+export function compareUrl(p: CompareProduct, date: string): string {
+  return `${GIBS}/${p.layer}/default/${date}/GoogleMapsCompatible_Level${p.level}/{z}/{y}/{x}.${p.ext}`;
+}
+
+const DAY = 86_400_000;
+const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+/** Sensible comparison for a hazard: a clear day before onset against the latest full day. */
+export function compareDefaults(hazard: string | null, onsetIso: string | null): { product: string; before: string; after: string } {
+  const latest = Date.now() - DAY; // the previous UTC day is complete in GIBS
+  const onset = onsetIso ? Date.parse(onsetIso) : latest - 7 * DAY;
+  const product = hazard === "wildfire" || hazard === "flood" ? "viirs-firecolor" : "viirs-truecolor";
+  // Satellite detection can lag a fire's or flood's start by days; reach back far enough to
+  // land before it. Earthquakes and eruptions have a precise onset.
+  const leadDays = hazard === "wildfire" ? 6 : hazard === "flood" || hazard === "tropical_cyclone" ? 5 : 2;
+  const before = isoDay(Math.min(onset - leadDays * DAY, latest - DAY));
+  return { product, before, after: isoDay(latest) };
+}

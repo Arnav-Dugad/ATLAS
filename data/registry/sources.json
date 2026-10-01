@@ -416,6 +416,62 @@
         "Population grids are modelled estimates (MODEL provenance) disaggregated from census data.",
         "Exposure counts are residential population; daytime and seasonal populations differ."
       ]
+    },
+    {
+      "id": "terrain-tiles",
+      "name": "Terrain Tiles (Terrarium) on AWS Open Data",
+      "provider": "Mapzen / Linux Foundation (tilezen) on the AWS Open Data Sponsorship Program",
+      "category": "reference",
+      "hazards": [],
+      "homepage": "https://registry.opendata.aws/terrain-tiles/",
+      "docs_url": "https://github.com/tilezen/joerd/blob/master/docs/formats.md",
+      "hosts": ["s3.amazonaws.com"],
+      "license": { "name": "Mixed open licences per source (see attribution list)", "url": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md", "commercial_use": true },
+      "attribution": "Terrain: Terrain Tiles on AWS Open Data. USGS 3DEP, GMTED2010 and SRTM; NOAA ETOPO1; Copernicus EU-DEM; ArcticDEM; Geoscience Australia; Natural Resources Canada; INEGI; LINZ; Kartverket; UK Environment Agency; offene Daten Österreichs",
+      "update_interval": "Static dataset",
+      "expected_latency": "n/a",
+      "coverage": { "geographic": "Global (Web Mercator, to ±85.05°)", "temporal": "Static composite of the listed DEMs" },
+      "resolution": "≈ 19 m at the zoom 13 used by ATLAS (source DEMs 1 m – 1 km)",
+      "historical_depth": "n/a",
+      "rate_limits": "Public S3 bucket; requested only for visible tiles while 3D terrain is on",
+      "auth": { "required": false },
+      "cache_strategy": "Decoded tiles kept in an in-memory LRU in the browser (384 tiles)",
+      "reliability": { "rating": "B", "rationale": "Static community dataset on AWS; no SLA" },
+      "parser_version": "terrarium/1",
+      "default_enabled": true,
+      "limitations": [
+        "Heights below sea level are clamped to 0 m in ATLAS so imagery is never draped over bathymetry.",
+        "Source resolution varies strongly by country.",
+        "Visual relief only: not suitable for engineering or hydrological analysis."
+      ]
+    },
+    {
+      "id": "earth-search",
+      "name": "Sentinel-2 L2A via Earth Search (STAC) and AWS COGs",
+      "provider": "Element 84 (STAC API) · ESA Copernicus (Sentinel-2) · AWS Open Data",
+      "category": "imagery",
+      "hazards": ["wildfire", "flood", "tropical_cyclone", "volcano", "earthquake"],
+      "homepage": "https://element84.com/earth-search/",
+      "docs_url": "https://earth-search.aws.element84.com/v1",
+      "hosts": ["earth-search.aws.element84.com", "sentinel-cogs.s3.us-west-2.amazonaws.com"],
+      "license": { "name": "Copernicus Sentinel data terms (free, full and open)", "url": "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice", "commercial_use": true },
+      "attribution": "Contains modified Copernicus Sentinel data, processed by ATLAS. Catalogue: Element 84 Earth Search on AWS Open Data",
+      "update_interval": "New scenes within hours of acquisition; each place revisited about every 5 days",
+      "expected_latency": "Hours to a day after acquisition",
+      "coverage": { "geographic": "Global land and coastal waters", "temporal": "2015 – present" },
+      "resolution": "10 m (visible, NIR) and 20 m (SWIR, scene classification)",
+      "historical_depth": "Full Sentinel-2 L2A archive",
+      "rate_limits": "Public STAC API and public COG bucket; ATLAS reads small windows around one incident, on demand",
+      "auth": { "required": false },
+      "cache_strategy": "Analysis results cached on disk for 24 h per incident and index",
+      "reliability": { "rating": "A", "rationale": "Operational ESA mission; widely used public catalogue" },
+      "parser_version": "stac/1",
+      "default_enabled": true,
+      "limitations": [
+        "Clouds, cloud shadows, smoke and snow hide the surface; masked pixels are excluded and the valid fraction is reported.",
+        "Change between two dates also reflects season, harvest, tides and illumination, not only the hazard.",
+        "Index thresholds are published conventions (USGS dNBR classes, MNDWI > 0) and are not calibrated for every landscape."
+      ]
     }
   ]
 }

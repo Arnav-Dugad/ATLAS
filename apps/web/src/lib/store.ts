@@ -44,7 +44,8 @@ export type LayerId =
   | "imagery.water"
   | "imagery.ndvi"
   | "imagery.population"
-  | "imagery.relief";
+  | "imagery.relief"
+  | "terrain";
 
 export const DEFAULT_LAYERS: Record<LayerId, boolean> = {
   incidents: true,
@@ -68,7 +69,21 @@ export const DEFAULT_LAYERS: Record<LayerId, boolean> = {
   "imagery.ndvi": false,
   "imagery.population": false,
   "imagery.relief": false,
+  terrain: false,
 };
+
+/** Split-screen comparison of one satellite product on two dates (Phase 3). */
+export interface CompareState {
+  product: string;
+  /** YYYY-MM-DD shown left of the divider */
+  before: string;
+  /** YYYY-MM-DD shown right of the divider */
+  after: string;
+  /** divider position as a fraction of the globe width */
+  position: number;
+  /** what the comparison is about, e.g. an incident title */
+  subject: string | null;
+}
 
 interface UiState {
   view: View;
@@ -99,6 +114,9 @@ interface UiState {
   speed: number;
   /** Active historical replay (Demo Mode), or null for live data. */
   history: HistoricalEvent | null;
+  /** terrain vertical exaggeration factor */
+  exaggeration: number;
+  compare: CompareState | null;
 
   setView: (v: View) => void;
   select: (id: string | null, opts?: { fly?: boolean }) => void;
@@ -128,6 +146,9 @@ interface UiState {
   setSpeed: (hoursPerSecond: number) => void;
   goLive: () => void;
   setHistory: (ev: HistoricalEvent | null) => void;
+  setExaggeration: (x: number) => void;
+  setCompare: (c: CompareState | null) => void;
+  patchCompare: (patch: Partial<CompareState>) => void;
 }
 
 function yesterdayUtc(): string {
@@ -165,6 +186,8 @@ export const useUi = create<UiState>()(
       playing: false,
       speed: 6,
       history: null,
+      exaggeration: 1.5,
+      compare: null,
 
       setView: (view) => set({ view }),
       select: (selectedId) => set((s) => ({ selectedId, autoRotate: selectedId ? false : s.autoRotate, workspace: selectedId ? s.workspace : false })),
@@ -195,6 +218,9 @@ export const useUi = create<UiState>()(
       setSpeed: (speed) => set({ speed }),
       goLive: () => set({ playhead: null, playing: false, history: null }),
       setHistory: (history) => set({ history }),
+      setExaggeration: (exaggeration) => set({ exaggeration }),
+      setCompare: (compare) => set((s) => ({ compare, autoRotate: compare ? false : s.autoRotate })),
+      patchCompare: (patch) => set((s) => (s.compare ? { compare: { ...s.compare, ...patch } } : {})),
     }),
     {
       name: "atlas.ui.v1",
@@ -208,6 +234,7 @@ export const useUi = create<UiState>()(
         status: s.status,
         sort: s.sort,
         speed: s.speed,
+        exaggeration: s.exaggeration,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<UiState>;

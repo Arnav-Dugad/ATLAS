@@ -86,3 +86,55 @@
   background: var(--surface-4);
   box-shadow: var(--shadow-pop);
 }
+
+.segment {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0 10px 2px;
+}
+.segmentLabel {
+  margin-right: 4px;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.segmentBtn {
+  min-width: 34px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.segmentOn {
+  color: #07101b;
+  background: var(--accent);
+  box-shadow: none;
+}
+.tool {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 6px;
+  margin: 0 -6px;
+  border-radius: var(--r-sm);
+  text-align: left;
+  color: var(--accent);
+}
+.tool:hover {
+  background: rgba(150, 168, 194, 0.06);
+}
+.toolTitle {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--text-1);
+}
+.toolDesc {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
