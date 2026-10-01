@@ -8,6 +8,7 @@ from typing import Annotated, Any
 
 import orjson
 from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi.responses import FileResponse
 from sse_starlette.sse import EventSourceResponse
 
 from atlas import __version__
@@ -187,6 +188,33 @@ async def incident_infrastructure(request: Request, incident_id: str) -> dict[st
     r = rt(request)
     hazard, lat, lon = _incident_point(r, incident_id)
     return await exposure.infrastructure_exposure(r.http, hazard, lat, lon)
+
+
+@router.get("/incidents/{incident_id}/imagery/change")
+async def incident_spectral_change(
+    request: Request, incident_id: str, index: Annotated[str | None, Query(pattern="^(auto|nbr|mndwi|ndvi)$")] = None
+) -> dict[str, Any]:
+    """Sentinel-2 before/after change (dNBR, MNDWI or ΔNDVI) around the incident. DERIVED; 10–60 s
+    on first request (reads only small windows of the public COGs), then cached for 12 h."""
+    r = rt(request)
+    with r.db.read() as cur:
+        row = cur.execute("SELECT hazard, lat, lon, bbox, started_at FROM incidents WHERE id = ?", [incident_id]).fetchone()
+    if row is None or row[1] is None:
+        raise HTTPException(404, "incident not found or has no location")
+    bbox = orjson.loads(row[3]) if row[3] else None
+    return await r.spectral.analyse(
+        incident_id, Hazard(row[0]), float(row[1]), float(row[2]), bbox, row[4], None if index in (None, "auto") else index
+    )
+
+
+@router.get("/imagery/files/{incident_id}/{index}/{name}")
+def spectral_file(request: Request, incident_id: str, index: str, name: str) -> FileResponse:
+    """Images produced by the change analysis (validated names only; never arbitrary paths)."""
+    path = rt(request).spectral.file(incident_id, index, name)
+    if path is None:
+        raise HTTPException(404, "not found")
+    media = "image/png" if name.endswith(".png") else "image/jpeg"
+    return FileResponse(path, media_type=media, headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.post("/packs/reload")

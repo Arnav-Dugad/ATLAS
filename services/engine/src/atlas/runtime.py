@@ -13,6 +13,7 @@ from atlas.engine.exposure import PopulationGrid
 from atlas.engine.fires import FireEngine
 from atlas.engine.geocode import Geocoder
 from atlas.engine.pipeline import IngestPipeline
+from atlas.engine.spectral import SpectralService
 from atlas.http.cache import HttpCache
 from atlas.http.client import HostPolicy, HttpClient
 from atlas.http.security import UrlPolicy
@@ -44,6 +45,7 @@ class Runtime:
         self.http.set_host_policy("www.gdacs.org", HostPolicy(max_concurrency=2, min_interval_s=0.5))
         self.http.set_host_policy("api.open-meteo.com", HostPolicy(max_concurrency=2, min_interval_s=0.2))
         self.packs = PackManager(settings.packs_dir, self.http)
+        self.spectral = SpectralService(self.http, settings.cache_dir, offline=settings.offline)
         self.geocoder = self._load_geocoder()
         self.bus = EventBus()
         self.pipeline = IngestPipeline(self.db, self.geocoder, self.registry, self.bus)

@@ -165,3 +165,46 @@ def export_static(rt: Runtime, out: Path) -> dict[str, Any]:
     (out / "snapshot.json").write_text(json.dumps(snapshot, indent=2), "utf-8")
     log.info("static snapshot: %d incidents, %.1f MB", total, sum(sizes.values()) / 1e6)
     return snapshot
+
+
+async def export_spectral(rt: Runtime, out: Path, *, limit: int = 6, budget_s: float = 240.0) -> list[str]:
+    """Precompute Sentinel-2 change maps for a few significant fires and floods (the public
+    snapshot cannot run the analysis on demand). Bounded by count and wall time; results are
+    reused from the 12 h cache between runs."""
+    import asyncio
+    import shutil
+    import time
+
+    from atlas.models import Hazard
+
+    now = utcnow()
+    with rt.db.read() as cur:
+        rows = cur.execute(
+            "SELECT id, hazard, lat, lon, bbox, started_at FROM incidents WHERE status = 'active' AND lat IS NOT NULL "
+            "AND hazard IN ('wildfire', 'flood') AND started_at <= ? AND started_at >= ? "
+            "ORDER BY severity_level DESC, last_observation_at DESC LIMIT ?",
+            [now - timedelta(days=3), now - timedelta(days=40), limit * 2],
+        ).fetchall()
+    done: list[str] = []
+    t0 = time.monotonic()
+    root = out / "api" / "v1"
+    for iid, hazard, lat, lon, bbox, started in rows:
+        if len(done) >= limit or time.monotonic() - t0 > budget_s:
+            break
+        try:
+            res = await rt.spectral.analyse(
+                iid, Hazard(hazard), float(lat), float(lon), orjson.loads(bbox) if bbox else None, started
+            )
+        except Exception as exc:  # one failure must not sink the snapshot
+            log.warning("static spectral: %s failed: %s", iid, exc)
+            continue
+        if res.get("status") != "ok":
+            continue
+        index = res["index"]["id"]
+        src = rt.spectral.path(iid, index)
+        dst = root / "imagery" / "files" / iid / index
+        await asyncio.to_thread(shutil.copytree, src, dst, dirs_exist_ok=True)
+        await asyncio.to_thread(_write, root, f"incidents/{iid}/imagery/change", res)
+        done.append(iid)
+    log.info("static spectral: %d change maps in %.0f s", len(done), time.monotonic() - t0)
+    return done
