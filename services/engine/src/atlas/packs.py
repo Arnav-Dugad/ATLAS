@@ -147,9 +147,14 @@ class PackManager:
             last_log = [0.0]
 
             def report(done: int, expected: int | None, name: str = pf.name, last_log: list[float] = last_log) -> None:
-                if expected and done - last_log[0] >= expected / 10:
-                    last_log[0] = done
+                if done - last_log[0] < (expected / 10 if expected else 5 << 20):
+                    return
+                last_log[0] = done
+                # Content-Length is the compressed size when the server gzips, so it can be exceeded.
+                if expected and done <= expected:
                     log.info("pack %s: %s %.0f%%", pack_id, name, 100 * done / expected)
+                else:
+                    log.info("pack %s: %s %.1f MB", pack_id, name, done / 1048576)
 
             size, digest = await self.http.download(pf.url, dest, max_bytes=pf.max_bytes, progress=report)
             entry = {"name": pf.name, "url": pf.url, "bytes": size, "sha256": digest}

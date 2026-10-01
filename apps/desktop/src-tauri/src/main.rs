@@ -14,10 +14,13 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
+            // The engine also watches this process and stops itself if the app exits without
+            // the clean-up below (a crash), since a one-file sidecar runs the engine as a child.
             let (mut events, child) = app
                 .shell()
                 .sidecar("atlas-engine")
                 .expect("the atlas-engine sidecar is bundled with the app")
+                .env("ATLAS_PARENT_PID", std::process::id().to_string())
                 .spawn()
                 .expect("failed to start the ATLAS engine");
             // Drain the engine's output so its pipes never fill up.

@@ -24,8 +24,9 @@ from atlas.observability import configure_logging
 def _runtime(scheduler: bool = False) -> Any:
     from atlas.runtime import Runtime
 
-    settings = get_settings()
-    settings.scheduler_enabled = scheduler
+    # A copy: the desktop entry point runs `setup` and then `serve` in one process, and the
+    # server must not inherit this one-shot runtime's disabled scheduler.
+    settings = get_settings().model_copy(update={"scheduler_enabled": scheduler})
     return Runtime(settings)
 
 
@@ -125,9 +126,7 @@ def _serve(no_sync: bool) -> int:
 
     from atlas.api.app import create_app
 
-    settings = get_settings()
-    if no_sync:
-        settings.scheduler_enabled = False
+    settings = get_settings().model_copy(update={"scheduler_enabled": not no_sync})
     uvicorn.run(create_app(settings), host=settings.host, port=settings.port, log_level="warning", access_log=False)
     return 0
 
