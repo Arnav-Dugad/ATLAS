@@ -1,0 +1,157 @@
+/*
+ * ATLAS design tokens.
+ * Planetary, scientific, restrained. The Earth is the hero; chrome recedes.
+ * Colour is never the only carrier of meaning: hazards also have glyphs, severity has tick counts.
+ */
+:root {
+  /* ---- Surfaces: deep space with a faint blue cast ---- */
+  --void: #04060a;
+  --bg: #070a0f;
+  --surface-1: #0a0e14;
+  --surface-2: #0e131b;
+  --surface-3: #131a24;
+  --surface-4: #1a222e;
+  --glass: rgba(9, 13, 19, 0.72);
+  --glass-strong: rgba(9, 13, 19, 0.86);
+  --scrim: rgba(3, 5, 8, 0.62);
+
+  /* ---- Lines ---- */
+  --line-1: rgba(150, 168, 194, 0.08);
+  --line-2: rgba(150, 168, 194, 0.14);
+  --line-3: rgba(150, 168, 194, 0.24);
+
+  /* ---- Text ---- */
+  --text-1: #e8ecf2;
+  --text-2: #a3adbb;
+  --text-3: #6f7a8a;
+  --text-4: #4a5463;
+
+  /* ---- Signal accent: the colour of the atmospheric limb ---- */
+  --accent: #9cc9ff;
+  --accent-strong: #c4e0ff;
+  --accent-soft: rgba(156, 201, 255, 0.12);
+  --accent-line: rgba(156, 201, 255, 0.38);
+
+  /* ---- Status ---- */
+  --ok: #6fd3a8;
+  --warn: #f2c14e;
+  --bad: #ff7a6b;
+  --info: #9cc9ff;
+
+  /* ---- Hazards (paired with distinct glyphs) ---- */
+  --hz-earthquake: #f2b84b;
+  --hz-wildfire: #ff6b3d;
+  --hz-tropical_cyclone: #a08cff;
+  --hz-flood: #3ea8f2;
+  --hz-volcano: #f0507f;
+  --hz-drought: #c9a26b;
+  --hz-severe_storm: #9fb6cc;
+  --hz-tsunami: #2fd1bd;
+  --hz-landslide: #b98a63;
+  --hz-extreme_heat: #ff8f5c;
+  --hz-extreme_cold: #8fd0ff;
+  --hz-air_quality: #b7a3c9;
+  --hz-sea_lake_ice: #d6ecff;
+  --hz-dust_haze: #d9b98c;
+  --hz-other: #94a3b8;
+
+  /* ---- Severity 1..5 (luminance increases with level; also encoded as ticks) ---- */
+  --sev-0: #4a5463;
+  --sev-1: #7d8899;
+  --sev-2: #c7b660;
+  --sev-3: #f0a43a;
+  --sev-4: #f4673c;
+  --sev-5: #ff3d71;
+
+  /* ---- Provenance ---- */
+  --prov-real: #8fd8b8;
+  --prov-derived: #9cc9ff;
+  --prov-model: #d6b6ff;
+  --prov-simulation: #ffb86b;
+  --prov-unavailable: #6f7a8a;
+
+  /* ---- Type ---- */
+  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --fs-2xs: 10.5px;
+  --fs-xs: 11.5px;
+  --fs-sm: 12.5px;
+  --fs-md: 13.5px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 24px;
+  --fs-3xl: 34px;
+  --fs-4xl: 48px;
+  --tracking-label: 0.09em;
+
+  /* ---- Space (4 px grid) ---- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* ---- Radii ---- */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  /* ---- Elevation ---- */
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-2: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 64px -24px rgba(0, 0, 0, 0.8);
+  --shadow-pop: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 32px 96px -24px rgba(0, 0, 0, 0.9), 0 0 0 1px var(--line-2);
+
+  /* ---- Motion (physics-inspired; reduced-motion collapses durations) ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-4: 520ms;
+
+  /* ---- Layout ---- */
+  --topbar-h: 52px;
+  --rail-w: 372px;
+  --panel-w: 420px;
+  --timeline-h: 64px;
+  --gutter: 12px;
+  --z-globe: 0;
+  --z-chrome: 10;
+  --z-overlay: 40;
+  --z-palette: 60;
+  --z-toast: 70;
+}
+
+:root[data-contrast="high"] {
+  --line-1: rgba(200, 214, 235, 0.22);
+  --line-2: rgba(200, 214, 235, 0.36);
+  --line-3: rgba(200, 214, 235, 0.55);
+  --text-2: #cdd5e0;
+  --text-3: #a3adbb;
+  --glass: rgba(6, 9, 13, 0.94);
+  --glass-strong: rgba(6, 9, 13, 0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-1: 0ms;
+    --dur-2: 0ms;
+    --dur-3: 0ms;
+    --dur-4: 0ms;
+  }
+}
+
+:root[data-motion="reduced"] {
+  --dur-1: 0ms;
+  --dur-2: 0ms;
+  --dur-3: 0ms;
+  --dur-4: 0ms;
+}

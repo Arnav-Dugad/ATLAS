@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#05070a" />
+    <meta
+      name="description"
+      content="ATLAS turns the world's open disaster and Earth-observation data into one living planetary intelligence system."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://gibs.earthdata.nasa.gov https://tiles.maps.eox.at; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 https://gibs.earthdata.nasa.gov https://tiles.maps.eox.at; font-src 'self' data:; object-src 'none'; base-uri 'self'"
+    />
+    <link rel="icon" type="image/svg+xml" href="/atlas.svg" />
+    <title>ATLAS — Planetary Disaster Intelligence</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>ATLAS needs JavaScript and WebGL to render the planetary view.</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
