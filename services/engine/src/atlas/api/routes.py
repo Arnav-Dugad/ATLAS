@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from datetime import datetime, timedelta
 from typing import Annotated, Any, Literal
@@ -206,6 +207,31 @@ async def incident_worldpop(request: Request, incident_id: str) -> dict[str, Any
         }
     ghsl = await asyncio.to_thread(r.population.rings, lat, lon, rings) if r.population is not None else None
     return await worldpop.compare(r.http, lat, lon, rings, ghsl)
+
+
+@router.get("/incidents/{incident_id}/exposure/buildings")
+async def incident_buildings(request: Request, incident_id: str) -> dict[str, Any]:
+    """Overture Maps building footprints within 1, 2, 5 and 10 km (first query in a session ~1 min)."""
+    from atlas.engine import buildings
+
+    r = rt(request)
+    _hazard, lat, lon = _incident_point(r, incident_id)
+    svc_ = getattr(r, "buildings", None)
+    if svc_ is None:
+        svc_ = buildings.Buildings()
+        r.buildings = svc_  # type: ignore[attr-defined]
+    try:
+        release = await buildings.latest_release(r.http)
+        return await asyncio.to_thread(svc_.rings, release, lat, lon, buildings.RINGS_KM)  # type: ignore[no-any-return]
+    except (FetchError, ValueError) as exc:
+        return {"status": "unavailable", "provenance": "unavailable", "reason": f"Overture Maps could not be read ({exc})."}
+    except Exception as exc:  # DuckDB/network errors from the remote Parquet read
+        logging.getLogger("atlas.buildings").warning("buildings: %s", exc)
+        return {
+            "status": "unavailable",
+            "provenance": "unavailable",
+            "reason": "Reading Overture Maps failed; try again in a minute.",
+        }
 
 
 @router.get("/incidents/{incident_id}/exposure/infrastructure")

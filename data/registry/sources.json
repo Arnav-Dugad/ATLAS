@@ -1061,6 +1061,33 @@
       "limitations": [
         "Needs a free app identifier (your app name and email, base64-encoded by HDX); without it the card stays off."
       ]
+    },
+    {
+      "id": "overture",
+      "name": "Overture Maps building footprints",
+      "provider": "Overture Maps Foundation (merging OpenStreetMap, Microsoft and Google Open Buildings, Esri Community Maps)",
+      "category": "exposure",
+      "hazards": ["earthquake", "flood", "tropical_cyclone", "wildfire", "volcano"],
+      "homepage": "https://overturemaps.org/",
+      "docs_url": "https://docs.overturemaps.org/getting-data/duckdb/",
+      "hosts": ["overturemaps-us-west-2.s3.amazonaws.com"],
+      "license": { "name": "ODbL 1.0 (buildings theme)", "url": "https://docs.overturemaps.org/attribution/", "commercial_use": true },
+      "attribution": "Buildings: Overture Maps Foundation (ODbL; includes © OpenStreetMap contributors, Microsoft and Google Open Buildings)",
+      "update_interval": "Monthly releases",
+      "expected_latency": "Weeks",
+      "coverage": { "geographic": "Global", "temporal": "Latest release" },
+      "resolution": "Individual building footprints",
+      "historical_depth": "Latest release only",
+      "rate_limits": "Public AWS Open Data bucket; DuckDB reads only row groups intersecting the area, on request",
+      "auth": { "required": false },
+      "cache_strategy": "DuckDB metadata cache for the session; first query about a minute, then seconds",
+      "reliability": { "rating": "B", "rationale": "Large merged open dataset; coverage uneven by country" },
+      "parser_version": "overture-geoparquet/1",
+      "default_enabled": true,
+      "limitations": [
+        "Mapped footprints only; completeness varies widely by country and source.",
+        "A count of buildings is not a count of damaged buildings."
+      ]
     }
   ]
 }

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { ExternalLink, Radar, RefreshCw, Settings, Users } from "lucide-react";
+import { Building2, ExternalLink, Radar, RefreshCw, Settings, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, explainError, LOCAL_ONLY_MESSAGE, STATIC_MODE, WINDOWS_APP, type ExposureUnavailable, type IncidentDetail, type InfrastructureExposure, type PopulationExposure } from "../../lib/api";
 import { compact, int, relTime, dist } from "../../lib/format";
@@ -16,6 +16,7 @@ export function ExposureTab({ d }: { d: IncidentDetail }) {
   return (
     <div className={s.stack}>
       <PopulationSection id={d.id} />
+      {STATIC_MODE ? null : <BuildingsSection id={d.id} />}
       <InfrastructureSection id={d.id} />
       <p className={s.disclaimer}>
         Exposure describes what lies within distance rings of the incident position. It is not an estimate of damage, casualties or people affected.
@@ -57,6 +58,68 @@ function PopulationSection({ id }: { id: string }) {
           {STATIC_MODE ? null : <WorldPopCompare id={id} />}
         </>
       )}
+    </section>
+  );
+}
+
+/** Overture building footprints in rings, on request (the first query in a session takes ~1 minute). */
+function BuildingsSection({ id }: { id: string }) {
+  const [on, setOn] = useState(false);
+  useEffect(() => setOn(false), [id]);
+  const q = useQuery({ queryKey: ["buildings", id], queryFn: ({ signal }) => api.buildings(id, signal), enabled: on, staleTime: Infinity, retry: 0 });
+  const d = q.data;
+  const ok = d && d.status === "ok" ? d : null;
+  const max = ok ? Math.max(1, ...ok.rings.map((r) => r.buildings)) : 1;
+  return (
+    <section>
+      <Label right={<ProvenanceBadge kind={ok ? "derived" : "unavailable"} compact />}>
+        <span className={s.titleRow}>
+          <Building2 size={12} aria-hidden /> Buildings nearby
+        </span>
+      </Label>
+      {!on ? (
+        <div className={s.card}>
+          <button type="button" className={s.compareBtn} onClick={() => setOn(true)}>
+            Count mapped buildings (Overture Maps)
+          </button>
+          <div className={s.meta}>Reads Overture&apos;s open building footprints directly; the first count in a session takes about a minute, later ones seconds.</div>
+        </div>
+      ) : q.isLoading ? (
+        <div className={s.card}>
+          <Skeleton height={90} />
+          <div className={s.meta}>Reading Overture Maps building footprints…</div>
+        </div>
+      ) : q.error ? (
+        <ErrorState title="Building count failed" error={q.error} onRetry={() => void q.refetch()} />
+      ) : ok ? (
+        <div className={s.card}>
+          <div className={s.rings}>
+            {ok.rings.map((r, i) => (
+              <div key={r.radius_km} className={s.ringRow}>
+                <span className={s.ringLabel}>
+                  <span className="num">{r.radius_km}</span> km
+                </span>
+                <span className={s.barTrack}>
+                  <motion.span
+                    className={s.bar}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.max(0.6, (r.buildings / max) * 100)}%` }}
+                    transition={{ type: "spring", stiffness: 110, damping: 22, delay: i * 0.05 }}
+                  />
+                </span>
+                <span className={s.ringValue}>
+                  <span className="num">{int(r.buildings)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className={s.meta}>
+            {ok.method} Release {ok.release}. {ok.limitations} {ok.attribution}.
+          </div>
+        </div>
+      ) : d && d.status !== "ok" ? (
+        <p className={s.meta}>{d.reason}</p>
+      ) : null}
     </section>
   );
 }
