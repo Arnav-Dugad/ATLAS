@@ -16,6 +16,7 @@ import { matches, useWatch, type Watch } from "../../lib/watch";
 import { cx, HazardGlyph, SeverityMeter } from "../../ui/primitives";
 import s from "./WatchPanel.module.css";
 import { useUnits } from "../../lib/settings";
+import { showUndo } from "../../lib/undo";
 
 const RADII = [25, 50, 100, 200, 300, 500, 750, 1000];
 const HAZARD_IDS: HazardId[] = ["earthquake", "tropical_cyclone", "wildfire", "flood", "volcano", "drought"];
@@ -179,7 +180,11 @@ function WatchRow({ w, incidents }: { w: Watch; incidents: IncidentSummary[] }) 
         <button type="button" className={cx(s.icon, w.notify && s.iconOn)} onClick={() => void toggleNotify()} aria-pressed={w.notify} aria-label="Browser alerts" title={w.notify ? "Alerts on" : "Alerts off"}>
           {w.notify ? <Bell size={13} /> : <BellOff size={13} />}
         </button>
-        <button type="button" className={s.icon} onClick={() => remove(w.id)} aria-label={`Delete ${w.name}`} title="Delete">
+        <button type="button" className={s.icon} onClick={() => {
+            const seen = useWatch.getState().seen[w.id];
+            remove(w.id);
+            showUndo(`Watch area “${w.name}” removed`, { undo: () => useWatch.getState().restore(w, seen) });
+          }} aria-label={`Delete ${w.name}`} title="Delete">
           <Trash2 size={13} />
         </button>
       </div>

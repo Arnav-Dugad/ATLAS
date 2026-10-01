@@ -316,3 +316,18 @@
   animation: none;
   stroke-dashoffset: 0;
 }
+
+.asOf {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+  white-space: nowrap;
+}
+.asOf:hover {
+  color: var(--text-2);
+}

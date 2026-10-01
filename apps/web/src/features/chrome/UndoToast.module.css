@@ -1,0 +1,60 @@
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--timeline-h) + var(--gutter) * 2 + 18px);
+  z-index: var(--z-toast);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px 9px 16px;
+  border-radius: var(--r-md);
+  background: #121924;
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    var(--shadow-2);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+}
+.undo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  color: var(--accent-strong);
+  font-weight: 600;
+  background: var(--accent-soft);
+}
+.undo:hover {
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.close {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+}
+.close:hover {
+  color: var(--text-1);
+}
+.timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  animation: drain linear forwards;
+}
+@keyframes drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

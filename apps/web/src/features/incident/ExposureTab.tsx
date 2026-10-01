@@ -7,7 +7,7 @@ import { FACILITY_META, type FacilityKey } from "../../lib/hazards";
 import { useInfrastructureExposure, usePopulationExposure } from "../../lib/queries";
 import { openSettings, type SettingsSection, useUnits } from "../../lib/settings";
 import { useUi } from "../../lib/store";
-import { cx, ErrorState, Label, ProvenanceBadge, Skeleton } from "../../ui/primitives";
+import { cx, ErrorState, Label, ProvenanceBadge, Skeleton, AsOf } from "../../ui/primitives";
 import s from "./ExposureTab.module.css";
 
 export function ExposureTab({ d }: { d: IncidentDetail }) {
@@ -32,7 +32,14 @@ function PopulationSection({ id }: { id: string }) {
   const data = q.data;
   return (
     <section>
-      <Label right={<ProvenanceBadge kind={data && !isUnavailable(data) ? "model" : "unavailable"} compact />}>
+      <Label
+        right={
+          <>
+            {data && !isUnavailable(data) ? <AsOf at={data.computed_at} source="GHSL 2025" label="Computed" /> : null}
+            <ProvenanceBadge kind={data && !isUnavailable(data) ? "model" : "unavailable"} compact />
+          </>
+        }
+      >
         <span className={s.titleRow}>
           <Users size={12} aria-hidden /> People living nearby
         </span>
@@ -40,7 +47,7 @@ function PopulationSection({ id }: { id: string }) {
       {q.isLoading ? (
         <Skeleton height={110} />
       ) : q.error ? (
-        <ErrorState title="Population exposure failed" message={(q.error as Error).message} onRetry={() => void q.refetch()} />
+        <ErrorState title="Population exposure failed" error={q.error} onRetry={() => void q.refetch()} />
       ) : !data ? null : isUnavailable(data) ? (
         <Unavailable reason={data.reason} settings={WINDOWS_APP && data.action === "install-pack" ? "packs" : undefined} />
       ) : (
@@ -119,7 +126,7 @@ function InfrastructureSection({ id }: { id: string }) {
       ) : q.isFetching && !data ? (
         <Scanning />
       ) : q.error ? (
-        <ErrorState title="OpenStreetMap scan failed" message={(q.error as Error).message} onRetry={() => void q.refetch()} />
+        <ErrorState title="OpenStreetMap scan failed" error={q.error} onRetry={() => void q.refetch()} />
       ) : !data ? null : isUnavailable(data) ? (
         <Unavailable reason={data.reason} onRetry={data.action === "retry" ? () => void q.refetch() : undefined} />
       ) : (

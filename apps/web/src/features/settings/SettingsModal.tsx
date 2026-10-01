@@ -48,6 +48,7 @@ import { useUi } from "../../lib/store";
 import { cx, Segmented, Toggle } from "../../ui/primitives";
 import { AppSection } from "./AppSection";
 import s from "./SettingsModal.module.css";
+import { showUndo } from "../../lib/undo";
 
 const SECTIONS: { id: SettingsSection; label: string; icon: ReactNode }[] = [
   { id: "sources", label: "Data sources", icon: <KeyRound size={15} /> },
@@ -404,7 +405,7 @@ function CredentialCard(props: {
             <button type="button" className={s.btnGhost} onClick={() => test.mutate()} disabled={busy}>
               {test.isPending ? <LoaderCircle size={13} className={s.spin} /> : null} Test again
             </button>
-            <button type="button" className={s.btnGhost} data-tone="bad" onClick={() => save.mutate(null)} disabled={busy}>
+            <button type="button" className={s.btnGhost} data-tone="bad" onClick={() => showUndo(`${props.title.split(" — ")[0]} key will be removed`, { undo: () => undefined, commit: () => save.mutate(null) })} disabled={busy}>
               <Trash size={13} /> Remove
             </button>
           </>

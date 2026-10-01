@@ -8,7 +8,7 @@ import { Wind } from "lucide-react";
 import { api, WINDOWS_APP, type AirQuality, type AirQualityUnavailable } from "../../lib/api";
 import { relTime } from "../../lib/format";
 import { openSettings } from "../../lib/settings";
-import { Label, ProvenanceBadge, Skeleton } from "../../ui/primitives";
+import { Label, ProvenanceBadge, Skeleton, AsOf } from "../../ui/primitives";
 import s from "./IncidentPanel.module.css";
 
 // WHO 2021 24-hour guideline levels, shown only as a reference mark next to a reading.
@@ -23,7 +23,14 @@ export function AirQualityCard({ id }: { id: string }) {
   const d = q.data;
   return (
     <section>
-      <Label right={<ProvenanceBadge kind={isOk(d) && d.stations.length ? "real" : "unavailable"} compact />}>
+      <Label
+        right={
+          <>
+            {isOk(d) ? <AsOf at={d.computed_at} source="OpenAQ" label="Checked" /> : null}
+            <ProvenanceBadge kind={isOk(d) && d.stations.length ? "real" : "unavailable"} compact />
+          </>
+        }
+      >
         <span className={s.titleRow}>
           <Wind size={12} aria-hidden /> Air quality nearby
         </span>

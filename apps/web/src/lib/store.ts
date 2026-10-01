@@ -136,6 +136,7 @@ interface UiState {
   fly: FlyRequest | null;
   workspace: boolean;
   facilities: Facility[];
+  shortcutsOpen: boolean;
   /** Shift+drag on the timeline: only incidents that began inside [from, to] (ms). */
   timeRange: [number, number] | null;
   /** Historical playback cursor (ms since epoch); null = live. */
@@ -184,6 +185,7 @@ interface UiState {
   setFacilities: (f: Facility[]) => void;
   setPlayhead: (t: number | null) => void;
   setTimeRange: (r: [number, number] | null) => void;
+  setShortcutsOpen: (open: boolean) => void;
   setPlaying: (on: boolean) => void;
   setSpeed: (hoursPerSecond: number) => void;
   goLive: () => void;
@@ -236,6 +238,7 @@ export const useUi = create<UiState>()(
       facilities: [],
       playhead: null,
       timeRange: null,
+      shortcutsOpen: false,
       playing: false,
       speed: 6,
       history: null,
@@ -282,6 +285,7 @@ export const useUi = create<UiState>()(
       setFacilities: (facilities) => set({ facilities }),
       setPlayhead: (playhead) => set({ playhead, autoRotate: false }),
       setTimeRange: (timeRange) => set({ timeRange }),
+      setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
       setPlaying: (playing) => set({ playing }),
       setSpeed: (speed) => set({ speed }),
       goLive: () => set({ playhead: null, playing: false, history: null }),

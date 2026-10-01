@@ -66,7 +66,7 @@ export function SatelliteTab({ d }: { d: IncidentDetail }) {
       ) : q.isFetching && !data ? (
         <Working />
       ) : q.error ? (
-        <ErrorState title="Satellite analysis failed" message={(q.error as Error).message} onRetry={() => void q.refetch()} />
+        <ErrorState title="Satellite analysis failed" error={q.error} onRetry={() => void q.refetch()} />
       ) : !data ? null : !isOk(data) ? (
         <div className={s.unavailable}>
           <p>{data.reason}</p>

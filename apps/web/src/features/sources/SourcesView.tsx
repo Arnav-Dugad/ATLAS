@@ -74,7 +74,7 @@ export function SourcesView() {
         </header>
 
         {q.error && !q.data ? (
-          <ErrorState title="Registry unavailable" message="The ATLAS engine is not reachable." onRetry={() => void q.refetch()} />
+          <ErrorState title="Registry unavailable" error={q.error} onRetry={() => void q.refetch()} />
         ) : !q.data ? (
           <div className={s.grid}>
             {Array.from({ length: 8 }, (_, i) => (

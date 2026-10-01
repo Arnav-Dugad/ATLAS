@@ -74,7 +74,7 @@ export function LinksTab({ d }: { d: IncidentDetail }) {
     return () => globeRef.current?.setLinks(null, []);
   }, [g, d.lat, d.lon]);
 
-  if (q.error) return <ErrorState title="Links unavailable" message={(q.error as Error).message} onRetry={() => void q.refetch()} />;
+  if (q.error) return <ErrorState title="Links unavailable" error={q.error} onRetry={() => void q.refetch()} />;
 
   return (
     <div className={s.wrap}>

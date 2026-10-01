@@ -9,7 +9,7 @@ import { startHistoricalReplay, useHistoricalCatalog } from "../../lib/history";
 import { useOverview } from "../../lib/queries";
 import { useUi } from "../../lib/store";
 import { AnimatedNumber } from "../../ui/AnimatedNumber";
-import { Dot, ErrorState, HazardGlyph, Label, SeverityMeter, Skeleton } from "../../ui/primitives";
+import { Dot, ErrorState, HazardGlyph, Label, SeverityMeter, Skeleton, AsOf } from "../../ui/primitives";
 import s from "./OverviewPanel.module.css";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -71,7 +71,7 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
       {data ? <SeverityStrip hist={data.severity_histogram} /> : null}
 
       <section className={s.section}>
-        <Label>Signals · last 24 h</Label>
+        <Label right={data ? <AsOf at={data.generated_at} label="Overview computed" /> : undefined}>Signals · last 24 h</Label>
         <div className={s.signals}>
           <Signal hazard="earthquake" value={data ? data.earthquakes_24h : null} label="earthquakes M2.5+" sub={data?.earthquakes_24h_max_mag != null ? `max M${decimal(data.earthquakes_24h_max_mag)}` : undefined} />
           <Signal hazard="wildfire" value={data ? data.fire_detections_24h : null} compactValue label="fire detections" sub={data ? `${int(data.fire_clusters)} clusters` : undefined} />
@@ -152,7 +152,7 @@ function SpaceWeatherCard() {
   if (!d) return null;
   return (
     <section className={s.section}>
-      <Label right="NOAA SWPC">Space weather</Label>
+      <Label right={<AsOf at={d.observed_at} source="NOAA SWPC" label="Observed" />}>Space weather</Label>
       <div className={s.space}>
         {(["R", "S", "G"] as const).map((k) => {
           const lvl = d.current[k].scale ?? 0;

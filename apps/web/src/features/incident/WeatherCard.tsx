@@ -2,7 +2,7 @@ import { CloudRain, Droplets, Gauge, Navigation, Thermometer, Wind } from "lucid
 import { LOCAL_ONLY_MESSAGE, STATIC_MODE } from "../../lib/api";
 import { convert, relTime } from "../../lib/format";
 import { useWeather } from "../../lib/queries";
-import { ErrorState, Label, ProvenanceBadge, Skeleton, Sparkline } from "../../ui/primitives";
+import { ErrorState, Label, ProvenanceBadge, Skeleton, Sparkline, AsOf } from "../../ui/primitives";
 import s from "./IncidentPanel.module.css";
 import { useUnits } from "../../lib/settings";
 
@@ -31,7 +31,16 @@ export function WeatherCard({ id }: { id: string }) {
   const wc = (v: number | null | undefined) => (v == null ? null : convert(v, "km/h").value);
   return (
     <section className={s.weather}>
-      <Label right={<ProvenanceBadge kind="model" compact />}>Weather at the incident</Label>
+      <Label
+        right={
+          <>
+            {w ? <AsOf at={w.fetched_at} source="Open-Meteo" label="Fetched" /> : null}
+            <ProvenanceBadge kind="model" compact />
+          </>
+        }
+      >
+        Weather at the incident
+      </Label>
       {!w ? (
         <div style={{ display: "grid", gap: 8 }}>
           <Skeleton height={44} />

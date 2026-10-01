@@ -7,6 +7,7 @@ import { useLive } from "../../lib/live";
 import { useIncidentFeed } from "../../lib/queries";
 import { useUi, type View } from "../../lib/store";
 import { useSettings } from "../../lib/settings";
+import { NotificationBell } from "../notifications/NotificationCenter";
 import { matches, useWatch } from "../../lib/watch";
 import { cx, Dot, Kbd } from "../../ui/primitives";
 import s from "./TopBar.module.css";
@@ -138,6 +139,7 @@ export function TopBar() {
         >
           <Layers size={14} aria-hidden /> Layers
         </button>
+        <NotificationBell />
         {WINDOWS_APP ? (
           <button
             type="button"

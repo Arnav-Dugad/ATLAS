@@ -1,5 +1,7 @@
+import { Clock } from "lucide-react";
 import { type CSSProperties, type ReactNode, useId } from "react";
-import type { Provenance } from "../lib/api";
+import { explainError, type Provenance } from "../lib/api";
+import { relTime, utcFull } from "../lib/format";
 import { hazardMeta, PROVENANCE_META, SEVERITY_LABELS, severityColor } from "../lib/hazards";
 import s from "./primitives.module.css";
 
@@ -142,11 +144,24 @@ export function EmptyState({ title, children, icon }: { title: string; children?
   );
 }
 
-export function ErrorState({ title, message, onRetry }: { title: string; message: string; onRetry?: () => void }) {
+/** "as of 12m ago" with the exact UTC time (and source) on hover: when the data on a card was observed. */
+export function AsOf({ at, source, label = "As of" }: { at: string | number | null | undefined; source?: string | null; label?: string }) {
+  const t = typeof at === "number" ? at : at ? Date.parse(at) : NaN;
+  if (!Number.isFinite(t)) return null;
+  return (
+    <span className={s.asOf} title={`${label} ${utcFull(t)}${source ? ` · ${source}` : ""}`}>
+      <Clock size={10} aria-hidden />
+      <span>{relTime(t)}</span>
+    </span>
+  );
+}
+
+/** An error with what happened and what to do next: pass `message`, or `error` to have it explained. */
+export function ErrorState({ title, message, error, onRetry }: { title: string; message?: string; error?: unknown; onRetry?: () => void }) {
   return (
     <div className={cx(s.empty, s.error)} role="alert">
       <div className={s.emptyTitle}>{title}</div>
-      <div className={s.emptyBody}>{message}</div>
+      <div className={s.emptyBody}>{message ?? explainError(error)}</div>
       {onRetry ? (
         <button type="button" className={s.ghostBtn} onClick={onRetry}>
           Try again

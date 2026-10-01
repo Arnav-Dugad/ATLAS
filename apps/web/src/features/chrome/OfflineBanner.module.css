@@ -1,0 +1,22 @@
+.banner {
+  position: absolute;
+  top: calc(var(--topbar-h) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-overlay);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  background: rgba(40, 28, 6, 0.92);
+  box-shadow:
+    inset 0 0 0 1px rgba(242, 193, 78, 0.45),
+    var(--shadow-1);
+  color: #f5d88f;
+  font-size: var(--fs-sm);
+}
+.banner strong {
+  color: #ffe6a6;
+}

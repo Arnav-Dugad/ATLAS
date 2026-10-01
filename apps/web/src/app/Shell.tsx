@@ -10,6 +10,7 @@ import { ACCENTS, useSettings } from "../lib/settings";
 import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
+import { useNotices } from "../lib/notifications";
 import { useNativeIntents } from "../lib/useNativeIntents";
 import { useWatchAlerts } from "../lib/useWatchAlerts";
 import { useWatch } from "../lib/watch";
@@ -18,9 +19,12 @@ import { IncidentPanel } from "../features/incident/IncidentPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
 import { OverviewPanel } from "../features/overview/OverviewPanel";
 import { PlaybackBanner, Timeline } from "../features/timeline/Timeline";
+import { NotificationCenter } from "../features/notifications/NotificationCenter";
+import { OfflineBanner } from "../features/chrome/OfflineBanner";
 import { TopBar } from "../features/topbar/TopBar";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
 import s from "./Shell.module.css";
+import { UndoToast } from "../features/chrome/UndoToast";
 
 // The globe pulls in CesiumJS (~4 MB); load it as its own chunk so the shell paints first.
 const Globe = lazy(() => import("../globe/Globe").then((m) => ({ default: m.Globe })));
@@ -35,6 +39,7 @@ const CompareTray = lazy(() => import("../features/comparison/IncidentComparison
 const IncidentComparison = lazy(() => import("../features/comparison/IncidentComparison").then((m) => ({ default: m.IncidentComparison })));
 const WatchPanel = lazy(() => import("../features/watch/WatchPanel").then((m) => ({ default: m.WatchPanel })));
 const HealthView = lazy(() => import("../features/sources/HealthView").then((m) => ({ default: m.HealthView })));
+const ShortcutsSheet = lazy(() => import("../features/help/ShortcutsSheet").then((m) => ({ default: m.ShortcutsSheet })));
 const SettingsModal = lazy(() => import("../features/settings/SettingsModal").then((m) => ({ default: m.SettingsModal })));
 
 const WINDOWS: TimeWindow[] = ["1h", "24h", "7d", "30d"];
@@ -60,6 +65,7 @@ export function Shell() {
   const storyOn = useUi((st) => st.story !== null);
   const pinnedAny = useUi((st) => st.pinned.length > 0);
   const watchOpen = useWatch((st) => st.panelOpen);
+  const shortcutsOpen = useUi((st) => st.shortcutsOpen);
   const settingsOpen = useSettings((st) => st.open) && WINDOWS_APP;
   const surface = useSettings((st) => st.surface);
   const density = useSettings((st) => st.density);
@@ -127,8 +133,19 @@ export function Shell() {
         return;
       }
       if (typing || ui.paletteOpen) return;
+      if (e.key === "?") {
+        e.preventDefault();
+        ui.setShortcutsOpen(!ui.shortcutsOpen);
+        return;
+      }
+      if (e.key.toLowerCase() === "n" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const n = useNotices.getState();
+        n.setOpen(!n.open);
+        return;
+      }
       if (e.key === "Escape") {
-        if (ui.comparingIncidents) ui.setComparingIncidents(false);
+        if (ui.shortcutsOpen) ui.setShortcutsOpen(false);
+        else if (ui.comparingIncidents) ui.setComparingIncidents(false);
         else if (ui.story) ui.setStory(null);
         else if (ui.assistantOpen) ui.closeAssistant();
         else if (ui.groundPick) ui.setGroundPick(null);
@@ -193,6 +210,9 @@ export function Shell() {
       )}
 
       <TopBar />
+      <NotificationCenter />
+      <OfflineBanner dataAt={feed.dataUpdatedAt} />
+      <UndoToast />
 
       {phone ? (
         <Suspense fallback={null}>
@@ -236,6 +256,7 @@ export function Shell() {
         {pinnedAny ? <CompareTray incidents={incidents} /> : null}
         {pinnedAny ? <IncidentComparison /> : null}
         <AnimatePresence>{settingsOpen ? <SettingsModal key="settings" /> : null}</AnimatePresence>
+        <AnimatePresence>{shortcutsOpen ? <ShortcutsSheet key="shortcuts" /> : null}</AnimatePresence>
       </Suspense>
       <PlaybackBanner />
       <MapControls />

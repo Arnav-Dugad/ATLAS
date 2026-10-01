@@ -201,6 +201,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
             .map((a) => ({ id: `accent-${a}`, section: "Appearance", label: `Accent colour: ${ACCENTS[a].label}`, icon: <Contrast size={15} />, keywords: "theme colour color accent", run: done(() => st.setAccent(a)) })),
         ];
       })(),
+      { id: "shortcuts", section: "Help", label: "Keyboard shortcuts", icon: <Sparkles size={15} />, keywords: "keys hotkeys help ?", run: done(() => ui.setShortcutsOpen(true)) },
       { id: "intro", section: "Help", label: "Replay the introduction", icon: <Sparkles size={15} />, keywords: "onboarding tour help", run: done(() => ui.resetIntro()) },
       ...(STATIC_MODE ? [] : [{ id: "refresh", section: "Data", label: "Refresh all live sources now", icon: <RefreshCw size={15} />, keywords: "sync update poll", run: done(() => ["usgs", "gdacs", "nhc", "eonet", "firms", "gvp"].forEach((id) => void api.syncSource(id).catch(() => undefined))) }]),
     ];

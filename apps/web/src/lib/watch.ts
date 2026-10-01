@@ -30,6 +30,7 @@ interface WatchState {
   update: (id: string, patch: Partial<Watch>) => void;
   remove: (id: string) => void;
   markSeen: (id: string, ids: string[]) => void;
+  restore: (w: Watch, seen: string[] | undefined) => void;
   setPanelOpen: (open: boolean) => void;
   setDraft: (d: { lat: number; lon: number } | null) => void;
 }
@@ -49,6 +50,7 @@ export const useWatch = create<WatchState>()(
           delete seen[id];
           return { watches: s.watches.filter((w) => w.id !== id), seen };
         }),
+      restore: (w, seen) => set((s) => ({ watches: [...s.watches.filter((x) => x.id !== w.id), w], seen: seen ? { ...s.seen, [w.id]: seen } : s.seen })),
       markSeen: (id, ids) => set((s) => ({ seen: { ...s.seen, [id]: [...new Set([...(s.seen[id] ?? []), ...ids])].slice(-2000) } })),
       setPanelOpen: (panelOpen) => set({ panelOpen }),
       setDraft: (draft) => set({ draft, panelOpen: true }),

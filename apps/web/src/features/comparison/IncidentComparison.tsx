@@ -13,6 +13,7 @@ import { useUi } from "../../lib/store";
 import { ConfidenceMeter, HazardGlyph, SeverityMeter, Skeleton } from "../../ui/primitives";
 import s from "./IncidentComparison.module.css";
 import { useUnits } from "../../lib/settings";
+import { showUndo } from "../../lib/undo";
 
 export function CompareTray({ incidents }: { incidents: IncidentSummary[] }) {
   useUnits(); // re-render when display units change
@@ -34,7 +35,14 @@ export function CompareTray({ incidents }: { incidents: IncidentSummary[] }) {
               <span key={id} className={s.pin}>
                 {inc ? <HazardGlyph hazard={inc.hazard} size={12} /> : null}
                 <span className={s.pinTitle}>{inc?.title ?? id}</span>
-                <button type="button" onClick={() => toggle(id)} aria-label="Unpin">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggle(id);
+                    showUndo("Unpinned from the comparison", { undo: () => useUi.getState().togglePin(id) });
+                  }}
+                  aria-label="Unpin"
+                >
                   <X size={11} />
                 </button>
               </span>
@@ -43,7 +51,16 @@ export function CompareTray({ incidents }: { incidents: IncidentSummary[] }) {
           <button type="button" className={s.compare} disabled={pinned.length < 2} onClick={() => setOpen(true)} title={pinned.length < 2 ? "Pin at least two incidents" : "Compare side by side"}>
             Compare {pinned.length}
           </button>
-          <button type="button" className={s.clear} onClick={clear} aria-label="Clear pins">
+          <button
+            type="button"
+            className={s.clear}
+            onClick={() => {
+              const before = useUi.getState().pinned;
+              clear();
+              showUndo(`Cleared ${before.length} pinned incident${before.length === 1 ? "" : "s"}`, { undo: () => useUi.setState({ pinned: before }) });
+            }}
+            aria-label="Clear pins"
+          >
             Clear
           </button>
         </motion.div>

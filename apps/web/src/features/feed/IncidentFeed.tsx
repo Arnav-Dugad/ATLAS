@@ -127,7 +127,7 @@ export function IncidentFeed({ incidents, loading, error, onRetry }: Props) {
       </header>
 
       {error && !incidents.length ? (
-        <ErrorState title="Incident stream unavailable" message={error.message} onRetry={onRetry} />
+        <ErrorState title="Incident stream unavailable" error={error} onRetry={onRetry} />
       ) : loading && !incidents.length ? (
         <SkeletonRows rows={9} />
       ) : visible.length === 0 ? (

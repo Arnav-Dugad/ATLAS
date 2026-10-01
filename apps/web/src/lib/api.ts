@@ -452,6 +452,29 @@ export let API_BASE: string = STATIC_MODE
   ? `${import.meta.env.BASE_URL}snapshot`
   : ((import.meta.env.VITE_ATLAS_API as string | undefined) ?? "");
 
+/**
+ * What went wrong and what to do next, in plain words, for any error a request can raise.
+ * Every error state in the interface uses this, so none ends at "Request failed (500)".
+ */
+export function explainError(err: unknown): string {
+  if (err instanceof ApiError) {
+    const detail = (err.detail ?? {}) as { source?: string };
+    if (err.status === 0) return ENGINE_HINT;
+    if (err.code === "local_only") return err.message;
+    if (err.code === "source_unavailable") {
+      return `${detail.source ? detail.source.toUpperCase() : "The source"} did not answer (${err.message}). This is usually temporary — try again in a minute; nothing else in ATLAS is affected.`;
+    }
+    if (err.status === 404) return "Not found. It may have been merged into another incident or closed — search for it with Ctrl+K.";
+    if (err.status === 429) return "A data source is limiting requests right now. Wait a minute and try again.";
+    if (err.status === 400 || err.status === 422) return `${err.message}. Check the request and try again.`;
+    if (err.status >= 500) return `${err.message} The engine hit a problem; Health → Logs has the details, and trying again often works.`;
+    return err.message;
+  }
+  if (err instanceof Error && err.name === "AbortError") return "The request was cancelled.";
+  if (err instanceof Error) return `${err.message}. Try again; if it keeps failing, Health → Logs may say why.`;
+  return "Something went wrong. Try again in a moment.";
+}
+
 /** The Windows app's engine may run on another port when 8787 is taken; set before first render. */
 export function setApiBase(url: string): void {
   API_BASE = url.replace(/\/$/, "");

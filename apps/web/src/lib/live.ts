@@ -5,6 +5,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 import { STATIC_MODE, streamUrl } from "./api";
+import { useNotices } from "./notifications";
 
 export type LiveStatus = "connecting" | "live" | "offline" | "snapshot";
 
@@ -113,6 +114,15 @@ export function connectLive(client: QueryClient): () => void {
       try {
         const msg = JSON.parse(ev.data) as { data: LiveChange };
         useLive.getState().pushChange(msg.data);
+        if (msg.data.significance >= 3) {
+          useNotices.getState().push({
+            id: `change-${msg.data.id}`,
+            kind: "change",
+            title: "Significant change",
+            body: msg.data.summary,
+            incidentId: msg.data.incident_id,
+          });
+        }
         invalidate("changes", `incident:${msg.data.incident_id}`);
       } catch {
         /* ignore malformed */
@@ -123,6 +133,15 @@ export function connectLive(client: QueryClient): () => void {
       try {
         const msg = JSON.parse(ev.data) as { data: SyncEvent };
         useLive.setState((s) => ({ lastSync: { ...s.lastSync, [msg.data.source]: msg.data } }));
+        if (msg.data.status === "error") {
+          // at most one notice per source per hour: a failing feed retries with back-off
+          useNotices.getState().push({
+            id: `sync-${msg.data.source}-${Math.floor(Date.now() / 3_600_000)}`,
+            kind: "sync",
+            title: `${msg.data.source.toUpperCase()} sync failed`,
+            body: msg.data.message ?? "The source did not answer; ATLAS keeps the last data and retries automatically.",
+          });
+        }
         invalidate("sources", "overview");
         if (msg.data.source === "usgs") invalidate("layers.earthquakes");
         if (msg.data.source === "firms") invalidate("layers.fires");

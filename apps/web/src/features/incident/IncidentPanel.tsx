@@ -12,7 +12,7 @@ import { coord, metricValue, observedAgo, relTime, titleCase, utcFull, utcShort,
 import { hazardMeta, PROVENANCE_META, severityColor, sourceLabel } from "../../lib/hazards";
 import { useIncident } from "../../lib/queries";
 import { useUi } from "../../lib/store";
-import { ConfidenceMeter, cx, Dot, ErrorState, HazardGlyph, Label, ProvenanceBadge, SeverityMeter, Skeleton } from "../../ui/primitives";
+import { ConfidenceMeter, cx, Dot, ErrorState, HazardGlyph, Label, ProvenanceBadge, SeverityMeter, Skeleton, AsOf } from "../../ui/primitives";
 import { Chronology } from "./Chronology";
 import { ExposureTab } from "./ExposureTab";
 import { SourceDrawer } from "./SourceDrawer";
@@ -21,6 +21,7 @@ import { WeatherCard } from "./WeatherCard";
 import { TrackChart } from "./TrackChart";
 import s from "./IncidentPanel.module.css";
 import { useUnits } from "../../lib/settings";
+import { showUndo } from "../../lib/undo";
 
 const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default: m.SatelliteTab })));
 const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
@@ -49,7 +50,7 @@ export function IncidentPanel({ id }: { id: string }) {
     return (
       <div className={s.wrap}>
         <PanelClose onClose={() => select(null)} />
-        <ErrorState title="Incident unavailable" message={(q.error as Error).message} onRetry={() => void q.refetch()} />
+        <ErrorState title="Incident unavailable" error={q.error} onRetry={() => void q.refetch()} />
       </div>
     );
   }
@@ -105,7 +106,11 @@ export function IncidentPanel({ id }: { id: string }) {
               <Eye size={13} /> Watch area
             </button>
           ) : null}
-          <button type="button" className={cx(s.action, pinned.includes(d.id) && s.actionOn)} onClick={() => togglePin(d.id)} aria-pressed={pinned.includes(d.id)} title="Pin to compare side by side (up to 3)">
+          <button type="button" className={cx(s.action, pinned.includes(d.id) && s.actionOn)} onClick={() => {
+              const was = pinned.includes(d.id);
+              togglePin(d.id);
+              if (was) showUndo("Unpinned from the comparison", { undo: () => useUi.getState().togglePin(d.id) });
+            }} aria-pressed={pinned.includes(d.id)} title="Pin to compare side by side (up to 3)">
             <Pin size={13} /> {pinned.includes(d.id) ? "Pinned" : "Pin"}
           </button>
           <ExportMenu d={d} />
@@ -297,6 +302,7 @@ function MetricTile({ m }: { m: Metric }) {
       <div className={s.metricFoot}>
         <ProvenanceBadge kind={m.provenance} compact />
         <span className={s.metricSrc}>{m.source ? sourceLabel(m.source) : "—"}</span>
+        <AsOf at={m.observed_at} source={m.source ? sourceLabel(m.source) : null} label="Observed" />
       </div>
       {prov && (m.method || m.note) ? (
         <div className={s.metricInfo} aria-hidden>
