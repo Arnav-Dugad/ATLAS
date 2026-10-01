@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence } from "motion/react";
 import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary } from "../lib/api";
@@ -19,6 +19,11 @@ import styles from "./Globe.module.css";
 import { globeRef } from "./ref";
 import type { TwinGlobe } from "./twin";
 
+
+function subscribeVisibility(onChange: () => void) {
+  document.addEventListener("visibilitychange", onChange);
+  return () => document.removeEventListener("visibilitychange", onChange);
+}
 
 const SAT_COLORS: Record<string, string> = { "Sentinel-2": "#7fd1ff", Landsat: "#c9a6ff" };
 
@@ -179,7 +184,9 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
       window.clearInterval(timer);
     };
   }, [globe, layers.satellites, satellites.data]);
-  useEffect(() => globe?.setPaused(appView !== "planet"), [globe, appView]);
+  // No frames while another view covers the globe or the window is hidden / minimised.
+  const hidden = useSyncExternalStore(subscribeVisibility, () => document.hidden, () => false);
+  useEffect(() => globe?.setPaused(appView !== "planet" || hidden), [globe, appView, hidden]);
   useEffect(() => globe?.setAutoRotate(autoRotate), [globe, autoRotate]);
   useEffect(() => {
     if (!globe) return;

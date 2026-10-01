@@ -54,7 +54,7 @@ async function boot(el: HTMLElement) {
 
 // Development builds only: let scripted visual checks drive the UI state.
 if (import.meta.env.DEV) {
-  void import("./lib/store").then(({ useUi }) => Object.assign(window, { __atlas: { useUi } }));
+  void Promise.all([import("./lib/store"), import("./globe/ref")]).then(([{ useUi }, { globeRef }]) => Object.assign(window, { __atlas: { useUi, globe: () => globeRef.current } }));
 }
 
 void boot(root);

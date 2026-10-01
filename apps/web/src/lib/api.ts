@@ -3,6 +3,7 @@
  * (`pnpm gen:api`), so a backend contract change becomes a compile error here.
  */
 import type { components } from "./api-types";
+import { fetchLayer, LAYER_PATH } from "./layerFetch";
 
 type S = components["schemas"];
 export type IncidentSummary = S["IncidentSummary"];
@@ -842,6 +843,17 @@ async function staticRequest<T>(path: string, signal?: AbortSignal): Promise<T> 
   const [p = "", query = ""] = path.split("?");
   if (LOCAL_ONLY.some((r) => r.test(p))) throw new ApiError(501, "local_only", LOCAL_ONLY_MESSAGE);
   const isSource = p.startsWith("/api/v1/sources/");
+  if (LAYER_PATH.test(p)) {
+    const r = await fetchLayer(`${API_BASE}${p}.json`, {}, signal);
+    if (r.networkError) throw new ApiError(0, "offline", "The snapshot could not be loaded.");
+    if (!r.ok) throw new ApiError(r.status, "not_in_snapshot", "Not included in this snapshot.");
+    const params = new URLSearchParams(query);
+    if (p === "/api/v1/layers/earthquakes" && params.get("hours")) {
+      const layer = r.data as Columnar & { generated_at: string };
+      return sliceColumnar(layer, "t", Date.parse(layer.generated_at) - Number(params.get("hours")) * 3600_000) as T;
+    }
+    return r.data as T;
+  }
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${isSource ? "/api/v1/sources" : p}.json`, { signal });
@@ -911,9 +923,10 @@ function snapshotLag(generatedAt: string): number {
 }
 
 function sliceColumnar<C extends Columnar>(layer: C, timeColumn: string, from: number): C {
-  const times = (layer.columns[timeColumn] ?? []) as number[];
+  // Array.from: columns may arrive as typed arrays from the layer worker
+  const times = Array.from((layer.columns[timeColumn] ?? []) as ArrayLike<number>);
   const keep = times.map((t, i) => (t >= from ? i : -1)).filter((i) => i >= 0);
-  const columns = Object.fromEntries(Object.entries(layer.columns).map(([k, v]) => [k, keep.map((i) => (v as unknown[])[i])]));
+  const columns = Object.fromEntries(Object.entries(layer.columns).map(([k, v]) => [k, keep.map((i) => (v as ArrayLike<unknown>)[i])]));
   return { ...layer, count: keep.length, columns };
 }
 
@@ -956,6 +969,24 @@ async function request<T>(path: string, init: RequestInit & { signal?: AbortSign
   if (STATIC_MODE) {
     if (init.method && init.method !== "GET") throw new ApiError(501, "local_only", LOCAL_ONLY_MESSAGE);
     return staticRequest<T>(path, init.signal);
+  }
+  if (!init.method && LAYER_PATH.test(path.split("?")[0] ?? "")) {
+    // multi-megabyte layers are fetched and parsed in a worker (see layerFetch.ts)
+    const r = await fetchLayer(`${API_BASE}${path}`, { Accept: "application/json" }, init.signal);
+    if (r.networkError) throw new ApiError(0, "offline", "The ATLAS engine is not reachable.");
+    if (r.ok) return r.data as T;
+    let code = "http_error";
+    let message = `Request failed (${r.status})`;
+    let detail: unknown;
+    try {
+      const body = JSON.parse(r.text ?? "") as { error?: { code?: string; message?: string } };
+      code = body.error?.code ?? code;
+      message = body.error?.message ?? message;
+      detail = body.error;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new ApiError(r.status, code, message, detail);
   }
   let res: Response;
   try {

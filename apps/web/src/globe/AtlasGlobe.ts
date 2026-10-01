@@ -53,6 +53,7 @@ import {
 import type { AlertLayer, Columnar, Facility, FireClusterFeature, IncidentDetail, IncidentSummary } from "../lib/api";
 import { EXPOSURE_RINGS_KM, FACILITY_META, hazardMeta, severityColor, type FacilityKey, type HazardId } from "../lib/hazards";
 import { convert, dist, int } from "../lib/format";
+import { nextScale } from "../lib/adaptive";
 import { gpuInfo } from "../lib/media";
 import { areaKm2, pathKm, type LatLon, type MeasureMode } from "../lib/measure";
 import { rank, type FlyRequest, type LayerId } from "../lib/store";
@@ -181,6 +182,15 @@ export class AtlasGlobe {
   private viewTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
   private paused = false;
+  /** render scale from the quality profile, and the adaptive multiplier applied on top of it */
+  private baseScale = 1;
+  private dynScale = 1;
+  private adaptive = true;
+  private lastRenderAt = 0;
+  private frameMs = 0;
+  private frames = 0;
+  private windowStart = performance.now();
+  private goodWindows = 0;
   private layerFlags = { fires: true, fireClusters: true };
   /** "light" when WebGL runs in software: CSS-pixel resolution, no MSAA/OIT/FXAA, coarser tiles. */
   readonly renderProfile: "full" | "light";
@@ -211,8 +221,19 @@ export class AtlasGlobe {
     // Device pixels, capped at 2× (phones report up to 3–4× and gain little from it); one CSS
     // pixel per pixel when there is no GPU, so the page stays responsive.
     const dpr = window.devicePixelRatio || 1;
-    this.widget.resolutionScale = light ? 1 / dpr : Math.min(1, 2 / dpr);
+    this.baseScale = light ? 1 / dpr : Math.min(1, 2 / dpr);
+    this.widget.resolutionScale = this.baseScale;
     const scene = this.widget.scene;
+    // Frame pacing for adaptive resolution: only gaps under 250 ms count, so idle time (the
+    // scene renders on demand) never reads as a slow frame.
+    scene.postRender.addEventListener(() => {
+      const t = performance.now();
+      if (this.lastRenderAt && t - this.lastRenderAt < 250) {
+        this.frameMs += t - this.lastRenderAt;
+        this.frames++;
+      }
+      this.lastRenderAt = t;
+    });
     scene.backgroundColor = Color.fromCssColorString("#04060a");
     scene.globe.baseColor = Color.fromCssColorString("#0b1724");
     scene.globe.enableLighting = true;
@@ -356,6 +377,36 @@ export class AtlasGlobe {
     if (!paused) this.requestRender();
   }
 
+  /** Lower the drawing resolution when frames get slow, and raise it again once they recover. */
+  setAdaptiveResolution(on: boolean) {
+    this.adaptive = on;
+    if (!on && this.dynScale !== 1) {
+      this.dynScale = 1;
+      this.widget.resolutionScale = this.baseScale;
+      this.requestRender();
+    }
+  }
+
+  get resolution(): { base: number; adaptive: number } {
+    return { base: this.baseScale, adaptive: this.dynScale };
+  }
+
+  private adaptResolution(now: number) {
+    if (now - this.windowStart < 2000) return;
+    const frames = this.frames;
+    const avg = frames ? this.frameMs / frames : 0;
+    this.windowStart = now;
+    this.frames = 0;
+    this.frameMs = 0;
+    if (!this.adaptive) return;
+    const next = nextScale({ scale: this.dynScale, goodWindows: this.goodWindows }, frames, avg, this.widget.targetFrameRate ?? 60);
+    this.goodWindows = next.goodWindows;
+    if (next.scale === this.dynScale) return;
+    this.dynScale = next.scale;
+    this.widget.resolutionScale = this.baseScale * this.dynScale;
+    this.requestRender();
+  }
+
   private loop = () => {
     if (this.destroyed) return;
     if (this.paused) {
@@ -363,6 +414,7 @@ export class AtlasGlobe {
       return;
     }
     const now = performance.now();
+    this.adaptResolution(now);
     const dt = Math.min(0.1, (now - this.lastFrame) / 1000);
     this.lastFrame = now;
     let animate = false;
@@ -458,7 +510,9 @@ export class AtlasGlobe {
     if (this.renderProfile === "light") return;
     const scene = this.widget.scene;
     const dpr = window.devicePixelRatio || 1;
-    this.widget.resolutionScale = Math.min(1, q.maxPixelRatio / dpr);
+    this.baseScale = Math.min(1, q.maxPixelRatio / dpr);
+    this.dynScale = 1;
+    this.widget.resolutionScale = this.baseScale;
     scene.msaaSamples = q.msaa;
     scene.postProcessStages.fxaa.enabled = q.fxaa;
     scene.globe.maximumScreenSpaceError = q.screenSpaceError;
