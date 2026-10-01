@@ -21,10 +21,10 @@ from atlas.api.schemas import (
     SourceStatus,
     SyncRunOut,
 )
+from atlas.engine import relations
 from atlas.models import HAZARD_LABEL, Confidence, Hazard, Metric, Severity
 from atlas.runtime import Runtime
 from atlas.store import repo
-from atlas.util.geo import bbox_around, haversine_km
 from atlas.util.timeutil import utcnow
 
 CONTRIBUTION: dict[str, str] = {
@@ -270,27 +270,29 @@ class QueryService:
         return [x for x in links if not (x.url in seen or seen.add(x.url))]  # type: ignore[func-returns-value]
 
     def _related(self, cur: Any, rec: repo.IncidentRecord) -> list[RelatedIncident]:
+        """Incidents linked by a documented relation rule (see engine/relations.py)."""
         if rec.lat is None or rec.lon is None:
             return []
-        radius = 400.0 if rec.hazard is Hazard.EARTHQUAKE else 300.0
-        _w, s, _e, n = bbox_around(rec.lat, rec.lon, radius)
-        rows = cur.execute(
-            "SELECT id, title, hazard, severity_level, status, lat, lon, started_at FROM incidents "
-            "WHERE id <> ? AND lat BETWEEN ? AND ? AND started_at BETWEEN ? AND ?",
-            [rec.id, s, n, rec.started_at - timedelta(days=30), rec.started_at + timedelta(days=30)],
-        ).fetchall()
-        out = []
-        for iid, title, hz, sev, status, lat, lon, started in rows:
-            d = haversine_km(rec.lat, rec.lon, lat, lon)
-            if d > radius:
-                continue
-            relation = "nearby"
-            if hz == rec.hazard.value == "earthquake":
-                relation = "aftershock" if started > rec.started_at else "foreshock" if started < rec.started_at else "nearby"
-            out.append(RelatedIncident(id=iid, title=title, hazard=hz, severity_level=sev, status=status,
-                                       distance_km=round(d, 1), started_at=started, relation=relation))  # fmt: skip
+        centre = relations.Node(rec.id, rec.title, rec.hazard.value, rec.severity_level, rec.status, rec.lat, rec.lon,
+                                rec.started_at, rec.last_observation_at)  # fmt: skip
+        found = relations._nodes(cur, "i.id = ?", [rec.id])
+        if found:
+            centre = found[0]
+        out = [
+            RelatedIncident(
+                id=n.id,
+                title=n.title,
+                hazard=n.hazard,
+                severity_level=n.severity_level,
+                status=n.status,
+                distance_km=relations.distance_km(centre, n),
+                started_at=n.started_at,
+                relation=e.type,
+            )  # fmt: skip
+            for n, e in relations.neighbours(cur, centre, limit=25)
+        ]
         out.sort(key=lambda r: r.distance_km)
-        return out[:25]
+        return out
 
     # -- overview ---------------------------------------------------------------------
     def overview(self, sources: list[SourceStatus]) -> Overview:

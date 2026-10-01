@@ -18,7 +18,7 @@ import orjson
 
 from atlas import __version__
 from atlas.api.service import QueryService
-from atlas.engine import exposure
+from atlas.engine import exposure, relations
 from atlas.engine.fires import fire_grid
 from atlas.runtime import Runtime
 from atlas.util.timeutil import iso_z, utcnow
@@ -62,6 +62,10 @@ def export_static(rt: Runtime, out: Path) -> dict[str, Any]:
         if detail is None:
             continue
         detail_bytes += _write(root, f"incidents/{inc.id}", _dump(detail))
+        with rt.db.read() as cur:
+            g = relations.graph(cur, inc.id, depth=1)
+        if g is not None:
+            _write(root, f"incidents/{inc.id}/graph", g)
         if rt.population is not None and inc.lat is not None and inc.lon is not None:
             from atlas.models import Hazard
 

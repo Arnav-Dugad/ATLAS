@@ -235,6 +235,35 @@ async def ai_ask(request: Request, body: AskBody) -> EventSourceResponse:
     return EventSourceResponse(events(), ping=15)
 
 
+@router.get("/incidents/{incident_id}/graph")
+def incident_graph(request: Request, incident_id: str, depth: Annotated[int, Query(ge=1, le=2)] = 1) -> dict[str, Any]:
+    """Knowledge graph around an incident: documented, rule-based relations (aftershock windows,
+    cyclone → flood, earthquakes near volcanoes, same-hazard neighbours)."""
+    from atlas.engine import relations
+
+    with rt(request).db.read() as cur:
+        g = relations.graph(cur, incident_id, depth=depth)
+    if g is None:
+        raise HTTPException(404, "incident not found or has no location")
+    return g
+
+
+@router.get("/simulate/earthquake")
+async def simulate_earthquake(
+    request: Request,
+    lat: Annotated[float, Query(ge=-90, le=90)],
+    lon: Annotated[float, Query(ge=-180, le=180)],
+    magnitude: Annotated[float, Query(ge=4.0, le=9.5)],
+    depth_km: Annotated[float, Query(ge=1, le=300)] = 10.0,
+) -> dict[str, Any]:
+    """Earthquake shaking scenario (SIMULATION — NOT A FORECAST): median MMI bands from a published
+    intensity prediction equation and modelled residents inside each band."""
+    from atlas.engine import simulation
+
+    r = rt(request)
+    return await asyncio.to_thread(simulation.scenario, lat, lon, magnitude, depth_km, r.population)
+
+
 @router.get("/incidents/{incident_id}/imagery/change")
 async def incident_spectral_change(
     request: Request, incident_id: str, index: Annotated[str | None, Query(pattern="^(auto|nbr|mndwi|ndvi)$")] = None
