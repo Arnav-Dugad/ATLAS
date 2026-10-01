@@ -46,6 +46,7 @@ import {
 } from "cesium";
 import type { Columnar, Facility, FireClusterFeature, IncidentDetail, IncidentSummary } from "../lib/api";
 import { EXPOSURE_RINGS_KM, FACILITY_META, hazardMeta, severityColor, type FacilityKey, type HazardId } from "../lib/hazards";
+import { gpuInfo } from "../lib/media";
 import type { FlyRequest, LayerId } from "../lib/store";
 import { BASE, BASE_FALLBACK, compareUrl, NIGHT_LIGHTS, OVERLAYS, overlayDate, type CompareProduct, type ImageryDef } from "./imagery";
 import { createTerrariumProvider } from "./terrain";
@@ -148,6 +149,8 @@ export class AtlasGlobe {
   private destroyed = false;
   private paused = false;
   private layerFlags = { fires: true, fireClusters: true };
+  /** "light" when WebGL runs in software: CSS-pixel resolution, no MSAA/OIT/FXAA, coarser tiles. */
+  readonly renderProfile: "full" | "light";
   quakeData: Columnar | null = null;
   fireGridData: Columnar | null = null;
   fireDetailData: Columnar | null = null;
@@ -155,6 +158,8 @@ export class AtlasGlobe {
 
   constructor(container: HTMLElement, handlers: Handlers) {
     this.handlers = handlers;
+    const light = gpuInfo().software;
+    this.renderProfile = light ? "light" : "full";
     const credits = document.createElement("div");
     credits.style.display = "none";
     this.widget = new CesiumWidget(container, {
@@ -166,10 +171,14 @@ export class AtlasGlobe {
       requestRenderMode: true,
       maximumRenderTimeChange: Number.POSITIVE_INFINITY,
       useBrowserRecommendedResolution: false,
-      msaaSamples: 4,
+      msaaSamples: light ? 1 : 4,
       shouldAnimate: true,
-      orderIndependentTranslucency: true,
+      orderIndependentTranslucency: !light,
     });
+    // Device pixels, capped at 2× (phones report up to 3–4× and gain little from it); one CSS
+    // pixel per pixel when there is no GPU, so the page stays responsive.
+    const dpr = window.devicePixelRatio || 1;
+    this.widget.resolutionScale = light ? 1 / dpr : Math.min(1, 2 / dpr);
     const scene = this.widget.scene;
     scene.backgroundColor = Color.fromCssColorString("#04060a");
     scene.globe.baseColor = Color.fromCssColorString("#0b1724");
@@ -178,9 +187,9 @@ export class AtlasGlobe {
     scene.globe.dynamicAtmosphereLightingFromSun = true;
     scene.globe.showGroundAtmosphere = true;
     scene.globe.atmosphereLightIntensity = 11.0;
-    scene.globe.maximumScreenSpaceError = 1.6;
-    scene.globe.tileCacheSize = 400;
-    scene.globe.preloadSiblings = true;
+    scene.globe.maximumScreenSpaceError = light ? 3 : 1.6;
+    scene.globe.tileCacheSize = light ? 200 : 400;
+    scene.globe.preloadSiblings = !light;
     if (scene.skyAtmosphere) {
       scene.skyAtmosphere.hueShift = -0.02;
       scene.skyAtmosphere.saturationShift = -0.12;
@@ -190,7 +199,7 @@ export class AtlasGlobe {
     scene.fog.density = 1.6e-4;
     if (scene.moon) scene.moon.show = false;
     scene.highDynamicRange = false;
-    scene.postProcessStages.fxaa.enabled = true;
+    scene.postProcessStages.fxaa.enabled = !light;
 
     const ctrl = scene.screenSpaceCameraController;
     ctrl.minimumZoomDistance = 2_500;

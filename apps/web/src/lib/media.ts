@@ -29,3 +29,30 @@ export function supportsWebGL(): boolean {
   }
   return webgl;
 }
+
+export interface GpuInfo {
+  renderer: string;
+  /** WebGL runs on the CPU (SwiftShader, llvmpipe, Microsoft Basic Render…): no GPU acceleration. */
+  software: boolean;
+}
+
+let gpu: GpuInfo | null = null;
+
+/** The WebGL renderer, probed once. Browsers that hide it (privacy settings) report "unknown". */
+export function gpuInfo(): GpuInfo {
+  if (gpu) return gpu;
+  gpu = { renderer: "unknown", software: false };
+  try {
+    const canvas = document.createElement("canvas");
+    const gl = (canvas.getContext("webgl2") ?? canvas.getContext("webgl")) as WebGLRenderingContext | null;
+    if (gl) {
+      const ext = gl.getExtension("WEBGL_debug_renderer_info");
+      const renderer = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? "unknown");
+      gpu = { renderer, software: /swiftshader|llvmpipe|softpipe|software|basic render/i.test(renderer) };
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+    }
+  } catch {
+    // keep the defaults
+  }
+  return gpu;
+}

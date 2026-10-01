@@ -3,6 +3,7 @@ import { Columns2, FlaskConical, X } from "lucide-react";
 import { useState } from "react";
 import { OVERLAYS } from "../../globe/imagery";
 import { compareView } from "../../lib/compare";
+import { gpuInfo } from "../../lib/media";
 import { openSimulation } from "../../lib/simulate";
 import { useUi, type LayerId } from "../../lib/store";
 import { cx, Toggle } from "../../ui/primitives";
@@ -144,6 +145,12 @@ export function LayerPanel() {
             <p className={s.note}>
               Raster layers are NASA GIBS visualisations (rendered colour maps), not calibrated values. Daily layers follow the imagery date in the timeline.
             </p>
+            {gpuInfo().software ? (
+              <p className={s.note} data-testid="light-render">
+                No GPU acceleration detected (WebGL is running in software), so the globe renders at reduced resolution and detail to stay responsive. Data and
+                numbers are unaffected.
+              </p>
+            ) : null}
           </div>
           <AnimatePresence>
             {notice ? (
