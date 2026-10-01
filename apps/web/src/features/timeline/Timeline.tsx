@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Pause, Play, Radio, Satellite, SkipBack } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { OVERLAYS } from "../../globe/imagery";
-import type { IncidentSummary } from "../../lib/api";
+import { STATIC_MODE, type IncidentSummary } from "../../lib/api";
 import { utcFull, utcShort } from "../../lib/format";
 import { hazardMeta, PRIMARY_HAZARDS } from "../../lib/hazards";
 import { HISTORY_AFTER_MS, HISTORY_BEFORE_MS } from "../../lib/history";
@@ -9,6 +9,9 @@ import { useEarthquakeLayer } from "../../lib/queries";
 import { useUi, WINDOW_HOURS, type LayerId, type TimeWindow } from "../../lib/store";
 import { cx, Segmented } from "../../ui/primitives";
 import s from "./Timeline.module.css";
+
+/** The present is "live" locally; on the public snapshot it is the latest export. */
+const PRESENT_LABEL = STATIC_MODE ? "Latest" : "Live";
 
 const BUCKETS = 72;
 
@@ -180,8 +183,8 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
               { value: "24", label: "1d/s", title: "1 day per second" },
             ]}
           />
-          <button type="button" className={cx(s.live, playhead == null && s.liveOn)} onClick={goLive} aria-pressed={playhead == null} title="Return to live">
-            <Radio size={12} /> Live
+          <button type="button" className={cx(s.live, playhead == null && s.liveOn)} onClick={goLive} aria-pressed={playhead == null} title={STATIC_MODE ? "Return to the latest snapshot" : "Return to live"}>
+            <Radio size={12} /> {PRESENT_LABEL}
           </button>
         </div>
       </div>
@@ -202,7 +205,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
         aria-valuemin={start}
         aria-valuemax={end}
         aria-valuenow={playhead ?? now}
-        aria-valuetext={playhead ? utcFull(playhead) : "Live"}
+        aria-valuetext={playhead ? utcFull(playhead) : PRESENT_LABEL}
         onKeyDown={(e) => {
           const step = bucketMs;
           if (e.key === "ArrowLeft") setPlayhead(Math.max(start, (playhead ?? now) - step));
@@ -294,7 +297,7 @@ export function PlaybackBanner() {
       </span>
       <span className={s.bannerNote}>Sun position, earthquakes and incident onsets follow the playhead · fire layers (latest 48 h) are hidden</span>
       <button type="button" className={s.bannerBtn} onClick={() => useUi.getState().goLive()}>
-        Return to live
+        {STATIC_MODE ? "Return to latest" : "Return to live"}
       </button>
     </div>
   );
