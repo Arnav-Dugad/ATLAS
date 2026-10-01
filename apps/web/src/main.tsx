@@ -7,7 +7,7 @@ import "./styles/base.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ApiError } from "./lib/api";
+import { ApiError, STATIC_MODE } from "./lib/api";
 import { Shell } from "./app/Shell";
 
 const client = new QueryClient({
@@ -15,7 +15,12 @@ const client = new QueryClient({
     queries: {
       staleTime: 30_000,
       refetchOnWindowFocus: false,
-      retry: (count, err) => !(err instanceof ApiError && err.status >= 400 && err.status < 500) && count < 2,
+      // A network error usually means the engine is still starting (the desktop sidecar takes a few
+      // seconds), so keep trying for ~30 s; the live stream also refetches failures on connect.
+      retry: (count, err) => {
+        if (err instanceof ApiError) return !(err.status >= 400 && err.status < 500) && count < 2;
+        return count < (STATIC_MODE ? 2 : 5);
+      },
     },
   },
 });

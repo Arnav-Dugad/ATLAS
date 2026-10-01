@@ -83,6 +83,7 @@ jobs:
           ATLAS_BASE: ./
           ATLAS_SOURCEMAP: "0"
           VITE_ATLAS_API: http://127.0.0.1:8787
+          VITE_ATLAS_DESKTOP: "1"
         run: |
           npx tsc -b
           npx vite build --outDir dist-desktop

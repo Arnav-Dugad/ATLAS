@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { HardDrive, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { api, LOCAL_ONLY_MESSAGE, STATIC_MODE } from "../../lib/api";
+import { api, ENGINE_HINT, LOCAL_ONLY_MESSAGE, STATIC_MODE } from "../../lib/api";
 import { bytes, compact, duration, relTime } from "../../lib/format";
 import { useLive } from "../../lib/live";
 import { useHealth, useMetrics, useStorage } from "../../lib/queries";
@@ -85,7 +85,7 @@ export function HealthView() {
         </header>
 
         {health.error && !health.data ? (
-          <ErrorState title="Engine unreachable" message="Start the engine with `pnpm dev`." onRetry={() => void health.refetch()} />
+          <ErrorState title="Engine unreachable" message={ENGINE_HINT} onRetry={() => void health.refetch()} />
         ) : null}
 
         <div className={h.grid}>

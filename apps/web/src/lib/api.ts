@@ -416,6 +416,13 @@ export class ApiError extends Error {
  * written by `atlas export-static`; capabilities that need the local engine raise `local_only`.
  */
 export const STATIC_MODE: boolean = import.meta.env.VITE_ATLAS_STATIC === "1";
+/** Built for the desktop app, whose engine is bundled and started with the window. */
+export const DESKTOP: boolean = import.meta.env.VITE_ATLAS_DESKTOP === "1";
+
+/** What to tell people when the engine does not answer. */
+export const ENGINE_HINT: string = DESKTOP
+  ? "ATLAS's built-in engine is starting or has stopped. This view reloads by itself when it is back; restart ATLAS if it doesn't."
+  : "Start the ATLAS engine with `pnpm dev`. This view reloads by itself when the engine is back.";
 
 export const API_BASE: string = STATIC_MODE
   ? `${import.meta.env.BASE_URL}snapshot`

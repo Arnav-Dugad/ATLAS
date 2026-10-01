@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { ArrowUpRight, Play } from "lucide-react";
-import { api, STATIC_MODE, type IncidentSummary, type Overview } from "../../lib/api";
+import { api, ENGINE_HINT, STATIC_MODE, type IncidentSummary, type Overview } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
 import { compact, decimal, int, relTime, utcFull } from "../../lib/format";
 import { hazardMeta, severityColor, SEVERITY_LABELS, sourceLabel } from "../../lib/hazards";
@@ -31,7 +31,7 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
       <div className={s.wrap}>
         <ErrorState
           title={STATIC_MODE ? "Snapshot unavailable" : "Engine unreachable"}
-          message={STATIC_MODE ? "The public snapshot could not be loaded. Try again shortly." : "Start the ATLAS engine with `pnpm dev`. Cached views will reappear when it reconnects."}
+          message={STATIC_MODE ? "The public snapshot could not be loaded. Try again shortly." : ENGINE_HINT}
           onRetry={() => void q.refetch()}
         />
       </div>

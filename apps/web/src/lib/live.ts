@@ -92,6 +92,8 @@ export function connectLive(client: QueryClient): () => void {
     es.addEventListener("hello", () => {
       retry = 0;
       touch();
+      // The engine is up (again): whatever failed while it was starting or away loads now.
+      void client.refetchQueries({ predicate: (q) => q.state.status === "error" });
     });
     es.addEventListener("ping", touch);
     const onIncident = (ev: MessageEvent<string>) => {

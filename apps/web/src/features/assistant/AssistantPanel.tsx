@@ -321,7 +321,15 @@ function Setup({ status, offline, onRetry }: { status?: AiStatus; offline: boole
         <li>
           Pull a model that supports tool calling, e.g. <code>ollama pull {model}</code> (≈ 4.7 GB; 8 GB of GPU or system memory recommended)
         </li>
-        <li>{STATIC_MODE ? <>Run ATLAS locally (<code>pnpm setup</code>, then <code>pnpm dev</code>) and open the assistant.</> : "Keep Ollama running, then check again."}</li>
+        <li>
+          {STATIC_MODE ? (
+            <>
+              Use the ATLAS desktop app, or run ATLAS locally (<code>pnpm setup</code>, then <code>pnpm dev</code>), and open the assistant.
+            </>
+          ) : (
+            "Keep Ollama running, then check again."
+          )}
+        </li>
       </ol>
       {!STATIC_MODE ? (
         <button type="button" className={s.retry} onClick={onRetry}>
