@@ -11,6 +11,9 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:4179/",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // CI runners have no GPU, so the globe renders in software. With reduced motion (which the
+    // app honours) it stops auto-rotating, pulsing and flying, and the page settles.
+    reducedMotion: "reduce",
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
