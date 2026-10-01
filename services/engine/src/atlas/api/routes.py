@@ -190,6 +190,24 @@ async def incident_population(request: Request, incident_id: str) -> dict[str, A
     return result
 
 
+@router.get("/incidents/{incident_id}/exposure/worldpop")
+async def incident_worldpop(request: Request, incident_id: str) -> dict[str, Any]:
+    """The incident's population rings counted again with WorldPop 2020, beside GHSL (rings up to 100 km)."""
+    from atlas.engine import worldpop
+
+    r = rt(request)
+    hazard, lat, lon = _incident_point(r, incident_id)
+    rings = exposure.rings_for(hazard)
+    if rings is None:
+        return {
+            "status": "unavailable",
+            "provenance": "unavailable",
+            "reason": "Ring-based exposure does not apply to area hazards.",
+        }
+    ghsl = await asyncio.to_thread(r.population.rings, lat, lon, rings) if r.population is not None else None
+    return await worldpop.compare(r.http, lat, lon, rings, ghsl)
+
+
 @router.get("/incidents/{incident_id}/exposure/infrastructure")
 async def incident_infrastructure(request: Request, incident_id: str) -> dict[str, Any]:
     """Mapped facilities within distance rings (OpenStreetMap via Overpass; cached 24 h)."""

@@ -272,3 +272,41 @@
   color: var(--accent);
   background: var(--surface-3);
 }
+
+.compareBtn {
+  justify-self: start;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: rgba(150, 168, 194, 0.08);
+  color: var(--text-1);
+  font-size: var(--fs-xs);
+}
+
+.compareBtn:hover {
+  background: rgba(150, 168, 194, 0.16);
+}
+
+.wpTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.wpTable th,
+.wpTable td {
+  padding: 4px 6px;
+  text-align: right;
+  border-bottom: 1px solid var(--line-1);
+}
+
+.wpTable th[scope="row"],
+.wpTable thead th:first-child {
+  text-align: left;
+}
+
+.wpTable thead th {
+  color: var(--text-3);
+  font-weight: 500;
+}

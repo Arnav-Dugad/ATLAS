@@ -258,6 +258,16 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface WorldPopCompare {
+  status: "ok";
+  rows: { radius_km: number; worldpop: number | null; ghsl: number | null; ratio: number | null }[];
+  skipped_km: number[];
+  errors: string[];
+  dataset: string;
+  attribution: string;
+  note: string;
+}
+
 export interface SeaStation {
   code: string;
   name: string;
@@ -759,6 +769,7 @@ const LOCAL_ONLY: RegExp[] = [
   /\/agencies$/,
   /\/rivers$/,
   /\/sea-level$/,
+  /\/exposure\/worldpop$/,
   /\/alerts\/layer$/,
   /\/exposure\/zones$/,
 ];
@@ -1018,6 +1029,7 @@ export const api = {
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
   zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
+  worldpop: (id: string, signal?: AbortSignal) => request<WorldPopCompare | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/worldpop`, { signal }),
   seaLevel: (id: string, signal?: AbortSignal) => request<SeaLevel>(`/api/v1/incidents/${encodeURIComponent(id)}/sea-level`, { signal }),
   rivers: (id: string, signal?: AbortSignal) => request<Rivers>(`/api/v1/incidents/${encodeURIComponent(id)}/rivers`, { signal }),
   agencies: (id: string, signal?: AbortSignal) => request<Agencies>(`/api/v1/incidents/${encodeURIComponent(id)}/agencies`, { signal }),

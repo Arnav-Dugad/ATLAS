@@ -1,7 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { ExternalLink, Radar, RefreshCw, Settings, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import { LOCAL_ONLY_MESSAGE, STATIC_MODE, WINDOWS_APP, type ExposureUnavailable, type IncidentDetail, type InfrastructureExposure, type PopulationExposure } from "../../lib/api";
+import { api, explainError, LOCAL_ONLY_MESSAGE, STATIC_MODE, WINDOWS_APP, type ExposureUnavailable, type IncidentDetail, type InfrastructureExposure, type PopulationExposure } from "../../lib/api";
 import { compact, int, relTime, dist } from "../../lib/format";
 import { FACILITY_META, type FacilityKey } from "../../lib/hazards";
 import { useInfrastructureExposure, usePopulationExposure } from "../../lib/queries";
@@ -51,9 +52,57 @@ function PopulationSection({ id }: { id: string }) {
       ) : !data ? null : isUnavailable(data) ? (
         <Unavailable reason={data.reason} settings={WINDOWS_APP && data.action === "install-pack" ? "packs" : undefined} />
       ) : (
-        <PopulationRings data={data} />
+        <>
+          <PopulationRings data={data} />
+          {STATIC_MODE ? null : <WorldPopCompare id={id} />}
+        </>
       )}
     </section>
+  );
+}
+
+/** The same rings counted by WorldPop 2020: the spread between two models is the uncertainty. */
+function WorldPopCompare({ id }: { id: string }) {
+  const [on, setOn] = useState(false);
+  const q = useQuery({ queryKey: ["worldpop", id], queryFn: ({ signal }) => api.worldpop(id, signal), enabled: on, staleTime: Infinity, retry: 0 });
+  useEffect(() => setOn(false), [id]);
+  if (!on) {
+    return (
+      <button type="button" className={s.compareBtn} onClick={() => setOn(true)}>
+        Compare with WorldPop (a second population model)
+      </button>
+    );
+  }
+  if (q.isLoading) return <Skeleton height={70} />;
+  if (q.error) return <p className={s.meta}>WorldPop did not answer: {explainError(q.error)}</p>;
+  const d = q.data;
+  if (!d || d.status !== "ok") return d ? <p className={s.meta}>{d.reason}</p> : null;
+  return (
+    <div className={s.card}>
+      <table className={s.wpTable}>
+        <thead>
+          <tr>
+            <th scope="col">Within</th>
+            <th scope="col">GHSL 2025</th>
+            <th scope="col">WorldPop 2020</th>
+            <th scope="col">Ratio</th>
+          </tr>
+        </thead>
+        <tbody>
+          {d.rows.map((r) => (
+            <tr key={r.radius_km}>
+              <th scope="row">{r.radius_km} km</th>
+              <td>{r.ghsl != null ? compact(r.ghsl) : "—"}</td>
+              <td>{r.worldpop != null ? compact(r.worldpop) : "—"}</td>
+              <td>{r.ratio != null ? `${r.ratio.toFixed(2)}×` : "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className={s.meta}>
+        {d.note} {d.skipped_km.length ? `Rings over 100 km (${d.skipped_km.join(", ")} km) are too large for WorldPop's public service.` : ""} {d.attribution}.
+      </div>
+    </div>
   );
 }
 
