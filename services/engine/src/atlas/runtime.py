@@ -44,6 +44,7 @@ class Runtime:
         self.http.set_host_policy("overpass-api.de", HostPolicy(max_concurrency=1, min_interval_s=2.0))
         self.http.set_host_policy("www.gdacs.org", HostPolicy(max_concurrency=2, min_interval_s=0.5))
         self.http.set_host_policy("api.open-meteo.com", HostPolicy(max_concurrency=2, min_interval_s=0.2))
+        self.http.set_host_policy("api.openaq.org", HostPolicy(max_concurrency=1, min_interval_s=1.1))  # 60 requests/min
         self.packs = PackManager(settings.packs_dir, self.http)
         self.spectral = SpectralService(self.http, settings.cache_dir, offline=settings.offline)
         self.geocoder = self._load_geocoder()

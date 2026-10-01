@@ -209,7 +209,7 @@ def _assistant(r: Runtime) -> Any:
 
     a = getattr(r, "assistant", None)
     if a is None:
-        a = Assistant(r, OllamaClient(r.settings.ai_base_url), default_model=r.settings.ai_model)
+        a = Assistant(r, OllamaClient(r.settings.ai_base_url), default_model=r.settings.ai_model, docs_root=r.settings.docs_dir)
         r.assistant = a  # type: ignore[attr-defined]
     return a
 
@@ -233,6 +233,17 @@ async def ai_ask(request: Request, body: AskBody) -> EventSourceResponse:
             yield {"event": ev["event"], "data": orjson.dumps(ev["data"]).decode()}
 
     return EventSourceResponse(events(), ping=15)
+
+
+@router.get("/incidents/{incident_id}/air-quality")
+async def incident_air_quality(request: Request, incident_id: str) -> dict[str, Any]:
+    """Latest readings from monitoring stations within 25 km (OpenAQ; needs a free API key)."""
+    from atlas.engine import airquality
+
+    r = rt(request)
+    _hazard, lat, lon = _incident_point(r, incident_id)
+    key = r.settings.openaq_api_key.get_secret_value() if r.settings.openaq_api_key else None
+    return await airquality.nearby(r.http, key, lat, lon)
 
 
 @router.get("/context/space-weather")

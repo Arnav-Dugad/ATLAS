@@ -132,6 +132,33 @@ export const RELATION_META: Record<RelationType, { label: string; color: string 
   nearby: { label: "Nearby, same hazard", color: "#9aa8bd" },
 };
 
+export interface AirQualityReading {
+  parameter: string;
+  label: string;
+  value: number;
+  unit: string | null;
+  at: string;
+}
+
+export interface AirQuality {
+  status: "ok";
+  kind: "air_quality";
+  provenance: "real";
+  radius_km: number;
+  stations: { id: number; name: string; provider: string | null; lat: number; lon: number; distance_km: number; last_update: string; readings: AirQualityReading[] }[];
+  note: string;
+  attribution: string;
+  computed_at: string;
+}
+
+export interface AirQualityUnavailable {
+  status: "unavailable";
+  kind: "air_quality";
+  provenance: "unavailable";
+  reason: string;
+  action: string | null;
+}
+
 export interface SpaceWeather {
   status: "ok";
   source: "swpc";
@@ -427,6 +454,16 @@ async function staticRequest<T>(path: string, signal?: AbortSignal): Promise<T> 
   }
   // Static hosts differ on missing files: a 404, or an SPA fallback page served as text/html.
   if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) {
+    if (p.endsWith("/air-quality")) {
+      const unavailable: AirQualityUnavailable = {
+        status: "unavailable",
+        kind: "air_quality",
+        provenance: "unavailable",
+        reason: "Air quality is included in this public snapshot only for the most significant incidents. Run ATLAS locally with a free OpenAQ key for any incident.",
+        action: null,
+      };
+      return unavailable as T;
+    }
     if (p.endsWith("/imagery/change")) {
       const unavailable: SpectralUnavailable = {
         status: "unavailable",
@@ -585,6 +622,8 @@ export const api = {
     request<PopulationExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/population`, { signal }),
   infrastructure: (id: string, signal?: AbortSignal) =>
     request<InfrastructureExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/infrastructure`, { signal }),
+  airQuality: (id: string, signal?: AbortSignal) =>
+    request<AirQuality | AirQualityUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/air-quality`, { signal }),
   spaceWeather: (signal?: AbortSignal) => request<SpaceWeather>("/api/v1/context/space-weather", { signal }),
   graph: (id: string, depth: 1 | 2, signal?: AbortSignal) =>
     request<IncidentGraph>(`/api/v1/incidents/${encodeURIComponent(id)}/graph${STATIC_MODE ? "" : qs({ depth })}`, { signal }),

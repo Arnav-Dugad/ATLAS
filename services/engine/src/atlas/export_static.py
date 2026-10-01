@@ -186,6 +186,35 @@ async def export_context(rt: Runtime, out: Path) -> bool:
     return True
 
 
+async def export_air_quality(rt: Runtime, out: Path, *, limit: int = 10) -> int:
+    """Air quality near the most significant active incidents (needs ATLAS_OPENAQ_API_KEY)."""
+    import asyncio
+
+    from atlas.engine import airquality
+
+    if rt.settings.openaq_api_key is None:
+        return 0
+    key = rt.settings.openaq_api_key.get_secret_value()
+    with rt.db.read() as cur:
+        rows = cur.execute(
+            "SELECT id, lat, lon FROM incidents WHERE status = 'active' AND lat IS NOT NULL "
+            "ORDER BY severity_level DESC, last_observation_at DESC LIMIT ?",
+            [limit],
+        ).fetchall()
+    done = 0
+    for iid, lat, lon in rows:
+        try:
+            res = await airquality.nearby(rt.http, key, float(lat), float(lon))
+        except Exception as exc:  # one failure must not sink the snapshot
+            log.warning("static air quality: %s failed: %s", iid, type(exc).__name__)
+            continue
+        if res.get("status") == "ok":
+            await asyncio.to_thread(_write, out / "api" / "v1", f"incidents/{iid}/air-quality", res)
+            done += 1
+    log.info("static air quality: %d incidents", done)
+    return done
+
+
 async def export_spectral(rt: Runtime, out: Path, *, limit: int = 6, budget_s: float = 240.0) -> list[str]:
     """Precompute Sentinel-2 change maps for a few significant fires and floods (the public
     snapshot cannot run the analysis on demand). Bounded by count and wall time; results are

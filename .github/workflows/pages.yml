@@ -65,6 +65,8 @@ jobs:
         continue-on-error: true
         run: atlas sync all
       - name: Export static snapshot
+        env:
+          ATLAS_OPENAQ_API_KEY: ${{ secrets.ATLAS_OPENAQ_API_KEY }} # optional; air quality for top incidents
         run: atlas export-static apps/web/public/snapshot
 
       - name: Save engine state

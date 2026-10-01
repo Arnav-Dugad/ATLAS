@@ -15,6 +15,7 @@ import { ConfidenceMeter, cx, Dot, ErrorState, HazardGlyph, Label, ProvenanceBad
 import { Chronology } from "./Chronology";
 import { ExposureTab } from "./ExposureTab";
 import { SourceDrawer } from "./SourceDrawer";
+import { AirQualityCard } from "./AirQualityCard";
 import { WeatherCard } from "./WeatherCard";
 import { TrackChart } from "./TrackChart";
 import s from "./IncidentPanel.module.css";
@@ -235,6 +236,7 @@ function ContextTab({ d }: { d: IncidentDetail }) {
   return (
     <div className={s.stack}>
       <WeatherCard id={d.id} />
+      <AirQualityCard id={d.id} />
       <section>
         <Label right="Natural Earth · derived">Nearby places</Label>
         <ul className={s.places}>

@@ -114,3 +114,33 @@ def test_space_weather_scales_parse() -> None:
     assert set(out["current"]) == {"R", "S", "G"}
     assert all(isinstance(v["scale"], int) for v in out["current"].values())
     assert len(out["outlook"]) == 3 and "forecast" in out["note"]
+
+
+def test_air_quality_keeps_only_fresh_stations_with_tracked_pollutants() -> None:
+    from datetime import datetime
+
+    from atlas.engine import airquality
+
+    now = datetime(2026, 10, 1, 8, 0)
+    sensor = lambda sid, name: {"id": sid, "parameter": {"id": sid, "name": name, "units": "µg/m³"}}  # noqa: E731
+    locs = [
+        {"id": 1, "name": "Fresh far", "provider": {"name": "CPCB"}, "coordinates": {"latitude": 28.70, "longitude": 77.20},
+         "datetimeLast": {"utc": "2026-10-01T07:00:00Z"}, "sensors": [sensor(11, "pm25")]},
+        {"id": 2, "name": "Fresh near", "provider": {"name": "AirGradient"}, "coordinates": {"latitude": 28.62, "longitude": 77.21},
+         "datetimeLast": {"utc": "2026-10-01T07:30:00Z"}, "sensors": [sensor(21, "pm25"), sensor(22, "temperature")]},
+        {"id": 3, "name": "Dead since 2018", "coordinates": {"latitude": 28.61, "longitude": 77.21},
+         "datetimeLast": {"utc": "2018-02-22T04:00:00Z"}, "sensors": [sensor(31, "pm25")]},
+        {"id": 4, "name": "Weather only", "coordinates": {"latitude": 28.61, "longitude": 77.21},
+         "datetimeLast": {"utc": "2026-10-01T07:00:00Z"}, "sensors": [sensor(41, "temperature")]},
+    ]  # fmt: skip
+    out = airquality.fresh_stations(locs, 28.6139, 77.2090, now)
+    assert [s["name"] for s in out] == ["Fresh near", "Fresh far"]
+    assert out[0]["sensors"] == {21: ("pm25", "µg/m³")}
+
+
+async def test_air_quality_without_a_key_says_how_to_enable(tmp_path: Path) -> None:
+    from atlas.engine import airquality
+
+    http = HttpClient(HttpCache(tmp_path / "c"), UrlPolicy(["api.openaq.org"]))
+    out = await airquality.nearby(http, None, 0.0, 0.0)
+    assert out["status"] == "unavailable" and "ATLAS_OPENAQ_API_KEY" in out["reason"]

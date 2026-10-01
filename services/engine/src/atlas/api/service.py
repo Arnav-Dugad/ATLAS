@@ -393,9 +393,15 @@ class QueryService:
             last_attempt, last_ok, last_err, data_time, p50, n24, e24, b24, last_status = a if a else (None,) * 9
             if sid not in self.rt.connectors:
                 # Reference datasets and on-demand services (no polling connector).
-                if meta.auth.required:
+                configured = bool(
+                    meta.auth.optional_env
+                    and getattr(self.rt.settings, meta.auth.optional_env.removeprefix("ATLAS_").lower(), None)
+                )
+                if meta.auth.required and not configured:
                     status, enabled = "disabled", False
                     reason = reason or f"Requires a free key (set {meta.auth.optional_env})"
+                elif meta.auth.required:
+                    status, enabled = "reference", True
                 else:
                     status, enabled = "reference", True
             elif not enabled:

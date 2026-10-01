@@ -23,7 +23,7 @@ observed status and payload shape are noted.
 | Natural Earth | ✅ Core Pack | none | Public domain | once |
 | Open-Meteo | ✅ on demand | none | CC BY 4.0 data, non-commercial free tier | on incident open |
 | ReliefWeb API v2 | ⏸ adapter, disabled | **approved appname** | per-document | 30 min when enabled |
-| OpenAQ v3 | ⏸ registry only | **free API key** | CC BY 4.0 platform | — |
+| OpenAQ v3 | ✅ on demand (with key) | **free API key** | CC BY 4.0 platform; provider licences vary | per incident, cached 15 min |
 | OpenStreetMap / Overpass | 🔜 Phase 2 | none | ODbL | per incident |
 | GHSL GHS-POP R2023A | ✅ Population Pack | none | CC BY 4.0 | once (~484 MB) |
 | Sentinel-2 L2A (Earth Search STAC + AWS COGs) | ✅ on demand | none | Copernicus open data | per analysis |
@@ -89,8 +89,13 @@ observed status and payload shape are noted.
 - **Verified behaviour**: `v1` returns HTTP 410 (decommissioned); `v2` without an approved appname returns HTTP 403 `"You are not using an approved appname"`.
 - **To enable**: request an appname at https://apidoc.reliefweb.int/parameters#appname and set `ATLAS_RELIEFWEB_APPNAME`. The adapter normalises `/v2/disasters` and links via GLIDE numbers.
 
-### OpenAQ v3 — registry only
-- **Verified**: `api.openaq.org/v3/locations` returns HTTP 401 without `X-API-Key`. Free key at https://explore.openaq.org/register.
+### OpenAQ v3 — air quality near an incident
+`GET https://api.openaq.org/v3/locations?coordinates=lat,lon&radius=25000` and
+`/v3/locations/{id}/latest` with an `X-API-Key` header (free key; verified 2026-10-01: 60
+requests/min). Many listed stations are long inactive (one Delhi station last reported in
+2018), so only stations that reported in the last 24 h are used; values are shown as
+measured, with provider and time. `/v3/parameters/{id}/latest` ignored the coordinate filter
+in testing and is not used. The key lives in `.env` (git-ignored) or a CI secret.
 
 ### OpenStreetMap / Overpass — Phase 2
 - `overpass-api.de/api/status` responded (4 slots). Per-incident extracts will be cached 24 h with a 2 s minimum spacing per request. ODbL attribution "© OpenStreetMap contributors".
