@@ -5,7 +5,7 @@ import jsxA11y from "eslint-plugin-jsx-a11y";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["dist", "public/cesium", "src/lib/api-types.ts"] },
+  { ignores: ["dist", "dist-e2e", "test-results", "playwright-report", "public/cesium", "public/snapshot", "src/lib/api-types.ts"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   jsxA11y.flatConfigs.recommended,
@@ -20,6 +20,10 @@ export default tseslint.config(
       "@typescript-eslint/consistent-type-imports": "error",
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
+  },
+  {
+    files: ["e2e/**/*.mjs", "*.config.{js,ts}"],
+    languageOptions: { globals: { ...globals.node } },
   },
   {
     files: ["public/sw.js"],

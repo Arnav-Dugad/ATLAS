@@ -139,7 +139,7 @@ export function TopBar() {
         </button>
         <div className={s.live} title={liveTitle}>
           <Dot color={liveColor} pulse={live === "live"} />
-          <span>{liveText}</span>
+          <span className={s.liveText}>{liveText}</span>
         </div>
         <div className={s.clock} aria-label={`Coordinated Universal Time ${hh}:${mm}`}>
           <span className={s.clockTime}>

@@ -177,7 +177,7 @@
   }
   .wordmark,
   .clockZone,
-  .live span {
+  .liveText {
     display: none;
   }
   .chip {

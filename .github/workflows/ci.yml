@@ -57,3 +57,27 @@ jobs:
         run: pnpm --filter @atlas/web test
       - name: Build
         run: pnpm --filter @atlas/web build
+
+  e2e:
+    name: End-to-end (Playwright, desktop + phone)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm --filter @atlas/web exec playwright install --with-deps chromium
+      - name: Build against the real-data fixture and test
+        run: pnpm --filter @atlas/web e2e
+      - name: Keep traces of failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/web/test-results
+          retention-days: 7

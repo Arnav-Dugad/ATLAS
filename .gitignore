@@ -49,3 +49,8 @@ Thumbs.db
 
 # Generated static snapshot for the public demo (built in CI)
 apps/web/public/snapshot/
+
+# Playwright end-to-end output
+apps/web/dist-e2e/
+apps/web/test-results/
+apps/web/playwright-report/

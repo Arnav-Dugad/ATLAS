@@ -847,3 +847,25 @@
   color: var(--accent);
   box-shadow: inset 0 0 0 1px rgba(156, 201, 255, 0.45);
 }
+
+/* Phones: inside the bottom sheet the whole panel scrolls, and the tab bar sticks to the top,
+   so the tabs stay reachable even when the sheet is at half height. */
+@media (max-width: 760px) {
+  .wrap {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .tabs {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    flex: none;
+    background: var(--glass-strong);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .body {
+    flex: none;
+    overflow: visible;
+  }
+}
