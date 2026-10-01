@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window gets core window permissions only; the web interface has no shell access.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

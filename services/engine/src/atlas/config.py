@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     data_dir: Path = Field(default=REPO_ROOT / "data" / "runtime")
     registry_path: Path = Field(default=REPO_ROOT / "data" / "registry" / "sources.json")
     demo_dir: Path = Field(default=REPO_ROOT / "data" / "demo")
+    docs_dir: Path = Field(default=REPO_ROOT / "docs")
 
     host: str = "127.0.0.1"
     port: int = 8787
