@@ -263,6 +263,17 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
         });
       }
     }
+    if (query.split(/\s+/).length >= 3) {
+      res.push({
+        id: "ask-ai",
+        section: "Ask",
+        label: `Ask ATLAS Analyst: “${query.length > 70 ? `${query.slice(0, 69)}…` : query}”`,
+        icon: <Sparkles size={15} />,
+        hint: STATIC_MODE ? "local AI" : "local model",
+        score: 52,
+        run: () => useUi.getState().openAssistant(query),
+      });
+    }
     const sectionOrder = ["Ask", "Incidents", "Places", "Navigate", "Historical replays", "Filter", "Time", "Layers", "Incident", "Data", "View", "Sources", "Accessibility", "Help"];
     res.sort((a, b) => (query ? b.score - a.score : sectionOrder.indexOf(a.section) - sectionOrder.indexOf(b.section)));
     return res.slice(0, query ? 40 : 18);

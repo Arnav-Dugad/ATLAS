@@ -22,6 +22,7 @@ import s from "./Shell.module.css";
 // The globe pulls in CesiumJS (~4 MB); load it as its own chunk so the shell paints first.
 const Globe = lazy(() => import("../globe/Globe").then((m) => ({ default: m.Globe })));
 const SourcesView = lazy(() => import("../features/sources/SourcesView").then((m) => ({ default: m.SourcesView })));
+const AssistantPanel = lazy(() => import("../features/assistant/AssistantPanel").then((m) => ({ default: m.AssistantPanel })));
 const HealthView = lazy(() => import("../features/sources/HealthView").then((m) => ({ default: m.HealthView })));
 
 const WINDOWS: TimeWindow[] = ["1h", "24h", "7d", "30d"];
@@ -76,13 +77,17 @@ export function Shell() {
       }
       if (typing || ui.paletteOpen) return;
       if (e.key === "Escape") {
-        if (ui.compare) ui.setCompare(null);
+        if (ui.assistantOpen) ui.closeAssistant();
+        else if (ui.compare) ui.setCompare(null);
         else if (ui.layersOpen) ui.setLayersOpen(false);
         else if (ui.view !== "planet") ui.setView("planet");
         else if (ui.selectedId) ui.select(null);
       } else if (e.key === "/") {
         e.preventDefault();
         ui.openPalette();
+      } else if (e.key.toLowerCase() === "a" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        ui.openAssistant();
       } else if (e.key.toLowerCase() === "l") {
         ui.setLayersOpen(!ui.layersOpen);
       } else if (e.key.toLowerCase() === "r") {
@@ -184,6 +189,9 @@ export function Shell() {
         ) : null}
       </AnimatePresence>
 
+      <Suspense fallback={null}>
+        <AssistantPanel />
+      </Suspense>
       <CommandPalette incidents={incidents} />
       <Intro incidents={incidents} />
     </div>

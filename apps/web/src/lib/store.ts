@@ -126,6 +126,8 @@ interface UiState {
   exaggeration: number;
   compare: CompareState | null;
   rasterOverlay: RasterOverlay | null;
+  assistantOpen: boolean;
+  assistantSeed: string;
 
   setView: (v: View) => void;
   select: (id: string | null, opts?: { fly?: boolean }) => void;
@@ -159,6 +161,8 @@ interface UiState {
   setCompare: (c: CompareState | null) => void;
   patchCompare: (patch: Partial<CompareState>) => void;
   setRasterOverlay: (o: RasterOverlay | null) => void;
+  openAssistant: (seed?: string) => void;
+  closeAssistant: () => void;
 }
 
 function yesterdayUtc(): string {
@@ -199,6 +203,8 @@ export const useUi = create<UiState>()(
       exaggeration: 1.5,
       compare: null,
       rasterOverlay: null,
+      assistantOpen: false,
+      assistantSeed: "",
 
       setView: (view) => set({ view }),
       select: (selectedId) =>
@@ -238,6 +244,8 @@ export const useUi = create<UiState>()(
       setExaggeration: (exaggeration) => set({ exaggeration }),
       setCompare: (compare) => set((s) => ({ compare, autoRotate: compare ? false : s.autoRotate })),
       setRasterOverlay: (rasterOverlay) => set({ rasterOverlay }),
+      openAssistant: (seed = "") => set({ assistantOpen: true, assistantSeed: seed, paletteOpen: false }),
+      closeAssistant: () => set({ assistantOpen: false, assistantSeed: "" }),
       patchCompare: (patch) => set((s) => (s.compare ? { compare: { ...s.compare, ...patch } } : {})),
     }),
     {

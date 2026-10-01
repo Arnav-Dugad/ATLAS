@@ -1,4 +1,4 @@
-import { Activity, Command, Database, Globe2, Layers, Search } from "lucide-react";
+import { Activity, Command, Database, Globe2, Layers, Search, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { fetchSnapshotInfo, STATIC_MODE } from "../../lib/api";
@@ -29,6 +29,9 @@ export function TopBar() {
   const openPalette = useUi((st) => st.openPalette);
   const layersOpen = useUi((st) => st.layersOpen);
   const setLayersOpen = useUi((st) => st.setLayersOpen);
+  const assistantOpen = useUi((st) => st.assistantOpen);
+  const openAssistant = useUi((st) => st.openAssistant);
+  const closeAssistant = useUi((st) => st.closeAssistant);
   const live = useLive((st) => st.status);
   const lastEventAt = useLive((st) => st.lastEventAt);
   const now = useUtcClock();
@@ -96,6 +99,15 @@ export function TopBar() {
       </button>
 
       <div className={s.right}>
+        <button
+          type="button"
+          className={cx(s.chip, s.ask, assistantOpen && s.chipOn)}
+          onClick={() => (assistantOpen ? closeAssistant() : openAssistant())}
+          aria-pressed={assistantOpen}
+          title="Ask the local ATLAS Analyst (A)"
+        >
+          <Sparkles size={14} aria-hidden /> Ask
+        </button>
         <button
           type="button"
           className={cx(s.chip, layersOpen && s.chipOn)}

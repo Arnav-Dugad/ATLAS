@@ -207,3 +207,9 @@
     display: none;
   }
 }
+
+.ask {
+  color: var(--text-1);
+  background: linear-gradient(135deg, rgba(185, 220, 255, 0.12), rgba(201, 166, 255, 0.1));
+  box-shadow: inset 0 0 0 1px rgba(156, 201, 255, 0.35);
+}
