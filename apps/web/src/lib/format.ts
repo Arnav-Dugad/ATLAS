@@ -4,9 +4,10 @@ import { useSettings, type Units } from "./settings";
 const compactFmt = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 const intFmt = new Intl.NumberFormat("en");
 
+/** Every time in ATLAS is UTC; a date-time without an offset is read as UTC, never local time. */
 export function parseTime(iso: string | null | undefined): number | null {
   if (!iso) return null;
-  const t = Date.parse(iso);
+  const t = Date.parse(/T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(iso) ? `${iso}Z` : iso);
   return Number.isFinite(t) ? t : null;
 }
 

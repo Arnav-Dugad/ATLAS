@@ -23,3 +23,12 @@ describe("display units", () => {
     expect(metricValue(65, "kt")).toBe("120 km/h"); // ≥ 100 shows no decimals, as everywhere
   });
 });
+
+describe("time parsing", () => {
+  it("reads a date-time without an offset as UTC, not local time", async () => {
+    const { parseTime } = await import("./format");
+    expect(parseTime("2026-09-21T12:00:00")).toBe(Date.UTC(2026, 8, 21, 12));
+    expect(parseTime("2026-09-21T12:00:00.000Z")).toBe(Date.UTC(2026, 8, 21, 12));
+    expect(parseTime("2026-09-21T12:00:00+05:30")).toBe(Date.UTC(2026, 8, 21, 6, 30));
+  });
+});

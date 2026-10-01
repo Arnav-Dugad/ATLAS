@@ -208,6 +208,9 @@ class QueryService:
             ]
         geometry = dict(rec.geometry) if rec.geometry else None
         track = (geometry or {}).pop("track", []) if geometry else []
+        for p in track:  # incidents stored before track times carried an explicit Z
+            if isinstance(p.get("time"), str) and len(p["time"]) == 19:
+                p["time"] += "Z"
         hazard_limits = HAZARD_LIMITATIONS.get(rec.hazard, [])
         return IncidentDetail(
             **base.model_dump(), geometry=geometry, track=track, observations=observations, changes=changes,

@@ -113,3 +113,14 @@ def test_from_epoch_ms_handles_times_before_1970() -> None:
 
     assert iso_z(from_epoch_ms(-1134832594180)) == "1934-01-15T08:43:25.820Z"  # 1934 Bihar–Nepal earthquake
     assert iso_z(from_epoch_ms(1429942285950)) == "2015-04-25T06:11:25.950Z"  # 2015 Gorkha
+
+
+def test_merged_track_times_are_explicit_utc() -> None:
+    from atlas.engine.fusion import _merge_track
+    from atlas.models import Hazard, Observation
+    from atlas.models.core import TrackPoint
+
+    t = datetime(2026, 9, 21, 12)
+    o = Observation(source="eonet", external_id="E1", hazard=Hazard.TROPICAL_CYCLONE, title="Polo", lat=20.0, lon=-110.0,
+                    event_time=t, track=[TrackPoint(time=t, lat=20.0, lon=-110.0, wind_kt=55)])  # fmt: skip
+    assert _merge_track([o])[0]["time"] == "2026-09-21T12:00:00.000Z"

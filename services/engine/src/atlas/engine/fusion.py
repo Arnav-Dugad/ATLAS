@@ -27,7 +27,7 @@ from atlas.models import (
 from atlas.registry import Registry
 from atlas.store.repo import IncidentRecord, ObsRow
 from atlas.util.geo import bbox_of
-from atlas.util.timeutil import utcnow
+from atlas.util.timeutil import iso_z, utcnow
 
 PRIORITY: dict[Hazard, list[str]] = {
     Hazard.EARTHQUAKE: ["usgs", "gdacs", "eonet", "reliefweb"],
@@ -401,7 +401,9 @@ def _merge_track(obs: Sequence[Observation]) -> list[dict[str, Any]]:
     for o in sorted(obs, key=lambda x: rank.get(x.source, 9), reverse=True):
         for t in o.track:
             key = t.time.strftime("%Y-%m-%dT%H")
-            by_time[key] = t.model_dump(mode="json")
+            point = t.model_dump(mode="json")
+            point["time"] = iso_z(t.time)  # explicit UTC, like every other time in the API
+            by_time[key] = point
     return [by_time[k] for k in sorted(by_time)]
 
 

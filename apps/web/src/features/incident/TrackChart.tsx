@@ -1,7 +1,7 @@
 import { scaleLinear, scaleTime } from "d3-scale";
 import { line } from "d3-shape";
 import { useMemo } from "react";
-import { utcShort } from "../../lib/format";
+import { parseTime, utcShort } from "../../lib/format";
 import { sourceLabel } from "../../lib/hazards";
 import type { TrackPointLike } from "./IncidentPanel";
 import s from "./IncidentPanel.module.css";
@@ -27,7 +27,7 @@ function haversine(a: TrackPointLike, b: TrackPointLike): number {
 
 /** Intensity over time where the sources reported wind; nothing is interpolated or invented. */
 export function TrackChart({ track }: { track: TrackPointLike[] }) {
-  const pts = useMemo(() => track.filter((p) => typeof p.wind_kt === "number").map((p) => ({ ...p, t: Date.parse(p.time) })), [track]);
+  const pts = useMemo(() => track.filter((p) => typeof p.wind_kt === "number").map((p) => ({ ...p, t: parseTime(p.time) ?? NaN })), [track]);
   const observed = track.filter((p) => p.kind !== "forecast");
   const forecast = track.filter((p) => p.kind === "forecast");
   const distance = observed.slice(1).reduce((acc, p, i) => acc + haversine(observed[i]!, p), 0);
