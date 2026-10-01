@@ -27,12 +27,14 @@ export function focusIncident(inc: Pick<IncidentSummary, "id" | "hazard" | "lat"
   const bbox = inc.bbox as [number, number, number, number] | null | undefined;
   const span = bbox ? Math.max(Math.abs(bbox[2] - bbox[0]), Math.abs(bbox[3] - bbox[1])) : 0;
   const useBox = bbox && (inc.hazard === "flood" || inc.hazard === "drought" || inc.hazard === "wildfire") && span > 0.4 && span < 60;
+  const inset = bottomInset(opts.select !== false);
   ui.flyTo({
     lat: inc.lat,
     lon: inc.lon,
     height: HEIGHT[inc.hazard] ?? 1_500_000,
     bbox: useBox ? bbox : null,
-    insetBottom: bottomInset(opts.select !== false),
+    insetBottom: inset,
+    cinematic: inset === 0 && !useBox,
   });
 }
 

@@ -21,6 +21,8 @@ export interface FlyRequest {
   duration?: number;
   /** screen pixels hidden at the bottom (the phone sheet); the target is framed above them */
   insetBottom?: number;
+  /** arrive at an oblique angle and orbit slowly until the user takes over */
+  cinematic?: boolean;
 }
 
 export type LayerId =
@@ -45,9 +47,19 @@ export type LayerId =
   | "imagery.ndvi"
   | "imagery.population"
   | "imagery.relief"
-  | "terrain";
+  | "terrain"
+  | "waves"
+  | "terminator"
+  | "aurora"
+  | "satellites"
+  | "embers";
 
 export const DEFAULT_LAYERS: Record<LayerId, boolean> = {
+  waves: true,
+  terminator: true,
+  aurora: true,
+  satellites: false,
+  embers: true,
   incidents: true,
   earthquakes: true,
   fires: true,
@@ -124,6 +136,8 @@ interface UiState {
   fly: FlyRequest | null;
   workspace: boolean;
   facilities: Facility[];
+  /** Shift+drag on the timeline: only incidents that began inside [from, to] (ms). */
+  timeRange: [number, number] | null;
   /** Historical playback cursor (ms since epoch); null = live. */
   playhead: number | null;
   playing: boolean;
@@ -169,6 +183,7 @@ interface UiState {
   setWorkspace: (on: boolean) => void;
   setFacilities: (f: Facility[]) => void;
   setPlayhead: (t: number | null) => void;
+  setTimeRange: (r: [number, number] | null) => void;
   setPlaying: (on: boolean) => void;
   setSpeed: (hoursPerSecond: number) => void;
   goLive: () => void;
@@ -220,6 +235,7 @@ export const useUi = create<UiState>()(
       workspace: false,
       facilities: [],
       playhead: null,
+      timeRange: null,
       playing: false,
       speed: 6,
       history: null,
@@ -265,6 +281,7 @@ export const useUi = create<UiState>()(
       setWorkspace: (workspace) => set({ workspace }),
       setFacilities: (facilities) => set({ facilities }),
       setPlayhead: (playhead) => set({ playhead, autoRotate: false }),
+      setTimeRange: (timeRange) => set({ timeRange }),
       setPlaying: (playing) => set({ playing }),
       setSpeed: (speed) => set({ speed }),
       goLive: () => set({ playhead: null, playing: false, history: null }),

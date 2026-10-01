@@ -46,7 +46,15 @@ export function Shell() {
   const selectedId = useUi((st) => st.selectedId);
   const reducedMotion = useUi((st) => st.reducedMotion);
   const highContrast = useUi((st) => st.highContrast);
-  const incidents = useMemo(() => feed.data?.items ?? [], [feed.data]);
+  const timeRange = useUi((st) => st.timeRange);
+  const incidents = useMemo(() => {
+    const items = feed.data?.items ?? [];
+    if (!timeRange) return items;
+    return items.filter((i) => {
+      const t = Date.parse(i.started_at);
+      return t >= timeRange[0] && t <= timeRange[1];
+    });
+  }, [feed.data, timeRange]);
   const comparing = useUi((st) => st.compare !== null);
   const simulating = useUi((st) => st.simulation !== null || st.groundPick === "simulation");
   const storyOn = useUi((st) => st.story !== null);
@@ -206,7 +214,7 @@ export function Shell() {
           </aside>
 
           <footer className={s.timeline}>
-            <Timeline incidents={incidents} />
+            <Timeline incidents={feed.data?.items ?? []} />
           </footer>
         </>
       )}

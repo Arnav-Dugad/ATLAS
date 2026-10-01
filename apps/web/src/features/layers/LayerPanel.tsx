@@ -26,6 +26,14 @@ const PLANET: { id: LayerId; label: string; desc: string }[] = [
   { id: "terrain", label: "3D terrain", desc: "Open elevation tiles (SRTM, GMTED, EU-DEM…), land only" },
 ];
 
+const EFFECTS: { id: LayerId; label: string; desc: string }[] = [
+  { id: "waves", label: "Seismic wavefronts", desc: "P and S waves of M5+ earthquakes crossing the globe, timed with IASP91 travel times" },
+  { id: "terminator", label: "Day / night line", desc: "The terminator with civil, nautical and astronomical twilight" },
+  { id: "aurora", label: "Aurora", desc: "NOAA SWPC OVATION model, night side only (a 30–90 minute forecast)" },
+  { id: "satellites", label: "Imaging satellites", desc: "Sentinel-2 and Landsat ground tracks for the next 100 minutes (CelesTrak orbits)" },
+  { id: "embers", label: "Fire embers", desc: "Sparks over the hottest detections when zoomed in (not with reduced motion)" },
+];
+
 const EXAGGERATION = [1, 1.5, 2, 3];
 
 export function LayerPanel() {
@@ -88,6 +96,11 @@ export function LayerPanel() {
                   ))}
                 </div>
               ) : null}
+            </Group>
+            <Group title="Effects">
+              {EFFECTS.map((l) => (
+                <Toggle key={l.id} checked={layers[l.id]} onChange={(v) => toggle(l.id, v)} label={l.label} description={l.desc} />
+              ))}
             </Group>
             <Group title="Tools">
               <button

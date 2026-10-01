@@ -301,3 +301,18 @@
   color: var(--accent-strong);
   font-weight: 600;
 }
+
+.sparkLine {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: sparkDraw 900ms var(--ease-out) forwards;
+}
+@keyframes sparkDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+:global([data-motion="reduced"]) .sparkLine {
+  animation: none;
+  stroke-dashoffset: 0;
+}

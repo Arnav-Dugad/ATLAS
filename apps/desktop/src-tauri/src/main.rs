@@ -269,10 +269,14 @@ fn main() {
             }
             #[cfg(windows)]
             {
-                // installers register atlas:// too; this covers portable copies
-                let _ = app.deep_link().register("atlas");
                 let _ = build_tray(app);
-                jumplist::install();
+                // test runs and side-by-side copies set ATLAS_NO_SHELL_INTEGRATION so they never
+                // repoint atlas:// links or the jump list away from the installed app
+                if std::env::var_os("ATLAS_NO_SHELL_INTEGRATION").is_none() {
+                    // installers register atlas:// too; this covers portable copies
+                    let _ = app.deep_link().register("atlas");
+                    jumplist::install();
+                }
             }
 
             let port = pick_port();

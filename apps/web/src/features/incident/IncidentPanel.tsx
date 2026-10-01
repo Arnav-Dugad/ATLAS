@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Check, ChevronRight, Columns2, Copy, Crosshair, Eye, FlaskConical, Pin, Download, ExternalLink, FileJson, Info, Map as MapIcon, ShieldAlert, X } from "lucide-react";
-import { lazy, type ReactNode, Suspense, useMemo, useState } from "react";
+import { lazy, type ReactNode, Suspense, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { RELATION_META, type IncidentDetail, type Metric, type RelationType } from "../../lib/api";
 import { compareIncident } from "../../lib/compare";
+import { playFlip, takeFlip } from "../../lib/flip";
 import { openSimulation } from "../../lib/simulate";
 import { useWatch } from "../../lib/watch";
 import { exportBrief, exportGeoJson, exportJson } from "../../lib/export";
@@ -32,6 +33,15 @@ export function IncidentPanel({ id }: { id: string }) {
   const togglePin = useUi((st) => st.togglePin);
   const [tab, setTab] = useState<Tab>("brief");
   const d = q.data;
+  const reduced = useUi((st) => st.reducedMotion);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const loadedId = d?.id;
+  // the title glides in from where it was in the incident list
+  useLayoutEffect(() => {
+    if (!loadedId) return;
+    const from = takeFlip(loadedId);
+    if (from && titleRef.current && !reduced) playFlip(titleRef.current, from);
+  }, [loadedId, reduced]);
 
   if (q.error && !d) {
     return (
@@ -63,7 +73,9 @@ export function IncidentPanel({ id }: { id: string }) {
           <span className={s.spacer} />
           <PanelClose onClose={() => select(null)} inline />
         </div>
-        <h1 className={s.title}>{d.title}</h1>
+        <h1 className={s.title} ref={titleRef}>
+          {d.title}
+        </h1>
         <div className={s.where}>
           {d.place ? <span>{d.place.description}</span> : null}
           {d.place?.admin1 ? <span className={s.dim}> · {d.place.admin1}</span> : null}

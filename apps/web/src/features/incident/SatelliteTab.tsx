@@ -11,6 +11,7 @@ import { decimal, utcFull } from "../../lib/format";
 import { useSpectral } from "../../lib/queries";
 import { useUi } from "../../lib/store";
 import { cx, ErrorState, Label, ProvenanceBadge } from "../../ui/primitives";
+import { OverpassCard } from "./OverpassCard";
 import s from "./SatelliteTab.module.css";
 
 const INDEX_LABEL: Record<SpectralIndex, string> = {
@@ -34,6 +35,7 @@ export function SatelliteTab({ d }: { d: IncidentDetail }) {
 
   return (
     <div className={s.wrap}>
+      <OverpassCard d={d} />
       <Label right={<ProvenanceBadge kind={isOk(data) ? "derived" : "unavailable"} compact />}>
         <span className={s.titleRow}>
           <Satellite size={12} aria-hidden /> Sentinel-2 change

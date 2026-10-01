@@ -34,6 +34,7 @@
     "motion": "^13.4.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "satellite.js": "^6.0.2",
     "wouter": "^3.12.0",
     "zustand": "^5.0.15"
   },

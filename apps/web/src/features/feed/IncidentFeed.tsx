@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ListFilter, Radio } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { IncidentSummary } from "../../lib/api";
+import { captureFlip } from "../../lib/flip";
 import { focusIncident } from "../../lib/focus";
 import { observedAgo } from "../../lib/format";
 import { hazardMeta, PRIMARY_HAZARDS, type HazardId } from "../../lib/hazards";
@@ -221,7 +222,10 @@ const IncidentCard = memo(function IncidentCard({ inc, selected, cursor, fresh }
       role="option"
       aria-selected={selected}
       className={cx(s.card, selected && s.cardOn, cursor && s.cardCursor)}
-      onClick={() => focusIncident(inc)}
+      onClick={(e) => {
+        captureFlip(inc.id, e.currentTarget.querySelector("[data-flip-title]"));
+        focusIncident(inc);
+      }}
       onMouseEnter={() => hover(inc.id)}
       onMouseLeave={() => hover(null)}
       initial={fresh ? { opacity: 0, x: -12 } : false}
@@ -233,7 +237,9 @@ const IncidentCard = memo(function IncidentCard({ inc, selected, cursor, fresh }
         <HazardGlyph hazard={inc.hazard} size={17} />
       </div>
       <div className={s.body}>
-        <div className={s.cardTitle}>{inc.title}</div>
+        <div className={s.cardTitle} data-flip-title>
+          {inc.title}
+        </div>
         <div className={s.meta}>
           <SeverityMeter level={inc.severity.level} size="sm" />
           {headline ? (

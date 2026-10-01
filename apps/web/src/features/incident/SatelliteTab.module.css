@@ -358,3 +358,60 @@
   display: grid;
   gap: 4px;
 }
+
+/* ---- next satellite passes ---- */
+.overpass {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line-1);
+}
+.passes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.pass {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: rgba(127, 209, 255, 0.06);
+  box-shadow: inset 2px 0 0 #7fd1ff;
+}
+.passWhen {
+  display: grid;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.passWhen strong {
+  font-size: var(--fs-md);
+  color: var(--text-1);
+}
+.passWhen span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.passSat {
+  display: grid;
+  gap: 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-1);
+}
+.passSat span {
+  font-size: var(--fs-2xs);
+  line-height: 1.45;
+  color: var(--text-3);
+}
+.passNote {
+  margin: 0;
+  font-size: var(--fs-2xs);
+  line-height: 1.5;
+  color: var(--text-3);
+}

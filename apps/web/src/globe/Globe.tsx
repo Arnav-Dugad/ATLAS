@@ -13,6 +13,8 @@ import styles from "./Globe.module.css";
 import { globeRef } from "./ref";
 
 
+const SAT_COLORS: Record<string, string> = { "Sentinel-2": "#7fd1ff", Landsat: "#c9a6ff" };
+
 export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const host = useRef<HTMLDivElement>(null);
   const [globe, setGlobe] = useState<AtlasGlobe | null>(null);
@@ -37,6 +39,21 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const groundPick = useUi((s) => s.groundPick);
   const watches = useWatch((s) => s.watches);
   const quality = useSettings((s) => s.quality);
+  const aurora = useQuery({
+    queryKey: ["aurora"],
+    queryFn: ({ signal }) => api.aurora(signal),
+    enabled: layers.aurora,
+    staleTime: 600_000,
+    refetchInterval: 600_000,
+    retry: 1,
+  });
+  const satellites = useQuery({
+    queryKey: ["satellites"],
+    queryFn: ({ signal }) => api.satellites(signal),
+    enabled: layers.satellites,
+    staleTime: 6 * 3600_000,
+    retry: 1,
+  });
 
   // ---- mount ------------------------------------------------------------------------
   useEffect(() => {
@@ -88,6 +105,40 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   useEffect(() => {
     if (WINDOWS_APP) globe?.setQuality(QUALITY[resolveQuality(quality)]);
   }, [globe, quality]);
+  useEffect(
+    () => globe?.setEffects({ waves: layers.waves, terminator: layers.terminator, aurora: layers.aurora, satellites: layers.satellites, embers: layers.embers }),
+    [globe, layers.waves, layers.terminator, layers.aurora, layers.satellites, layers.embers],
+  );
+  useEffect(() => globe?.setAurora(layers.aurora ? (aurora.data?.points ?? null) : null), [globe, layers.aurora, aurora.data]);
+  useEffect(() => {
+    const data = satellites.data;
+    if (!globe) return;
+    if (!layers.satellites || !data) {
+      globe.setSatellites([]);
+      return;
+    }
+    let timer = 0;
+    let cancelled = false;
+    void import("../lib/orbits").then(({ loadSatellites, groundTrack, subSatellite }) => {
+      if (cancelled) return;
+      const sats = loadSatellites(data.satellites);
+      const draw = () => {
+        const now = new Date(useUi.getState().playhead ?? Date.now());
+        globe.setSatellites(
+          sats.flatMap((sat) => {
+            const here = subSatellite(sat, now);
+            return here ? [{ name: sat.name, color: SAT_COLORS[sat.mission] ?? "#9cc9ff", path: groundTrack(sat, now, 100, 30), now: here }] : [];
+          }),
+        );
+      };
+      draw();
+      timer = window.setInterval(draw, 30_000);
+    });
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [globe, layers.satellites, satellites.data]);
   useEffect(() => globe?.setPaused(appView !== "planet"), [globe, appView]);
   useEffect(() => globe?.setAutoRotate(autoRotate), [globe, autoRotate]);
   useEffect(() => {

@@ -27,6 +27,25 @@
 }
 .col rect {
   transition: opacity var(--dur-1) var(--ease-out);
+  /* bars grow up from the baseline as data arrives */
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: barGrow 700ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 6ms);
+}
+.col rect:first-child {
+  animation: none;
+}
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+:global([data-motion="reduced"]) .col rect {
+  animation: none;
 }
 .colOn rect:first-child {
   fill: rgba(156, 201, 255, 0.08);
@@ -274,4 +293,55 @@
 }
 .bannerHistory .bannerBtn {
   background: var(--hz-earthquake);
+}
+
+/* the "now" marker breathes softly while live */
+.playheadLive {
+  animation: nowGlow 2.6s ease-in-out infinite;
+}
+@keyframes nowGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 8px var(--accent);
+  }
+  50% {
+    box-shadow: 0 0 18px 2px var(--accent);
+  }
+}
+:global([data-motion="reduced"]) .playheadLive {
+  animation: none;
+}
+
+/* Shift+drag time filter */
+.brush {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  border-radius: 3px;
+  background: rgba(156, 201, 255, 0.12);
+  box-shadow:
+    inset 1px 0 0 var(--accent),
+    inset -1px 0 0 var(--accent);
+  pointer-events: none;
+}
+.brushing {
+  background: rgba(156, 201, 255, 0.2);
+}
+.rangeChip {
+  position: absolute;
+  right: 16px;
+  top: -30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--glass-strong);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--accent-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+}
+.rangeChip:hover {
+  background: var(--accent-soft);
 }

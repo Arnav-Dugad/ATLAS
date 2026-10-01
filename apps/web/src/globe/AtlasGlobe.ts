@@ -19,6 +19,9 @@ import {
   EllipsoidTerrainProvider,
   GeometryInstance,
   GroundPrimitive,
+  EllipsoidSurfaceAppearance,
+  HeadingPitchRange,
+  BoundingSphere,
   HorizontalOrigin,
   ImageryLayer,
   JulianDate,
@@ -32,7 +35,9 @@ import {
   PolygonGeometry,
   PolygonHierarchy,
   PolylineCollection,
+  Primitive,
   Rectangle,
+  RectangleGeometry,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   SingleTileImageryProvider,
@@ -40,6 +45,7 @@ import {
   SplitDirection,
   UrlTemplateImageryProvider,
   VerticalOrigin,
+  Matrix4,
   type Billboard,
   type PointPrimitive,
   type Polyline,
@@ -49,6 +55,7 @@ import { EXPOSURE_RINGS_KM, FACILITY_META, hazardMeta, severityColor, type Facil
 import { gpuInfo } from "../lib/media";
 import type { FlyRequest, LayerId } from "../lib/store";
 import { BASE, BASE_FALLBACK, compareUrl, NIGHT_LIGHTS, OVERLAYS, overlayDate, type CompareProduct, type ImageryDef } from "./imagery";
+import { GlobeEffects, WAVE_LIFETIME_S, type SatelliteTrack, type WaveSource } from "./effects";
 import { createTerrariumProvider } from "./terrain";
 import { facilitySprite, incidentSprite, reticleSprite, ringSprite } from "./sprites";
 
@@ -83,6 +90,8 @@ interface Handlers {
 const MARKER_ALT = 1500;
 export const DETAIL_HEIGHT = 1_800_000;
 const POINT_ALT = 400;
+/** height of the 3D cyclone forecast cones (m): visible as a volume, low enough not to hide the track */
+const CONE_HEIGHT = 45_000;
 const R_EARTH = 6_371_000;
 
 function toColor(hex: string, alpha = 1): Color {
@@ -117,7 +126,12 @@ export class AtlasGlobe {
   private liveFlags = { incidents: true, earthquakes: true, cyclones: true };
   facilityData: Facility[] = [];
   private focusFill: GroundPrimitive | null = null;
-  private trackFill: GroundPrimitive | null = null;
+  private trackFill: Primitive | null = null;
+  private trackReveal: { line: Polyline; positions: Cartesian3[]; born: number }[] = [];
+  private effects!: GlobeEffects;
+  private historySeq: { t: number[]; lat: number[]; lon: number[]; mag: number[] } | null = null;
+  private lastWaveScan = 0;
+  private orbit: { center: Cartesian3; heading: number; pitch: number; range: number } | null = null;
   private overlays = new Map<string, ImageryLayer>();
   private nightLayer: ImageryLayer | null = null;
   private lightingWanted = true;
@@ -126,6 +140,8 @@ export class AtlasGlobe {
   private compareTag = "";
   private terrainOn = false;
   private raster: { key: string; layer: ImageryLayer | null } = { key: "", layer: null };
+  /** animated ripple over "new surface water" pixels of a change map (see setRasterOverlay) */
+  private shimmer: { primitive: Primitive; material: Material } | null = null;
   private simFill: GroundPrimitive | null = null;
   private simLines = new PolylineCollection();
   private simLabels = new LabelCollection();
@@ -245,6 +261,9 @@ export class AtlasGlobe {
       scene.primitives.add(p);
     }
 
+    this.effects = new GlobeEffects(scene, this.widget.imageryLayers);
+    if (light) this.effects.setLight(true);
+
     this.camera.setView({ destination: Cartesian3.fromDegrees(18, 14, 22_500_000) });
 
     this.handler = new ScreenSpaceEventHandler(scene.canvas);
@@ -253,6 +272,8 @@ export class AtlasGlobe {
         const g = this.groundAt(e.position);
         if (g && this.handlers.onGround(g.lat, g.lon)) return;
       }
+      const ground = this.groundAt(e.position);
+      if (ground) this.effects.clickRipple(ground.lat, ground.lon);
       this.handlers.onPick(this.pickAt(e.position));
     }, ScreenSpaceEventType.LEFT_CLICK);
     this.handler.setInputAction((e: ScreenSpaceEventHandler.MotionEvent) => {
@@ -266,6 +287,7 @@ export class AtlasGlobe {
     }, ScreenSpaceEventType.MOUSE_MOVE);
 
     const interact = () => {
+      this.stopOrbit();
       if (this.autoRotate) {
         this.autoRotate = false;
         this.handlers.onInteract();
@@ -341,6 +363,32 @@ export class AtlasGlobe {
       this.rippleState = keep;
       animate = true;
     }
+    if (this.orbit && !this.reducedMotion) {
+      this.orbit.heading += dt * 0.045;
+      this.camera.lookAt(this.orbit.center, new HeadingPitchRange(this.orbit.heading, this.orbit.pitch, this.orbit.range));
+      animate = true;
+    }
+    if (this.shimmer && !this.reducedMotion) {
+      this.shimmer.material.uniforms.time = now / 1000;
+      animate = true;
+    }
+    if (this.trackReveal.length) {
+      const keep: typeof this.trackReveal = [];
+      for (const r of this.trackReveal) {
+        const k = this.reducedMotion ? 1 : Math.min(1, (now - r.born) / 1600);
+        const n = Math.max(2, Math.ceil(r.positions.length * (1 - (1 - k) ** 3)));
+        r.line.positions = r.positions.slice(0, n);
+        if (k < 1) keep.push(r);
+      }
+      this.trackReveal = keep;
+      animate = true;
+    }
+    if (now - this.lastWaveScan > 5000) {
+      this.lastWaveScan = now;
+      this.scanWaveSources();
+    }
+    const clockMs = this.timeCursor ?? Date.now();
+    if (this.effects.update(clockMs, this.camera.positionCartographic.height)) animate = true;
     if (this.selectedId) {
       const r = this.reticle.length ? this.reticle.get(0) : null;
       if (r && !this.reducedMotion) {
@@ -383,11 +431,60 @@ export class AtlasGlobe {
     scene.postProcessStages.fxaa.enabled = q.fxaa;
     scene.globe.maximumScreenSpaceError = q.screenSpaceError;
     this.widget.targetFrameRate = q.fps;
+    this.effects.setLight(q.fps <= 30);
     this.requestRender();
+  }
+
+  /** Optional effects (Layers → Effects). */
+  setEffects(flags: Partial<GlobeEffects["flags"]>) {
+    this.effects.setFlags(flags);
+    this.requestRender();
+  }
+
+  setAurora(points: [number, number, number][] | null) {
+    this.effects.setAurora(points);
+    this.requestRender();
+  }
+
+  setSatellites(tracks: SatelliteTrack[]) {
+    this.effects.setSatellites(tracks);
+    this.requestRender();
+  }
+
+  /** Earthquakes whose P or S waves are still crossing the globe at the current time (live or replay). */
+  private scanWaveSources() {
+    const now = this.timeCursor ?? Date.now();
+    const out: WaveSource[] = [];
+    const window = WAVE_LIFETIME_S * 1000;
+    const seq = this.historyActive ? this.historySeq : null;
+    if (seq) {
+      for (let i = 0; i < seq.t.length; i += 1) {
+        const t0 = seq.t[i] ?? 0;
+        const m = seq.mag[i] ?? 0;
+        if (m >= 5.5 && t0 <= now && now - t0 < window) out.push({ id: `h${i}`, lat: seq.lat[i] ?? 0, lon: seq.lon[i] ?? 0, t0, mag: m });
+      }
+    } else if (this.quakeData) {
+      const { lat, lon, mag, t, id } = this.quakeData.columns as Record<string, (number | string)[]>;
+      for (let i = 0; i < this.quakeData.count; i += 1) {
+        const t0 = Number(t?.[i] ?? 0);
+        const m = Number(mag?.[i] ?? 0);
+        if (m >= 5 && t0 <= now && now - t0 < window) out.push({ id: String(id?.[i] ?? `q${i}`), lat: Number(lat?.[i]), lon: Number(lon?.[i]), t0, mag: m });
+      }
+    }
+    out.sort((a, b) => b.mag - a.mag);
+    this.effects.setWaveSources(out);
+  }
+
+  private stopOrbit() {
+    if (!this.orbit) return;
+    this.orbit = null;
+    this.camera.lookAtTransform(Matrix4.IDENTITY);
   }
 
   setReducedMotion(on: boolean) {
     this.reducedMotion = on;
+    this.effects.setReducedMotion(on);
+    if (on) this.stopOrbit();
     for (const p of this.pulseState) p.billboard.show = !on;
     this.requestRender();
   }
@@ -456,6 +553,10 @@ export class AtlasGlobe {
     const key = o ? `${o.url}|${o.bbox.join(",")}` : "";
     if (key === this.raster.key) return;
     if (this.raster.layer) this.widget.imageryLayers.remove(this.raster.layer, true);
+    if (this.shimmer) {
+      this.widget.scene.primitives.remove(this.shimmer.primitive);
+      this.shimmer = null;
+    }
     this.raster = { key, layer: null };
     if (!o) {
       this.requestRender();
@@ -467,6 +568,31 @@ export class AtlasGlobe {
     layer.nightAlpha = 1;
     this.widget.imageryLayers.add(layer);
     this.raster = { key, layer };
+    // Only pixels in the change map's "new surface water" colour (56, 189, 248) shimmer.
+    const material = new Material({
+      fabric: {
+        uniforms: { image: o.url, time: 0 },
+        source: `czm_material czm_getMaterial(czm_materialInput materialInput) {
+          czm_material m = czm_getDefaultMaterial(materialInput);
+          vec4 c = texture(image, materialInput.st);
+          float water = step(distance(c.rgb, vec3(0.22, 0.741, 0.973)), 0.09) * step(0.5, c.a);
+          vec2 p = materialInput.st * vec2(260.0, 190.0);
+          float wave = sin(p.x * 0.7 + p.y * 0.45 + time * 2.2) * sin(p.y * 0.9 - p.x * 0.3 - time * 1.6);
+          m.diffuse = vec3(0.78, 0.93, 1.0);
+          m.alpha = water * smoothstep(0.35, 1.0, wave) * 0.55;
+          return m;
+        }`,
+      },
+    });
+    const primitive = new Primitive({
+      geometryInstances: new GeometryInstance({
+        geometry: new RectangleGeometry({ rectangle: Rectangle.fromDegrees(w, s, e, n), height: 60, vertexFormat: EllipsoidSurfaceAppearance.VERTEX_FORMAT }),
+      }),
+      appearance: new EllipsoidSurfaceAppearance({ material, aboveGround: true }),
+      asynchronous: true,
+    });
+    this.widget.scene.primitives.add(primitive);
+    this.shimmer = { primitive, material };
     this.requestRender();
   }
 
@@ -691,7 +817,8 @@ export class AtlasGlobe {
       this.incidentIndex.set(inc.id, { billboard, data: inc });
       const age = now - Date.parse(inc.last_observation_at);
       const recent = age < 6 * 3600_000;
-      if (inc.status === "active" && (level >= 4 || (level >= 3 && recent))) {
+      // breathing rings: extreme incidents slowly and strongly, severe ones gently; the rest stay still
+      if (inc.status === "active" && (level >= 5 || (level >= 4 && recent))) {
         const color = toColor(severityColor(level));
         const ring = this.pulses.add({
           position: pos,
@@ -701,7 +828,7 @@ export class AtlasGlobe {
           scaleByDistance: new NearFarScalar(1.5e6, 1.2, 2.4e7, 0.6),
           show: !this.reducedMotion,
         });
-        this.pulseState.push({ billboard: ring, phase: Math.random(), color, speed: level >= 5 ? 0.62 : 0.45 });
+        this.pulseState.push({ billboard: ring, phase: Math.random(), color, speed: level >= 5 ? 0.32 : 0.5 });
       }
     }
     this.refreshSelection();
@@ -802,6 +929,7 @@ export class AtlasGlobe {
       this.quakePointMags.push(m);
     }
     if (this.timeCursor != null) this.applyTime(null);
+    this.scanWaveSources();
     this.requestRender();
   }
 
@@ -819,6 +947,7 @@ export class AtlasGlobe {
       clock.shouldAnimate = false;
     }
     this.applyTime(prev);
+    this.scanWaveSources();
   }
 
   private applyTime(prev: number | null) {
@@ -860,6 +989,7 @@ export class AtlasGlobe {
 
   /** Demo Mode: replay a real historical sequence; live layers step aside while active. */
   setHistory(seq: { t: number[]; lat: number[]; lon: number[]; mag: number[] } | null) {
+    this.historySeq = seq;
     this.historyPoints.removeAll();
     this.historyTimes = [];
     this.historyMags = [];
@@ -945,6 +1075,16 @@ export class AtlasGlobe {
   setFireDetections(data: Columnar | null) {
     this.fireDetailData = data;
     this.fireDetail.removeAll();
+    const seeds: { lat: number; lon: number; frp: number }[] = [];
+    if (data) {
+      const c = data.columns as Record<string, (number | string)[]>;
+      for (let i = 0; i < data.count; i += 1) {
+        const la = c.lat?.[i] as number | undefined;
+        const lo = c.lon?.[i] as number | undefined;
+        if (la != null && lo != null) seeds.push({ lat: la, lon: lo, frp: Number(c.frp?.[i] ?? 0) });
+      }
+    }
+    this.effects.setEmberSeeds(seeds);
     if (data) {
       const { lat, lon, frp, conf } = data.columns as Record<string, (number | string)[]>;
       for (let i = 0; i < data.count; i += 1) {
@@ -1023,6 +1163,7 @@ export class AtlasGlobe {
   // -- cyclone tracks (all active storms) ----------------------------------------------
   setCycloneTracks(details: IncidentDetail[]) {
     this.tracks.removeAll();
+    this.trackReveal = [];
     if (this.trackFill) {
       this.widget.scene.primitives.remove(this.trackFill);
       this.trackFill = null;
@@ -1034,12 +1175,14 @@ export class AtlasGlobe {
       const forecast = track.filter((p) => p.kind === "forecast");
       const color = Color.fromCssColorString(hazardMeta("tropical_cyclone").color);
       if (observed.length > 1) {
-        this.tracks.add({
-          positions: observed.map((p) => Cartesian3.fromDegrees(p.lon, p.lat, 800)),
+        const positions = observed.map((p) => Cartesian3.fromDegrees(p.lon, p.lat, 800));
+        const line = this.tracks.add({
+          positions: positions.slice(0, 2),
           width: 2.4,
           material: Material.fromType("PolylineGlow", { color: color.withAlpha(0.9), glowPower: 0.18, taperPower: 1 }),
           arcType: ArcType.GEODESIC,
         });
+        this.trackReveal.push({ line, positions, born: performance.now() });
       }
       if (forecast.length) {
         const start = observed.length ? [observed[observed.length - 1]!] : [];
@@ -1053,17 +1196,27 @@ export class AtlasGlobe {
       for (const f of (d.geometry?.features as GeoJSON.Feature[] | undefined) ?? []) {
         if ((f.properties as { role?: string } | null)?.role !== "forecast_cone") continue;
         for (const h of polygonHierarchies(f.geometry)) {
+          // a translucent volume rising from the sea, with a glowing rim along its top
           cones.push(new GeometryInstance({
-            geometry: new PolygonGeometry({ polygonHierarchy: h, granularity: CMath.RADIANS_PER_DEGREE }),
-            attributes: { color: ColorGeometryInstanceAttribute.fromColor(color.withAlpha(0.13)) },
+            geometry: new PolygonGeometry({ polygonHierarchy: h, granularity: CMath.RADIANS_PER_DEGREE, height: 0, extrudedHeight: CONE_HEIGHT }),
+            attributes: { color: ColorGeometryInstanceAttribute.fromColor(color.withAlpha(0.11)) },
           }));
+          this.tracks.add({
+            positions: [...h.positions, h.positions[0]!].map((c) => {
+              const g = Cartographic.fromCartesian(c);
+              return Cartesian3.fromRadians(g.longitude, g.latitude, CONE_HEIGHT);
+            }),
+            width: 1.8,
+            material: Material.fromType("PolylineGlow", { color: color.withAlpha(0.55), glowPower: 0.25 }),
+            arcType: ArcType.GEODESIC,
+          });
         }
       }
     }
     if (cones.length) {
-      this.trackFill = new GroundPrimitive({
+      this.trackFill = new Primitive({
         geometryInstances: cones,
-        appearance: new PerInstanceColorAppearance({ flat: true, translucent: true }),
+        appearance: new PerInstanceColorAppearance({ flat: true, translucent: true, closed: true }),
         asynchronous: true,
         show: !this.historyActive,
       });
@@ -1181,7 +1334,23 @@ export class AtlasGlobe {
 
   // -- camera --------------------------------------------------------------------------
   fly(req: FlyRequest) {
+    this.stopOrbit();
     const duration = this.reducedMotion ? 0 : (req.duration ?? 2.2);
+    if (req.cinematic && !this.reducedMotion && !req.bbox) {
+      const center = Cartesian3.fromDegrees(req.lon, req.lat, 0);
+      const offset = new HeadingPitchRange(this.camera.heading, CMath.toRadians(-52), req.height * 1.05);
+      this.camera.flyToBoundingSphere(new BoundingSphere(center, 1), {
+        offset,
+        duration: Math.max(duration, 2.4),
+        easingFunction: EasingFunction.QUINTIC_IN_OUT,
+        maximumHeight: Math.max(req.height * 2.4, 6_000_000),
+        complete: () => {
+          this.orbit = { center, heading: offset.heading, pitch: offset.pitch, range: offset.range };
+          this.requestRender();
+        },
+      });
+      return;
+    }
     // Fraction of the screen hidden at the bottom (phone sheet): frame the target above it.
     const screenH = this.widget.canvas.clientHeight || window.innerHeight;
     const hidden = Math.min(0.7, Math.max(0, (req.insetBottom ?? 0) / screenH));
@@ -1251,6 +1420,7 @@ export class AtlasGlobe {
   }
 
   destroy() {
+    this.effects.destroy();
     this.destroyed = true;
     cancelAnimationFrame(this.raf);
     if (this.viewTimer) clearTimeout(this.viewTimer);

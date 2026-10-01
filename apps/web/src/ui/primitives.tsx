@@ -258,7 +258,8 @@ export function Sparkline({ values, width = 120, height = 28, color = "var(--acc
           <path d={`${d}L${width},${height}L0,${height}Z`} fill={`url(#${id})`} />
         </>
       ) : null}
-      <path d={d} fill="none" stroke={color} strokeWidth={1.4} strokeLinejoin="round" strokeLinecap="round" />
+      {/* draws itself in from the left (CSS; reduced motion turns the animation off) */}
+      <path className={s.sparkLine} pathLength={1} d={d} fill="none" stroke={color} strokeWidth={1.4} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
 }

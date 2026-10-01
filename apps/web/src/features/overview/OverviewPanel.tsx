@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { ArrowUpRight, Play } from "lucide-react";
 import { api, ENGINE_HINT, STATIC_MODE, type IncidentSummary, type Overview } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
-import { compact, decimal, int, relTime, utcFull } from "../../lib/format";
+import { decimal, int, relTime, utcFull } from "../../lib/format";
 import { hazardMeta, severityColor, SEVERITY_LABELS, sourceLabel } from "../../lib/hazards";
 import { startHistoricalReplay, useHistoricalCatalog } from "../../lib/history";
 import { useOverview } from "../../lib/queries";
@@ -73,9 +73,9 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
       <section className={s.section}>
         <Label>Signals · last 24 h</Label>
         <div className={s.signals}>
-          <Signal hazard="earthquake" value={data ? int(data.earthquakes_24h) : null} label="earthquakes M2.5+" sub={data?.earthquakes_24h_max_mag != null ? `max M${decimal(data.earthquakes_24h_max_mag)}` : undefined} />
-          <Signal hazard="wildfire" value={data ? compact(data.fire_detections_24h) : null} label="fire detections" sub={data ? `${int(data.fire_clusters)} clusters` : undefined} />
-          <Signal hazard="tropical_cyclone" value={data ? int(data.active_cyclones) : null} label="active cyclones" />
+          <Signal hazard="earthquake" value={data ? data.earthquakes_24h : null} label="earthquakes M2.5+" sub={data?.earthquakes_24h_max_mag != null ? `max M${decimal(data.earthquakes_24h_max_mag)}` : undefined} />
+          <Signal hazard="wildfire" value={data ? data.fire_detections_24h : null} compactValue label="fire detections" sub={data ? `${int(data.fire_clusters)} clusters` : undefined} />
+          <Signal hazard="tropical_cyclone" value={data ? data.active_cyclones : null} label="active cyclones" />
         </div>
       </section>
 
@@ -201,18 +201,18 @@ function HistoricalReplays() {
 function Stat({ label, value, compactValue }: { label: string; value: number | undefined; compactValue?: boolean }) {
   return (
     <div className={s.stat}>
-      <div className={s.statValue}>{value == null ? <Skeleton width={48} height={18} /> : compactValue ? compact(value) : <AnimatedNumber value={value} />}</div>
+      <div className={s.statValue}>{value == null ? <Skeleton width={48} height={18} /> : <AnimatedNumber value={value} compact={compactValue} />}</div>
       <div className={s.statLabel}>{label}</div>
     </div>
   );
 }
 
-function Signal({ hazard, value, label, sub }: { hazard: string; value: string | null; label: string; sub?: string }) {
+function Signal({ hazard, value, label, sub, compactValue }: { hazard: string; value: number | null; label: string; sub?: string; compactValue?: boolean }) {
   const meta = hazardMeta(hazard);
   return (
     <div className={s.signal} style={{ "--hz": meta.color } as React.CSSProperties}>
       <HazardGlyph hazard={hazard} size={15} />
-      <div className={s.signalValue}>{value ?? <Skeleton width={36} height={16} />}</div>
+      <div className={s.signalValue}>{value == null ? <Skeleton width={36} height={16} /> : <AnimatedNumber value={value} compact={compactValue} />}</div>
       <div className={s.signalLabel}>{label}</div>
       {sub ? <div className={s.signalSub}>{sub}</div> : null}
     </div>

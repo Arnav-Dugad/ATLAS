@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Pause, Play, Radio, Satellite, SkipBack } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, Radio, Satellite, SkipBack, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { OVERLAYS } from "../../globe/imagery";
 import { STATIC_MODE, type IncidentSummary } from "../../lib/api";
@@ -28,6 +28,10 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
   const [hover, setHover] = useState<number | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  const brushFrom = useRef<number | null>(null);
+  const [brush, setBrush] = useState<[number, number] | null>(null);
+  const timeRange = useUi((st) => st.timeRange);
+  const setTimeRange = useUi((st) => st.setTimeRange);
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -114,8 +118,15 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
     return start + f * span;
   };
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
-    dragging.current = true;
     (e.target as Element).setPointerCapture?.(e.pointerId);
+    if (e.shiftKey) {
+      // Shift+drag: brush a time range that filters the incident stream and the globe
+      const t = timeAt(e.clientX);
+      brushFrom.current = t;
+      setBrush(t != null ? [t, t] : null);
+      return;
+    }
+    dragging.current = true;
     const t = timeAt(e.clientX);
     if (t != null) {
       setPlaying(false);
@@ -129,13 +140,29 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
       const r = el.getBoundingClientRect();
       setHover(Math.min(BUCKETS - 1, Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * BUCKETS))));
     }
+    if (brushFrom.current != null) {
+      const t = timeAt(e.clientX);
+      if (t != null) setBrush([Math.min(brushFrom.current, t), Math.max(brushFrom.current, t)]);
+      return;
+    }
     if (!dragging.current) return;
     const t = timeAt(e.clientX);
     if (t != null) setPlayhead(!history && now - t < 60_000 ? null : t);
   };
   const onUp = () => {
     dragging.current = false;
+    if (brushFrom.current != null) {
+      brushFrom.current = null;
+      if (brush && brush[1] - brush[0] >= bucketMs / 2) setTimeRange(brush);
+      else setTimeRange(null);
+      setBrush(null);
+    }
   };
+  const shown = brush ?? timeRange;
+  const brushStyle =
+    shown && shown[1] > start && shown[0] < end
+      ? { left: `${((Math.max(shown[0], start) - start) / span) * 100}%`, width: `${((Math.min(shown[1], end) - Math.max(shown[0], start)) / span) * 100}%` }
+      : null;
 
   const togglePlay = () => {
     if (playing) setPlaying(false);
@@ -178,6 +205,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
             value={String(speed)}
             onChange={(v) => setSpeed(Number(v))}
             options={[
+              { value: String(1 / 60), label: "1m/s", title: "1 minute per second — watch seismic waves cross the globe" },
               { value: "1", label: "1h/s", title: "1 hour per second" },
               { value: "6", label: "6h/s", title: "6 hours per second" },
               { value: "24", label: "1d/s", title: "1 day per second" },
@@ -224,7 +252,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
             let y = 44;
             const future = playhead != null && start + i * bucketMs > playhead;
             return (
-              <g key={i} className={cx(s.col, hover === i && s.colOn)} opacity={future ? 0.25 : 1}>
+              <g key={i} className={cx(s.col, hover === i && s.colOn)} opacity={future ? 0.25 : 1} style={{ "--i": i } as React.CSSProperties}>
                 <rect x={i * 10} width={10} y={0} height={44} fill="transparent" />
                 {order.map((h) => {
                   const n = st[h] ?? 0;
@@ -237,6 +265,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
             );
           })}
         </svg>
+        {brushStyle ? <div className={cx(s.brush, brush && s.brushing)} style={brushStyle} aria-hidden /> : null}
         <div className={cx(s.playhead, playhead == null && s.playheadLive)} style={{ left: `${playX}%` }} aria-hidden>
           <span>{playhead == null ? "NOW" : utcShort(playhead)}</span>
         </div>
@@ -255,11 +284,16 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
             <div>
               <span className="num">{hoverTotal}</span> incident onset{hoverTotal === 1 ? "" : "s"} · <span className="num">{quakeCounts[hover]}</span> earthquakes
             </div>
-            <div className={s.tipHint}>Click or drag to replay this moment</div>
+            <div className={s.tipHint}>Click or drag to replay this moment · Shift+drag to filter</div>
           </div>
         ) : null}
       </div>
 
+      {timeRange ? (
+        <button type="button" className={s.rangeChip} onClick={() => setTimeRange(null)} title="Show all incidents again">
+          Began {utcShort(timeRange[0])} – {utcShort(timeRange[1])} <X size={11} aria-hidden />
+        </button>
+      ) : null}
       <ImageryDate active={OVERLAYS.some((o) => o.temporal && layers[o.id as LayerId])} />
     </section>
   );

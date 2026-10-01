@@ -159,6 +159,24 @@ export interface AirQualityUnavailable {
   action: string | null;
 }
 
+export interface AuroraData {
+  status: "ok";
+  observed_at: string | null;
+  forecast_for: string | null;
+  /** [longitude 0–359, latitude, probability %] for cells ≥ 3 % */
+  points: [number, number, number][];
+  max_probability: number;
+  attribution: string;
+}
+
+export interface SatellitesData {
+  status: "ok";
+  satellites: { name: string; line1: string; line2: string; norad: number; mission: string; swath_km: number }[];
+  fetched_at: string;
+  attribution: string;
+  missing: string[];
+}
+
 export interface SpaceWeather {
   status: "ok";
   source: "swpc";
@@ -703,6 +721,8 @@ export const api = {
   airQuality: (id: string, signal?: AbortSignal) =>
     request<AirQuality | AirQualityUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/air-quality`, { signal }),
   spaceWeather: (signal?: AbortSignal) => request<SpaceWeather>("/api/v1/context/space-weather", { signal }),
+  aurora: (signal?: AbortSignal) => request<AuroraData>("/api/v1/context/aurora", { signal }),
+  satellites: (signal?: AbortSignal) => request<SatellitesData>("/api/v1/context/satellites", { signal }),
   graph: (id: string, depth: 1 | 2, signal?: AbortSignal) =>
     request<IncidentGraph>(`/api/v1/incidents/${encodeURIComponent(id)}/graph${STATIC_MODE ? "" : qs({ depth })}`, { signal }),
   spectral: (id: string, index: SpectralIndex | null, signal?: AbortSignal) =>
