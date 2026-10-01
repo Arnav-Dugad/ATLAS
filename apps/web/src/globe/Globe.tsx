@@ -16,12 +16,15 @@ import { AtlasGlobe, DETAIL_HEIGHT, type HoverInfo, type ViewInfo } from "./Atla
 import { compareProduct } from "./imagery";
 import styles from "./Globe.module.css";
 import { globeRef } from "./ref";
+import type { TwinGlobe } from "./twin";
 
 
 const SAT_COLORS: Record<string, string> = { "Sentinel-2": "#7fd1ff", Landsat: "#c9a6ff" };
 
 export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const host = useRef<HTMLDivElement>(null);
+  const twinHost = useRef<HTMLDivElement>(null);
+  const twin = useRef<TwinGlobe | null>(null);
   const [globe, setGlobe] = useState<AtlasGlobe | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [view, setView] = useState<ViewInfo | null>(null);
@@ -189,14 +192,37 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const cmpBefore = compare?.before;
   const cmpAfter = compare?.after;
   const cmpPosition = compare?.position;
+  const cmpSide = compare?.layout === "side" && Boolean(cmpProduct);
   useEffect(() => {
     if (!globe) return;
     globe.setCompare(
       cmpProduct && cmpBefore && cmpAfter
-        ? { product: compareProduct(cmpProduct), before: cmpBefore, after: cmpAfter, position: cmpPosition ?? 0.5 }
+        ? { product: compareProduct(cmpProduct), before: cmpBefore, after: cmpAfter, position: cmpPosition ?? 0.5, side: cmpSide }
         : null,
     );
-  }, [globe, cmpProduct, cmpBefore, cmpAfter, cmpPosition]);
+  }, [globe, cmpProduct, cmpBefore, cmpAfter, cmpPosition, cmpSide]);
+
+  // Side-by-side comparison: a second, imagery-only globe on the left with a linked camera.
+  useEffect(() => {
+    if (!globe || !cmpSide || !twinHost.current) return;
+    let cancelled = false;
+    let instance: TwinGlobe | null = null;
+    void import("./twin").then(({ TwinGlobe }) => {
+      if (cancelled || !twinHost.current) return;
+      instance = new TwinGlobe(twinHost.current, globe);
+      twin.current = instance;
+      const c = useUi.getState().compare;
+      if (c) instance.setImagery(compareProduct(c.product), c.before);
+    });
+    return () => {
+      cancelled = true;
+      instance?.destroy();
+      twin.current = null;
+    };
+  }, [globe, cmpSide]);
+  useEffect(() => {
+    if (twin.current && cmpProduct && cmpBefore) twin.current.setImagery(compareProduct(cmpProduct), cmpBefore);
+  }, [cmpProduct, cmpBefore]);
   useEffect(() => {
     if (globe && fly) globe.fly(fly);
   }, [globe, fly]);
@@ -271,33 +297,36 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   }
 
   return (
-    <div className={styles.wrap}>
-      <div ref={host} className={styles.host} aria-label="Interactive 3D globe of active hazards" role="application" />
-      <div className={styles.vignette} aria-hidden />
-      {hover && globe && <HoverCard info={hover} globe={globe} incidents={incidents} />}
-      {createPortal(
-        <AnimatePresence>
-          {context ? (
-            <WhatsHere key={`${context.lat},${context.lon}`} lat={context.lat} lon={context.lon} x={context.x} y={context.y} onClose={() => setContext(null)} />
-          ) : null}
-        </AnimatePresence>,
-        document.body,
-      )}
-      {layers.minimap && view?.bbox && view.height < 8_000_000 && appView === "planet" ? (
-        <div className={styles.minimap} title="Where you are — click to fly there">
-          <MiniWorld
-            width={220}
-            height={110}
-            view={view.bbox}
-            label="Mini-map of the current view"
-            points={incidents
-              .filter((i) => i.lat != null && i.lon != null && i.severity.level >= 3)
-              .map((i) => ({ lat: i.lat!, lon: i.lon!, color: severityColor(i.severity.level), r: 1.6 + i.severity.level * 0.3 }))}
-            onPick={(lat, lon) => useUi.getState().flyTo({ lat, lon, height: view.height })}
-          />
-        </div>
-      ) : null}
-    </div>
+    <>
+      {cmpSide ? <div ref={twinHost} className={styles.twin} role="img" aria-label="Before: a second globe linked to the main one" /> : null}
+      <div className={cmpSide ? `${styles.wrap} ${styles.wrapSide}` : styles.wrap}>
+        <div ref={host} className={styles.host} aria-label="Interactive 3D globe of active hazards" role="application" />
+        <div className={styles.vignette} aria-hidden />
+        {hover && globe && <HoverCard info={hover} globe={globe} incidents={incidents} />}
+        {createPortal(
+          <AnimatePresence>
+            {context ? (
+              <WhatsHere key={`${context.lat},${context.lon}`} lat={context.lat} lon={context.lon} x={context.x} y={context.y} onClose={() => setContext(null)} />
+            ) : null}
+          </AnimatePresence>,
+          document.body,
+        )}
+        {layers.minimap && view?.bbox && view.height < 8_000_000 && appView === "planet" && !cmpSide ? (
+          <div className={styles.minimap} title="Where you are — click to fly there">
+            <MiniWorld
+              width={220}
+              height={110}
+              view={view.bbox}
+              label="Mini-map of the current view"
+              points={incidents
+                .filter((i) => i.lat != null && i.lon != null && i.severity.level >= 3)
+                .map((i) => ({ lat: i.lat!, lon: i.lon!, color: severityColor(i.severity.level), r: 1.6 + i.severity.level * 0.3 }))}
+              onPick={(lat, lon) => useUi.getState().flyTo({ lat, lon, height: view.height })}
+            />
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 }
 

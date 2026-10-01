@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import { COMPARE_PRODUCTS, compareProduct } from "../../globe/imagery";
 import { globeRef } from "../../globe/ref";
 import { useUi } from "../../lib/store";
-import { cx } from "../../ui/primitives";
+import { cx, Segmented } from "../../ui/primitives";
 import s from "./CompareTool.module.css";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -40,6 +40,7 @@ export function CompareTool() {
 
   if (!compare) return null;
   const product = compareProduct(compare.product);
+  const side = compare.layout === "side";
 
   const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     dragging.current = true;
@@ -63,33 +64,46 @@ export function CompareTool() {
 
   return (
     <>
-      <div className={s.stage}>
-        <div className={s.line} style={{ left: `${pos * 100}%` }}>
-          <span className={cx(s.tag, s.tagLeft)}>
-            <span className={s.tagKind}>Before</span> {dayLabel(compare.before)}
-          </span>
-          <span className={cx(s.tag, s.tagRight)}>
-            <span className={s.tagKind}>After</span> {dayLabel(compare.after)}
-          </span>
-          <div
-            className={s.handle}
-            role="slider"
-            tabIndex={0}
-            aria-label="Comparison divider"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(pos * 100)}
-            aria-valuetext={`${Math.round(pos * 100)}% before, ${100 - Math.round(pos * 100)}% after`}
-            onPointerDown={onDown}
-            onPointerMove={onMove}
-            onPointerUp={onUp}
-            onPointerCancel={() => (dragging.current = false)}
-            onKeyDown={onKey}
-          >
-            <ArrowLeftRight size={14} />
+      {side ? (
+        <div className={s.stage}>
+          <div className={cx(s.line, s.lineFixed)} style={{ left: "50%" }}>
+            <span className={cx(s.tag, s.tagLeft)}>
+              <span className={s.tagKind}>Before</span> {dayLabel(compare.before)}
+            </span>
+            <span className={cx(s.tag, s.tagRight)}>
+              <span className={s.tagKind}>After</span> {dayLabel(compare.after)}
+            </span>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className={s.stage}>
+          <div className={s.line} style={{ left: `${pos * 100}%` }}>
+            <span className={cx(s.tag, s.tagLeft)}>
+              <span className={s.tagKind}>Before</span> {dayLabel(compare.before)}
+            </span>
+            <span className={cx(s.tag, s.tagRight)}>
+              <span className={s.tagKind}>After</span> {dayLabel(compare.after)}
+            </span>
+            <div
+              className={s.handle}
+              role="slider"
+              tabIndex={0}
+              aria-label="Comparison divider"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(pos * 100)}
+              aria-valuetext={`${Math.round(pos * 100)}% before, ${100 - Math.round(pos * 100)}% after`}
+              onPointerDown={onDown}
+              onPointerMove={onMove}
+              onPointerUp={onUp}
+              onPointerCancel={() => (dragging.current = false)}
+              onKeyDown={onKey}
+            >
+              <ArrowLeftRight size={14} />
+            </div>
+          </div>
+        </div>
+      )}
 
       <motion.section
         className={s.card}
@@ -105,6 +119,16 @@ export function CompareTool() {
             <X size={14} />
           </button>
         </header>
+        <Segmented<"swipe" | "side">
+          size="sm"
+          label="Comparison layout"
+          value={side ? "side" : "swipe"}
+          onChange={(v) => patch({ layout: v })}
+          options={[
+            { value: "swipe", label: "Swipe", title: "Drag a divider across one globe" },
+            { value: "side", label: "Side by side", title: "Two linked globes: move either and both follow" },
+          ]}
+        />
         <div className={s.products} role="radiogroup" aria-label="Satellite product">
           {COMPARE_PRODUCTS.map((p) => (
             <button

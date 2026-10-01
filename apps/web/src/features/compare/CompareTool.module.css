@@ -15,6 +15,12 @@
   box-shadow: 0 0 18px rgba(156, 201, 255, 0.55);
 }
 
+.lineFixed {
+  width: 1px;
+  margin-left: 0;
+  pointer-events: none;
+}
+
 .handle {
   position: absolute;
   top: 50%;

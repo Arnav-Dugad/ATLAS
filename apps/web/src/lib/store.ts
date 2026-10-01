@@ -117,6 +117,8 @@ export interface CompareState {
   position: number;
   /** what the comparison is about, e.g. an incident title */
   subject: string | null;
+  /** a divider dragged across one globe, or two linked globes side by side */
+  layout?: "swipe" | "side";
 }
 
 interface UiState {

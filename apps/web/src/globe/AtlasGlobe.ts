@@ -544,17 +544,20 @@ export class AtlasGlobe {
 
   // -- before/after comparison --------------------------------------------------------
   /** One product on two dates, split by a vertical divider (left = before, right = after). */
-  setCompare(c: { product: CompareProduct; before: string; after: string; position: number } | null) {
-    const tag = c ? `${c.product.id}|${c.before}|${c.after}` : "";
+  setCompare(c: { product: CompareProduct; before: string; after: string; position: number; side?: boolean } | null) {
+    const tag = c ? `${c.product.id}|${c.before}|${c.after}|${c.side ? "side" : "swipe"}` : "";
     if (tag !== this.compareTag) {
       for (const l of this.compareLayers) this.widget.imageryLayers.remove(l, true);
       this.compareLayers = [];
       this.compareTag = tag;
       if (c) {
-        const sides: [string, SplitDirection][] = [
-          [c.before, SplitDirection.LEFT],
-          [c.after, SplitDirection.RIGHT],
-        ];
+        // Side by side: this globe shows only "after"; the twin globe shows "before".
+        const sides: [string, SplitDirection][] = c.side
+          ? [[c.after, SplitDirection.NONE]]
+          : [
+              [c.before, SplitDirection.LEFT],
+              [c.after, SplitDirection.RIGHT],
+            ];
         for (const [date, dir] of sides) {
           const provider = new UrlTemplateImageryProvider({ url: compareUrl(c.product, date), maximumLevel: c.product.level, enablePickFeatures: false });
           const layer = new ImageryLayer(provider);
@@ -565,7 +568,7 @@ export class AtlasGlobe {
       }
       this.applyLighting();
     }
-    if (c) this.setSplitPosition(c.position);
+    if (c) this.setSplitPosition(c.side ? 0.5 : c.position);
     this.requestRender();
   }
 
