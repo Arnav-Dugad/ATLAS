@@ -532,6 +532,21 @@ async def polygon_exposure(request: Request, body: PolygonBody) -> dict[str, Any
         raise HTTPException(400, str(exc)) from None
 
 
+class ProfileBody(BaseModel):
+    coordinates: list[tuple[float, float]] = Field(min_length=2, max_length=200)
+
+
+@router.post("/context/profile")
+async def elevation_profile(body: ProfileBody) -> dict[str, Any]:
+    """Elevation along a (lon, lat) path from Copernicus DEM GLO-30, 64 samples (measure tool)."""
+    from atlas.engine import point
+
+    for lon, lat in body.coordinates:
+        if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+            raise HTTPException(400, "coordinates must be [lon, lat] in degrees")
+    return await point.profile([(float(a), float(b)) for a, b in body.coordinates])
+
+
 @router.get("/context/point")
 async def point_context(
     request: Request,

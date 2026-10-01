@@ -94,3 +94,16 @@ def test_zone_exposure_reports_each_published_zone(tmp_path):
     assert out["zones"][0]["residents"] == 100 * 100
     assert out["zones"][1]["residents"] == 20 * 20
     assert zone_exposure(None, None, {"features": []})["status"] == "unavailable"
+
+
+def test_profile_points_are_evenly_spaced_along_the_path():
+    import itertools
+
+    from atlas.engine.point import profile_points
+
+    pts = profile_points([(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)], 5)
+    assert len(pts) == 5
+    assert pts[0][:2] == (0.0, 0.0)
+    assert abs(pts[-1][0] - 1.0) < 1e-6 and abs(pts[-1][1] - 1.0) < 1e-6
+    d = [p[2] for p in pts]
+    assert all(abs((b - a) - (d[1] - d[0])) < 1e-6 for a, b in itertools.pairwise(d))

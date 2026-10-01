@@ -258,6 +258,16 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface ElevationProfileData {
+  status: "ok";
+  points: { distance_km: number; lat: number; lon: number; elevation_m: number | null; status: "ok" | "water" | "unavailable" }[];
+  min_m: number | null;
+  max_m: number | null;
+  gain_m: number;
+  attribution: string;
+  note: string;
+}
+
 export interface CountryContextData {
   status: "ok";
   iso3: string;
@@ -1079,6 +1089,13 @@ export const api = {
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
   zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
+  elevationProfile: (points: { lat: number; lon: number }[], signal?: AbortSignal) =>
+    request<ElevationProfileData>("/api/v1/context/profile", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ coordinates: points.map((p) => [p.lon, p.lat]) }),
+      signal,
+    }),
   countryContext: (iso3: string, signal?: AbortSignal) =>
     request<CountryContextData | (Unavailable & { action?: string })>(`/api/v1/context/country/${encodeURIComponent(iso3)}`, { signal }),
   cems: (id: string, signal?: AbortSignal) => request<{ status: "ok"; items: CemsActivation[] } | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/cems`, { signal }),

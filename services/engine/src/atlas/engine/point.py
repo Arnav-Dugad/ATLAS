@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import asyncio
+import itertools
 import json
 import logging
 import math
@@ -81,6 +82,70 @@ async def elevation(lat: float, lon: float) -> dict[str, Any]:
         "unavailable": "Elevation could not be read right now",
     }[status]
     return {"value_m": value, "status": status, "note": note, "provenance": "real" if status == "ok" else "unavailable"}
+
+
+def _interp(lat1: float, lon1: float, lat2: float, lon2: float, f: float) -> tuple[float, float]:
+    """Point a fraction f along the great circle between two positions."""
+    p1, l1, p2, l2 = map(math.radians, (lat1, lon1, lat2, lon2))
+    d = 2 * math.asin(math.sqrt(math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin((l2 - l1) / 2) ** 2))
+    if d == 0:
+        return lat1, lon1
+    a = math.sin((1 - f) * d) / math.sin(d)
+    b = math.sin(f * d) / math.sin(d)
+    x = a * math.cos(p1) * math.cos(l1) + b * math.cos(p2) * math.cos(l2)
+    y = a * math.cos(p1) * math.sin(l1) + b * math.cos(p2) * math.sin(l2)
+    z = a * math.sin(p1) + b * math.sin(p2)
+    return math.degrees(math.atan2(z, math.hypot(x, y))), math.degrees(math.atan2(y, x))
+
+
+def profile_points(coords: list[tuple[float, float]], samples: int) -> list[tuple[float, float, float]]:
+    """(lat, lon, distance km) evenly spaced along a (lon, lat) path."""
+    legs = []
+    for (lo1, la1), (lo2, la2) in itertools.pairwise(coords):
+        p1, p2 = math.radians(la1), math.radians(la2)
+        h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lo2 - lo1) / 2) ** 2
+        legs.append(2 * 6371.0088 * math.asin(min(1.0, math.sqrt(h))))
+    total = sum(legs)
+    out = []
+    for i in range(samples):
+        target = total * i / max(1, samples - 1)
+        run = 0.0
+        for k, leg in enumerate(legs):
+            if run + leg >= target or k == len(legs) - 1:
+                f = 0.0 if leg == 0 else min(1.0, (target - run) / leg)
+                (lo1, la1), (lo2, la2) = coords[k], coords[k + 1]
+                la, lo = _interp(la1, lo1, la2, lo2, f)
+                out.append((la, lo, target))
+                break
+            run += leg
+    return out
+
+
+async def profile(coords: list[tuple[float, float]], samples: int = 64) -> dict[str, Any]:
+    pts = profile_points(coords, samples)
+    sem = asyncio.Semaphore(8)
+
+    async def one(la: float, lo: float) -> tuple[float | None, str]:
+        async with sem:
+            return await asyncio.to_thread(_elevation, round(la, 4), round(lo, 4))
+
+    got = await asyncio.gather(*(one(la, lo) for la, lo, _d in pts))
+    rows = [
+        {"distance_km": round(d, 3), "lat": round(la, 5), "lon": round(lo, 5), "elevation_m": v, "status": st}
+        for (la, lo, d), (v, st) in zip(pts, got, strict=True)
+    ]
+    vals: list[float] = [v for v, _st in got if v is not None]
+    gain = sum(max(0.0, b - a) for a, b in itertools.pairwise(vals))
+    return {
+        "status": "ok",
+        "provenance": "real",
+        "points": rows,
+        "min_m": min(vals) if vals else None,
+        "max_m": max(vals) if vals else None,
+        "gain_m": round(gain, 1),
+        "attribution": DEM_ATTRIBUTION,
+        "note": "Copernicus DEM GLO-30 is a surface model (buildings and trees included); open water has no value.",
+    }
 
 
 class TimeZones:

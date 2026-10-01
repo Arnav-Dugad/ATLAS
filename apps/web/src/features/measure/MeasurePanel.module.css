@@ -174,3 +174,43 @@
   color: var(--warn);
   font-size: var(--fs-xs);
 }
+
+.profile {
+  display: grid;
+  gap: 6px;
+}
+
+.profile svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.profileArea {
+  fill: rgba(255, 209, 102, 0.16);
+}
+
+.profileLine {
+  fill: none;
+  stroke: #ffd166;
+  stroke-width: 1.6;
+}
+
+.profileWater {
+  stroke: #7fd1ff;
+  stroke-width: 2;
+}
+
+.profileStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.profileStats strong {
+  color: var(--text-1);
+  font-weight: 500;
+}

@@ -1,13 +1,14 @@
 /** Measuring tool (M): distance along a path or a drawn area, with who and what is inside it. */
 import { useMutation } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Check, ClipboardCopy, Pencil, Ruler, Trash2, Undo2, Users, X } from "lucide-react";
+import { Check, ClipboardCopy, Mountain, Pencil, Ruler, Trash2, Undo2, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api, explainError, STATIC_MODE, type PolygonExposure } from "../../lib/api";
+import { api, explainError, STATIC_MODE, type ElevationProfileData, type PolygonExposure } from "../../lib/api";
 import { convert, dist, int } from "../../lib/format";
 import { areaKm2, bearingDeg, MAX_POINTS, pathKm, toGeoJSON, useMeasure, type LatLon } from "../../lib/measure";
 import { useUnits } from "../../lib/settings";
 import { ProvenanceBadge, Segmented } from "../../ui/primitives";
+import { ElevationProfile } from "./ElevationProfile";
 import s from "./MeasurePanel.module.css";
 
 function areaText(km2: number): string {
@@ -22,9 +23,14 @@ export function MeasurePanel() {
   const drawing = useMeasure((st) => st.drawing);
   const [copied, setCopied] = useState(false);
   const inside = useMutation<PolygonExposure, Error, LatLon[]>({ mutationFn: (pts) => api.polygonExposure(pts) });
+  const profile = useMutation<ElevationProfileData, Error, LatLon[]>({ mutationFn: (pts) => api.elevationProfile(pts) });
   const reset = inside.reset;
+  const resetProfile = profile.reset;
   const shapeKey = `${mode}:${points.map((p) => `${p.lat.toFixed(4)},${p.lon.toFixed(4)}`).join(";")}`;
-  useEffect(() => reset(), [shapeKey, reset]);
+  useEffect(() => {
+    reset();
+    resetProfile();
+  }, [shapeKey, reset, resetProfile]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -147,6 +153,19 @@ export function MeasurePanel() {
           {copied ? <Check size={13} /> : <ClipboardCopy size={13} />} GeoJSON
         </button>
       </div>
+
+      {!closed && points.length >= 2 && !STATIC_MODE ? (
+        <div className={s.inside}>
+          {profile.data ? (
+            <ElevationProfile p={profile.data} />
+          ) : (
+            <button type="button" className={s.primary} onClick={() => profile.mutate(points)} disabled={profile.isPending}>
+              <Mountain size={14} /> {profile.isPending ? "Reading elevation…" : "Elevation profile (Copernicus DEM)"}
+            </button>
+          )}
+          {profile.error ? <p className={s.error}>{explainError(profile.error)}</p> : null}
+        </div>
+      ) : null}
 
       {closed && points.length >= 3 ? (
         <div className={s.inside}>
