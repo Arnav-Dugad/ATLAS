@@ -130,6 +130,32 @@ jobs:
           git commit -q -m "Public snapshot $(date -u +%Y-%m-%dT%H:%MZ) from ${GITHUB_SHA::7}"
           git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" site
 
+  cloudflare:
+    # Optional mirror on Cloudflare Pages (free plan, global CDN). Runs only when the repository
+    # has the secrets CLOUDFLARE_API_TOKEN (permission: Account → Cloudflare Pages → Edit) and
+    # CLOUDFLARE_ACCOUNT_ID; the project name comes from the CLOUDFLARE_PAGES_PROJECT variable.
+    name: Deploy to Cloudflare Pages (optional)
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'atlas-planetary' }}
+    steps:
+      - name: Skip unless Cloudflare is configured
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        run: echo "Cloudflare secrets not set; skipping (see docs/DEPLOYMENT.md)."
+      - uses: actions/download-artifact@v5
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        with:
+          name: site
+          path: site
+      - name: Deploy with Wrangler
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          npx --yes wrangler@4 pages project create "$PROJECT" --production-branch=main 2>/dev/null || true
+          npx --yes wrangler@4 pages deploy site --project-name="$PROJECT" --branch=main --commit-dirty=true
+
   deploy:
     name: Deploy to GitHub Pages
     needs: build
