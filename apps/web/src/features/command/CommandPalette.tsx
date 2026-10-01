@@ -11,6 +11,7 @@ import {
   Database,
   Download,
   Eye,
+  FileText,
   Film,
   FlaskConical,
   Globe2,
@@ -32,6 +33,7 @@ import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary, type SearchRespons
 import { compareIncident, compareView } from "../../lib/compare";
 import { ACCENTS, type Accent, openSettings, PRESET_WIDTHS, useSettings } from "../../lib/settings";
 import { useMeasure } from "../../lib/measure";
+import { useSitrep } from "../../lib/sitrepStore";
 import { openSimulation } from "../../lib/simulate";
 import { useWatch } from "../../lib/watch";
 import { exportBrief } from "../../lib/export";
@@ -212,6 +214,14 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
           useWatch.getState().setPanelOpen(true);
           ui.setGroundPick("watch");
         }),
+      },
+      {
+        id: "sitrep",
+        section: "View",
+        label: "Situation report (planet or current view, cited)",
+        icon: <FileText size={15} />,
+        keywords: "sitrep brief summary report export print pdf markdown",
+        run: done(() => useSitrep.getState().setOpen(true)),
       },
       {
         id: "measure-distance",

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { ArrowUpRight, Play } from "lucide-react";
+import { ArrowUpRight, FileText, Play } from "lucide-react";
 import { api, ENGINE_HINT, STATIC_MODE, type IncidentSummary, type Overview } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
 import { decimal, int, relTime, utcFull } from "../../lib/format";
@@ -11,6 +11,7 @@ import { useUi } from "../../lib/store";
 import { AnimatedNumber } from "../../ui/AnimatedNumber";
 import { Dot, ErrorState, HazardGlyph, Label, SeverityMeter, Skeleton, AsOf } from "../../ui/primitives";
 import { compoundGroups } from "../../lib/compound";
+import { useSitrep } from "../../lib/sitrepStore";
 import { SinceLastVisit } from "./SinceLastVisit";
 import s from "./OverviewPanel.module.css";
 
@@ -48,6 +49,9 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
       <header className={s.head}>
         <div className="label">Planetary state</div>
         <div className={s.stamp}>{data ? utcFull(data.generated_at) : "—"}</div>
+        <button type="button" className={s.reportBtn} onClick={() => useSitrep.getState().setOpen(true)} title="Situation report: every sentence cited">
+          <FileText size={12} /> Report
+        </button>
       </header>
 
       <SinceLastVisit incidents={incidents} />

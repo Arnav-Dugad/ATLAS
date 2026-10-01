@@ -1619,6 +1619,13 @@ export class AtlasGlobe {
     return p ? { x: p.x, y: p.y } : null;
   }
 
+  /** The visible area as [west, south, east, north] degrees, or null when the whole globe shows. */
+  viewBbox(): [number, number, number, number] | null {
+    if (this.camera.positionCartographic.height > 9_000_000) return null;
+    const rect = this.camera.computeViewRectangle();
+    return rect ? [CMath.toDegrees(rect.west), CMath.toDegrees(rect.south), CMath.toDegrees(rect.east), CMath.toDegrees(rect.north)] : null;
+  }
+
   private emitView() {
     if (this.viewTimer) clearTimeout(this.viewTimer);
     this.viewTimer = setTimeout(() => {

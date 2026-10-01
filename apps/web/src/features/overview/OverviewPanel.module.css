@@ -409,3 +409,22 @@
 .dimText {
   color: var(--text-3);
 }
+
+.reportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-2);
+  background: rgba(150, 168, 194, 0.08);
+}
+
+.reportBtn:hover {
+  color: var(--text-1);
+  background: rgba(150, 168, 194, 0.16);
+}

@@ -11,6 +11,7 @@ import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
 import { toggleMeasure, useMeasure } from "../lib/measure";
+import { useSitrep } from "../lib/sitrepStore";
 import { useNotices } from "../lib/notifications";
 import { useNativeIntents } from "../lib/useNativeIntents";
 import { useWatchAlerts } from "../lib/useWatchAlerts";
@@ -45,6 +46,7 @@ const HealthView = lazy(() => import("../features/sources/HealthView").then((m) 
 const GalleryView = lazy(() => import("../features/gallery/GalleryView").then((m) => ({ default: m.GalleryView })));
 const BoardView = lazy(() => import("../features/board/BoardView").then((m) => ({ default: m.BoardView })));
 const ShortcutsSheet = lazy(() => import("../features/help/ShortcutsSheet").then((m) => ({ default: m.ShortcutsSheet })));
+const SitrepModal = lazy(() => import("../features/sitrep/SitrepModal").then((m) => ({ default: m.SitrepModal })));
 const MeasurePanel = lazy(() => import("../features/measure/MeasurePanel").then((m) => ({ default: m.MeasurePanel })));
 const SettingsModal = lazy(() => import("../features/settings/SettingsModal").then((m) => ({ default: m.SettingsModal })));
 
@@ -69,6 +71,7 @@ export function Shell() {
   const comparing = useUi((st) => st.compare !== null);
   const simulating = useUi((st) => st.simulation !== null || st.groundPick === "simulation");
   const measuring = useMeasure((st) => st.active);
+  const sitrepOpen = useSitrep((st) => st.open);
   const storyOn = useUi((st) => st.story !== null);
   const pinnedAny = useUi((st) => st.pinned.length > 0);
   const watchOpen = useWatch((st) => st.panelOpen);
@@ -298,6 +301,7 @@ export function Shell() {
         {pinnedAny ? <IncidentComparison /> : null}
         <AnimatePresence>{settingsOpen ? <SettingsModal key="settings" /> : null}</AnimatePresence>
         <AnimatePresence>{shortcutsOpen ? <ShortcutsSheet key="shortcuts" /> : null}</AnimatePresence>
+        <AnimatePresence>{sitrepOpen ? <SitrepModal key="sitrep" incidents={feed.data?.items ?? []} /> : null}</AnimatePresence>
       </Suspense>
       <PlaybackBanner />
       <MapControls />
