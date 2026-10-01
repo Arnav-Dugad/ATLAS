@@ -16,7 +16,7 @@ const GROUPS: { title: string; items: [string[], string][] }[] = [
       [["/"], "Search"],
       [["J"], "Next incident in the stream"],
       [["K"], "Previous incident in the stream"],
-      [["Alt", "1–4"], "Planet · Board · Sources · Health"],
+      [["Alt", "1–5"], "Planet · Board · Gallery · Sources · Health"],
       [["Esc"], "Back / close"],
     ],
   },

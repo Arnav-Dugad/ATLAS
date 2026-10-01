@@ -200,6 +200,8 @@ class Runtime:
                 delay += 1.5  # stagger first runs: be a good citizen on startup
         self.scheduler.add("system.sweep", "system", timedelta(minutes=10), self._sweep, start_delay=90)
         self.scheduler.add("system.checkpoint", "system", timedelta(hours=1), self._checkpoint, run_on_start=False)
+        if self.settings.auto_burn_scars and not self.settings.offline:
+            self.scheduler.add("system.burn-scars", "system", timedelta(hours=6), self._burn_scars, start_delay=600)
         self.scheduler.start()
 
     async def stop(self) -> None:
@@ -269,6 +271,11 @@ class Runtime:
 
     async def _sweep(self) -> None:
         await asyncio.to_thread(self.pipeline.sweep)
+
+    async def _burn_scars(self) -> None:
+        from atlas.engine import gallery
+
+        await gallery.refresh(self.spectral, self.db)
 
     async def _checkpoint(self) -> None:
         await asyncio.to_thread(self.db.checkpoint)

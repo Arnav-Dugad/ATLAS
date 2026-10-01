@@ -42,6 +42,7 @@ const CompareTray = lazy(() => import("../features/comparison/IncidentComparison
 const IncidentComparison = lazy(() => import("../features/comparison/IncidentComparison").then((m) => ({ default: m.IncidentComparison })));
 const WatchPanel = lazy(() => import("../features/watch/WatchPanel").then((m) => ({ default: m.WatchPanel })));
 const HealthView = lazy(() => import("../features/sources/HealthView").then((m) => ({ default: m.HealthView })));
+const GalleryView = lazy(() => import("../features/gallery/GalleryView").then((m) => ({ default: m.GalleryView })));
 const BoardView = lazy(() => import("../features/board/BoardView").then((m) => ({ default: m.BoardView })));
 const ShortcutsSheet = lazy(() => import("../features/help/ShortcutsSheet").then((m) => ({ default: m.ShortcutsSheet })));
 const MeasurePanel = lazy(() => import("../features/measure/MeasurePanel").then((m) => ({ default: m.MeasurePanel })));
@@ -143,9 +144,9 @@ export function Shell() {
         else ui.openPalette();
         return;
       }
-      if (e.altKey && ["1", "2", "3", "4"].includes(e.key)) {
+      if (e.altKey && ["1", "2", "3", "4", "5"].includes(e.key)) {
         e.preventDefault();
-        ui.setView((["planet", "board", "sources", "health"] as const)[Number(e.key) - 1]!);
+        ui.setView((["planet", "board", "gallery", "sources", "health"] as const)[Number(e.key) - 1]!);
         return;
       }
       if (typing || ui.paletteOpen) return;
@@ -313,6 +314,11 @@ export function Shell() {
         {view === "board" ? (
           <Suspense key="board" fallback={null}>
             <BoardView />
+          </Suspense>
+        ) : null}
+        {view === "gallery" ? (
+          <Suspense key="gallery" fallback={null}>
+            <GalleryView />
           </Suspense>
         ) : null}
         {view === "sources" ? (

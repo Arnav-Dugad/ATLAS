@@ -67,6 +67,8 @@ class Settings(BaseSettings):
 
     # Disable network entirely (offline mode): connectors serve cached data only.
     offline: bool = False
+    # Compute Sentinel-2 burn-scar maps for the largest active wildfires every 6 h (a few per run).
+    auto_burn_scars: bool = True
 
     # Set by the desktop app's entry point: enables Settings (API keys, data packs) in the API.
     desktop: bool = False

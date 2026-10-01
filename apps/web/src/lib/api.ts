@@ -258,6 +258,21 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface BurnScar {
+  incident_id: string;
+  title: string;
+  status: string;
+  severity: number;
+  headline: { key: string; label: string; value: number; unit: string } | null;
+  before: string | null;
+  after: string | null;
+  valid_fraction: number | null;
+  bbox: [number, number, number, number] | null;
+  images: Record<"before.jpg" | "after.jpg" | "change.png", string> | null;
+  classes: SpectralClass[] | null;
+  computed_at: string | null;
+}
+
 export interface PolygonExposure {
   status: "ok";
   area_km2: number;
@@ -607,6 +622,7 @@ const LOCAL_ONLY: RegExp[] = [
   /\/usgs$/,
   /\/seismic-context$/,
   /\/fire-growth$/,
+  /\/gallery\/burn-scars$/,
   /\/exposure\/zones$/,
 ];
 
@@ -865,6 +881,7 @@ export const api = {
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
   zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
+  burnScars: (signal?: AbortSignal) => request<{ items: BurnScar[]; automatic: boolean }>("/api/v1/gallery/burn-scars", { signal }),
   polygonExposure: (points: { lat: number; lon: number }[], signal?: AbortSignal) =>
     request<PolygonExposure>("/api/v1/exposure/polygon", {
       method: "POST",

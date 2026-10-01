@@ -1,0 +1,141 @@
+.inner {
+  max-width: 1400px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 14px;
+  text-align: left;
+  background: rgba(150, 168, 194, 0.05);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+  transition:
+    transform var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-1) var(--ease-out);
+}
+
+.card:hover,
+.card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px var(--line-2),
+    0 14px 34px rgba(0, 0, 0, 0.35);
+}
+
+.media {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: #0a0f16;
+  overflow: hidden;
+}
+
+.media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 600ms var(--ease-out);
+}
+
+.overlay {
+  mix-blend-mode: normal;
+  opacity: 0.9;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+
+.card:hover .media img {
+  transform: scale(1.04);
+}
+
+.card:hover .overlay {
+  opacity: 0.25;
+}
+
+.badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(4, 6, 10, 0.72);
+  color: #e8ecf2;
+  font-size: var(--fs-2xs);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity var(--dur-1) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.card:hover .badge,
+.card:focus-visible .badge {
+  opacity: 1;
+  transform: none;
+}
+
+.body {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px 12px;
+}
+
+.title {
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 1.3;
+}
+
+.value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ff9d4d;
+  font-variant-numeric: tabular-nums;
+}
+
+.dim {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.severity {
+  display: flex;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(150, 168, 194, 0.08);
+}
+
+.severity > span {
+  min-width: 2px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .media img {
+    transition: none;
+  }
+}

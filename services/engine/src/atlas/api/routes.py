@@ -257,6 +257,16 @@ async def incident_zone_exposure(request: Request, incident_id: str) -> dict[str
     return await asyncio.to_thread(exposure.zone_exposure, r.population, r.geocoder, detail.geometry)
 
 
+@router.get("/gallery/burn-scars")
+async def burn_scar_gallery(request: Request) -> dict[str, Any]:
+    """Every Sentinel-2 burn-scar map on disk (computed on request or automatically), largest first."""
+    from atlas.engine import gallery
+
+    r = rt(request)
+    items = await asyncio.to_thread(gallery.listing, r.spectral, r.db)
+    return {"items": items, "automatic": r.settings.auto_burn_scars and not r.settings.offline, "provenance": "derived"}
+
+
 @router.get("/incidents/{incident_id}/fire-growth")
 async def incident_fire_growth(request: Request, incident_id: str) -> dict[str, Any]:
     """How fast a fire's detected footprint grew over the last 48 h and which way it spread (derived)."""

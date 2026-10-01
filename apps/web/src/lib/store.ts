@@ -5,7 +5,7 @@ import type { HistoricalEvent } from "./history";
 import type { HazardId } from "./hazards";
 
 export type TimeWindow = "1h" | "24h" | "7d" | "30d";
-export type View = "planet" | "board" | "sources" | "health";
+export type View = "planet" | "board" | "gallery" | "sources" | "health";
 export type StatusFilter = "active" | "open" | "all";
 
 export const WINDOW_HOURS: Record<TimeWindow, number> = { "1h": 1, "24h": 24, "7d": 24 * 7, "30d": 24 * 30 };

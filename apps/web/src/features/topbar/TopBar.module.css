@@ -4,7 +4,8 @@
   height: var(--topbar-h);
   z-index: var(--z-chrome);
   display: grid;
-  grid-template-columns: 1fr minmax(320px, 560px) 1fr;
+  /* Side columns size to their content and the search takes what is left (centred when it can be). */
+  grid-template-columns: minmax(max-content, 1fr) minmax(240px, 560px) minmax(max-content, 1fr);
   align-items: center;
   gap: var(--s-4);
   padding: 0 var(--s-4);
@@ -178,6 +179,16 @@
 :global([data-app="windows"]) .clock {
   flex: none;
   white-space: nowrap;
+}
+
+/* Five views: below this width the view names give way to their icons (names stay as tooltips). */
+@media (max-width: 1560px) {
+  .navLabel {
+    display: none;
+  }
+  .navBtn {
+    padding: 6px 8px;
+  }
 }
 
 @media (max-width: 1280px) {

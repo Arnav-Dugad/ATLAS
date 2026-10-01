@@ -1,4 +1,4 @@
-import { Activity, Command, Database, Eye, Globe2, LayoutGrid, Layers, Search, Settings, Sparkles } from "lucide-react";
+import { Activity, Command, Database, Eye, Flame, Globe2, LayoutGrid, Layers, Search, Settings, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { fetchSnapshotInfo, STATIC_MODE, WINDOWS_APP } from "../../lib/api";
@@ -24,8 +24,9 @@ function useUtcClock() {
 const VIEWS: { id: View; label: string; icon: typeof Globe2; key: string }[] = [
   { id: "planet", label: "Planet", icon: Globe2, key: "1" },
   { id: "board", label: "Board", icon: LayoutGrid, key: "2" },
-  { id: "sources", label: "Sources", icon: Database, key: "3" },
-  { id: "health", label: "Health", icon: Activity, key: "4" },
+  { id: "gallery", label: "Gallery", icon: Flame, key: "3" },
+  { id: "sources", label: "Sources", icon: Database, key: "4" },
+  { id: "health", label: "Health", icon: Activity, key: "5" },
 ];
 
 export function TopBar() {
@@ -91,9 +92,10 @@ export function TopBar() {
               onClick={() => setView(v.id)}
               aria-current={view === v.id ? "page" : undefined}
               title={`${v.label} (Alt+${v.key})`}
+              aria-label={v.label}
             >
               <v.icon size={14} strokeWidth={1.8} aria-hidden />
-              {v.label}
+              <span className={s.navLabel}>{v.label}</span>
             </button>
           ))}
         </nav>
