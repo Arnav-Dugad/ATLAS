@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Bell, BellOff, Crosshair, Eye, MapPin, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { globeRef } from "../../globe/ref";
-import type { IncidentSummary } from "../../lib/api";
+import { WINDOWS_APP, type IncidentSummary } from "../../lib/api";
 import { ensureNotificationPermission } from "../../lib/desktop";
 import { focusIncident, focusPoint } from "../../lib/focus";
 import { coord, dist } from "../../lib/format";
@@ -61,14 +61,21 @@ function Panel({ incidents }: { incidents: IncidentSummary[] }) {
           </button>
         )}
         {watches.length === 0 && !draft ? (
-          <p className={s.empty}>Watch a city, coast or region and see every incident inside it, with an optional browser alert when a new one appears.</p>
+          <p className={s.empty}>
+            Watch a city, coast or region and see every incident inside it, with an optional {WINDOWS_APP ? "Windows notification" : "browser alert"} when a new one
+            appears.
+          </p>
         ) : null}
         <ul className={s.list}>
           {watches.map((w) => (
             <WatchRow key={w.id} w={w} incidents={incidents} />
           ))}
         </ul>
-        <p className={s.note}>Stored only in this browser. Alerts use your browser&apos;s notifications while ATLAS is open; they are not official warnings.</p>
+        <p className={s.note}>
+          {WINDOWS_APP
+            ? "Stored only on this PC. Alerts are Windows notifications — they keep coming with ATLAS in the tray if Settings → App → Keep running in the background is on. They are not official warnings."
+            : "Stored only in this browser. Alerts use your browser's notifications while ATLAS is open; they are not official warnings."}
+        </p>
       </div>
     </motion.aside>
   );
