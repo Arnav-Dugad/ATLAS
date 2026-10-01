@@ -8,11 +8,6 @@ import { useIncidentFeed } from "../lib/queries";
 import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
-import { CompareTool } from "../features/compare/CompareTool";
-import { SimulationLab } from "../features/simulation/SimulationLab";
-import { StoryPlayer } from "../features/story/StoryPlayer";
-import { CompareTray, IncidentComparison } from "../features/comparison/IncidentComparison";
-import { WatchPanel } from "../features/watch/WatchPanel";
 import { useWatchAlerts } from "../lib/useWatchAlerts";
 import { useWatch } from "../lib/watch";
 import { IncidentFeed } from "../features/feed/IncidentFeed";
@@ -22,13 +17,20 @@ import { OverviewPanel } from "../features/overview/OverviewPanel";
 import { PlaybackBanner, Timeline } from "../features/timeline/Timeline";
 import { TopBar } from "../features/topbar/TopBar";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
-import { MobileSheet } from "./MobileSheet";
 import s from "./Shell.module.css";
 
 // The globe pulls in CesiumJS (~4 MB); load it as its own chunk so the shell paints first.
 const Globe = lazy(() => import("../globe/Globe").then((m) => ({ default: m.Globe })));
 const SourcesView = lazy(() => import("../features/sources/SourcesView").then((m) => ({ default: m.SourcesView })));
 const AssistantPanel = lazy(() => import("../features/assistant/AssistantPanel").then((m) => ({ default: m.AssistantPanel })));
+// Panels that start closed load on first use, so the first paint stays small.
+const MobileSheet = lazy(() => import("./MobileSheet").then((m) => ({ default: m.MobileSheet })));
+const CompareTool = lazy(() => import("../features/compare/CompareTool").then((m) => ({ default: m.CompareTool })));
+const SimulationLab = lazy(() => import("../features/simulation/SimulationLab").then((m) => ({ default: m.SimulationLab })));
+const StoryPlayer = lazy(() => import("../features/story/StoryPlayer").then((m) => ({ default: m.StoryPlayer })));
+const CompareTray = lazy(() => import("../features/comparison/IncidentComparison").then((m) => ({ default: m.CompareTray })));
+const IncidentComparison = lazy(() => import("../features/comparison/IncidentComparison").then((m) => ({ default: m.IncidentComparison })));
+const WatchPanel = lazy(() => import("../features/watch/WatchPanel").then((m) => ({ default: m.WatchPanel })));
 const HealthView = lazy(() => import("../features/sources/HealthView").then((m) => ({ default: m.HealthView })));
 
 const WINDOWS: TimeWindow[] = ["1h", "24h", "7d", "30d"];
@@ -41,6 +43,11 @@ export function Shell() {
   const reducedMotion = useUi((st) => st.reducedMotion);
   const highContrast = useUi((st) => st.highContrast);
   const incidents = useMemo(() => feed.data?.items ?? [], [feed.data]);
+  const comparing = useUi((st) => st.compare !== null);
+  const simulating = useUi((st) => st.simulation !== null || st.groundPick === "simulation");
+  const storyOn = useUi((st) => st.story !== null);
+  const pinnedAny = useUi((st) => st.pinned.length > 0);
+  const watchOpen = useWatch((st) => st.panelOpen);
   const phone = useMediaQuery(PHONE_QUERY);
   const webgl = useMemo(() => supportsWebGL(), []);
   useWatchAlerts(incidents);
@@ -151,7 +158,9 @@ export function Shell() {
       <TopBar />
 
       {phone ? (
-        <MobileSheet incidents={incidents} loading={feed.isLoading} error={feed.error as Error | null} onRetry={() => void feed.refetch()} />
+        <Suspense fallback={null}>
+          <MobileSheet incidents={incidents} loading={feed.isLoading} error={feed.error as Error | null} onRetry={() => void feed.refetch()} />
+        </Suspense>
       ) : (
         <>
           <aside className={s.rail} id="incident-stream">
@@ -183,18 +192,22 @@ export function Shell() {
         </>
       )}
 
-      <CompareTool />
-      <SimulationLab />
-      <AnimatePresence>
-        <StoryPlayer key="story" incidents={incidents} />
-      </AnimatePresence>
-      <CompareTray incidents={incidents} />
-      <IncidentComparison />
+      <Suspense fallback={null}>
+        {comparing ? <CompareTool /> : null}
+        {simulating ? <SimulationLab /> : null}
+        {storyOn ? <StoryPlayer incidents={incidents} /> : null}
+        {pinnedAny ? <CompareTray incidents={incidents} /> : null}
+        {pinnedAny ? <IncidentComparison /> : null}
+      </Suspense>
       <PlaybackBanner />
       <MapControls />
       <Attribution />
       <LayerPanel />
-      <WatchPanel incidents={incidents} />
+      {watchOpen ? (
+        <Suspense fallback={null}>
+          <WatchPanel incidents={incidents} />
+        </Suspense>
+      ) : null}
       <LiveTicker incidents={incidents} />
 
       <AnimatePresence>

@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Check, ChevronRight, Columns2, Copy, Crosshair, Eye, FlaskConical, Pin, Download, ExternalLink, FileJson, Info, Map as MapIcon, ShieldAlert, X } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { lazy, type ReactNode, Suspense, useMemo, useState } from "react";
 import { RELATION_META, type IncidentDetail, type Metric, type RelationType } from "../../lib/api";
 import { compareIncident } from "../../lib/compare";
 import { openSimulation } from "../../lib/simulate";
@@ -14,12 +14,13 @@ import { useUi } from "../../lib/store";
 import { ConfidenceMeter, cx, Dot, ErrorState, HazardGlyph, Label, ProvenanceBadge, SeverityMeter, Skeleton } from "../../ui/primitives";
 import { Chronology } from "./Chronology";
 import { ExposureTab } from "./ExposureTab";
-import { LinksTab } from "./LinksTab";
-import { SatelliteTab } from "./SatelliteTab";
 import { SourceDrawer } from "./SourceDrawer";
 import { WeatherCard } from "./WeatherCard";
 import { TrackChart } from "./TrackChart";
 import s from "./IncidentPanel.module.css";
+
+const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default: m.SatelliteTab })));
+const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
 
 type Tab = "brief" | "exposure" | "satellite" | "links" | "timeline" | "sources" | "context";
 
@@ -147,8 +148,10 @@ export function IncidentPanel({ id }: { id: string }) {
           <motion.div key={tab} initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.14 }}>
             {tab === "brief" ? <BriefTab d={d} /> : null}
             {tab === "exposure" ? <ExposureTab d={d} /> : null}
-            {tab === "satellite" ? <SatelliteTab d={d} /> : null}
-            {tab === "links" ? <LinksTab d={d} /> : null}
+            <Suspense fallback={<Skeleton height={160} />}>
+              {tab === "satellite" ? <SatelliteTab d={d} /> : null}
+              {tab === "links" ? <LinksTab d={d} /> : null}
+            </Suspense>
             {tab === "timeline" ? <Chronology d={d} /> : null}
             {tab === "sources" ? <SourceDrawer d={d} /> : null}
             {tab === "context" ? <ContextTab d={d} /> : null}

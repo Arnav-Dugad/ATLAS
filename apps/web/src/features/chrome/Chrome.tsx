@@ -3,7 +3,7 @@ import { Compass, Home, Info, Minus, Pause, Play, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
-import { TERRAIN_ATTRIBUTION, TERRAIN_CREDIT } from "../../globe/terrain";
+import { TERRAIN_ATTRIBUTION, TERRAIN_CREDIT } from "../../globe/terrainCredits";
 import { STATIC_MODE, type IncidentSummary } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
 import { relTime } from "../../lib/format";
