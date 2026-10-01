@@ -5,7 +5,10 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import timedelta
+from pathlib import Path
 from typing import Any
+
+from pydantic import SecretStr
 
 from atlas.config import Settings
 from atlas.connectors import CONNECTORS, ConnectorContext, DataConnector, FetchOutcome
@@ -58,6 +61,9 @@ class Runtime:
         self.connectors: dict[str, DataConnector] = {c.id: c(ctx) for c in CONNECTORS}
         self.scheduler = Scheduler(max_concurrency=3)
         self.started_at = utcnow()
+        # Desktop Settings: background pack installs/imports and their progress, by pack id.
+        self.pack_tasks: dict[str, dict[str, Any]] = {}
+        self._background: set[asyncio.Task[None]] = set()
 
     def _load_geocoder(self) -> Geocoder:
         core = self.packs.path("core")
@@ -74,6 +80,95 @@ class Runtime:
     def reload_geocoder(self) -> None:
         self.geocoder = self._load_geocoder()
         self.pipeline.geocoder = self.geocoder
+
+    # ----------------------------------------------------------------- desktop Settings
+    def set_credential(self, name: str, value: str | None) -> None:
+        """Apply an API credential entered in Settings to the running engine."""
+        if name == "openaq_api_key":
+            self.settings.openaq_api_key = SecretStr(value) if value else None
+        elif name == "reliefweb_appname":
+            self.settings.reliefweb_appname = value or None
+        else:
+            raise KeyError(name)
+
+    async def refresh_connector(self, cid: str) -> None:
+        """(Un)schedule a connector whose availability changed while running (a key set in Settings)."""
+        conn = self.connectors.get(cid)
+        if conn is None or not self.settings.scheduler_enabled:
+            return
+        ok, _why = self.availability()[cid]
+        scheduled = any(job.group == cid for job in self.scheduler.jobs.values())
+        if not ok:
+            self.scheduler.remove_group(cid)
+            return
+        if scheduled:
+            self.scheduler.trigger_group(cid)  # new key: fetch now
+            return
+        await conn.initialize()
+        for job in conn.jobs():
+            self.scheduler.add(job.name, cid, job.interval, self._wrap(conn, job.name, job.run), start_delay=1.0)
+        self.scheduler.wake()
+
+    def start_pack_task(self, pack_id: str, source: Path | None = None) -> dict[str, Any]:
+        """Install (download) a pack, or import it from `source`, in the background."""
+        current = self.pack_tasks.get(pack_id)
+        if current and current["state"] in ("starting", "downloading", "extracting", "copying", "indexing"):
+            return current
+        state: dict[str, Any] = {
+            "pack": pack_id, "state": "starting", "done": 0, "total": None, "error": None,
+            "mode": "import" if source else "download", "started_at": iso_z(utcnow()),
+        }  # fmt: skip
+        self.pack_tasks[pack_id] = state
+
+        def progress(stage: str, done: int, total: int | None) -> None:
+            state.update(state=stage, done=done, total=total)
+
+        async def run() -> None:
+            try:
+                if pack_id == "population-ghsl":
+                    self._release_population()
+                if source is not None:
+                    await asyncio.to_thread(self.packs.import_from, pack_id, source, progress=progress)
+                else:
+                    await self.packs.install(pack_id, force=True, progress=progress)
+                state.update(state="indexing")
+                await self._after_pack(pack_id)
+                state.update(state="done", finished_at=iso_z(utcnow()))
+            except Exception as exc:  # reported to the Settings view
+                log.warning("pack %s failed: %s", pack_id, exc)
+                message = str(exc) if isinstance(exc, ValueError) else f"{type(exc).__name__}: {exc}"
+                state.update(state="error", error=message[:300])
+                if pack_id == "population-ghsl" and self.population is None:
+                    self.reload_population()  # keep using a copy that was already there
+
+        task = asyncio.create_task(run(), name=f"pack:{pack_id}")
+        self._background.add(task)
+        task.add_done_callback(self._background.discard)
+        return state
+
+    async def _after_pack(self, pack_id: str) -> None:
+        if pack_id == "population-ghsl":
+            if not self.reload_population():
+                self.packs.remove(pack_id)
+                raise ValueError("The population grid could not be opened; the pack was removed.")
+            await asyncio.to_thread(self.pipeline.sweep)  # recompute exposure for open incidents
+        elif pack_id == "core":
+            self.reload_geocoder()
+
+    def _release_population(self) -> None:
+        grid, self.population = self.population, None
+        self.pipeline.population = None
+        if grid is not None:
+            grid.close()
+
+    def remove_pack(self, pack_id: str) -> bool:
+        if pack_id == "population-ghsl":
+            self._release_population()
+        removed = self.packs.remove(pack_id)
+        if pack_id == "population-ghsl":
+            self.reload_population()
+        self.pack_tasks.pop(pack_id, None)
+        return removed
 
     # ------------------------------------------------------------------------------------
     def availability(self) -> dict[str, tuple[bool, str | None]]:

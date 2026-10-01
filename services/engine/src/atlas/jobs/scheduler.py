@@ -72,6 +72,16 @@ class Scheduler:
         first = utcnow() + (timedelta(seconds=start_delay) if run_on_start else interval)
         self.jobs[name] = JobState(name=name, group=group, interval=interval, run=run, next_run=first)
 
+    def remove_group(self, group: str) -> list[str]:
+        """Unschedule a connector's jobs (a run in progress finishes on its own)."""
+        names = [name for name, job in self.jobs.items() if job.group == group]
+        for name in names:
+            del self.jobs[name]
+        return names
+
+    def wake(self) -> None:
+        self._wake.set()
+
     def start(self) -> None:
         if self._task is None:
             self._task = asyncio.create_task(self._loop(), name="atlas-scheduler")

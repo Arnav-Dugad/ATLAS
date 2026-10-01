@@ -16,6 +16,7 @@ import _thread
 import json
 import logging
 import os
+import shutil
 import signal
 import sys
 import threading
@@ -24,22 +25,61 @@ from collections.abc import Callable
 from pathlib import Path
 
 DESKTOP_ORIGINS = ["tauri://localhost", "http://tauri.localhost", "https://tauri.localhost"]
+BUNDLE_ID = "org.atlas.planetary"  # tauri.conf.json "identifier"
+# What 0.1.0 kept in %LOCALAPPDATA%\ATLAS on Windows (moved on first start of a newer version).
+LEGACY_ITEMS = ("atlas.duckdb", "atlas.duckdb.wal", "credentials.json", "cache", "packs")
 
 log = logging.getLogger("atlas.desktop")
 
 
+def _local_appdata() -> Path:
+    return Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+
+
 def data_home() -> Path:
     if sys.platform == "win32":
-        base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
-    elif sys.platform == "darwin":
+        # The app's own folder next to its WebView2 profile, not the install folder
+        # (%LOCALAPPDATA%\ATLAS holds the program). The uninstaller's "delete the application
+        # data" option removes exactly this folder.
+        return _local_appdata() / BUNDLE_ID
+    if sys.platform == "darwin":
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
     return base / "ATLAS"
 
 
+def migrate_legacy_data(new: Path, old: Path | None = None) -> Path:
+    """Move 0.1.0's Windows data out of the install folder. Returns the folder to use: the new
+    one, or the old one if its database cannot be moved (e.g. still open somewhere)."""
+    old = old or _local_appdata() / "ATLAS"
+    if not (old / "atlas.duckdb").exists() or (new / "atlas.duckdb").exists():
+        return new
+    new.mkdir(parents=True, exist_ok=True)
+    try:
+        shutil.move(str(old / "atlas.duckdb"), str(new / "atlas.duckdb"))
+    except OSError as exc:
+        log.warning("could not move the database to %s (%s); using %s", new, exc, old)
+        return old
+    for name in LEGACY_ITEMS[1:]:
+        src = old / name
+        if src.exists() and not (new / name).exists():
+            try:
+                shutil.move(str(src), str(new / name))
+            except OSError as exc:
+                log.warning("could not move %s: %s", name, exc)
+    log.info("moved ATLAS data from %s to %s", old, new)
+    return new
+
+
 def configure_environment(bundle: Path) -> None:
-    os.environ.setdefault("ATLAS_DATA_DIR", str(data_home()))
+    if "ATLAS_DATA_DIR" not in os.environ:
+        home = data_home()
+        if sys.platform == "win32":
+            home = migrate_legacy_data(home)
+        os.environ["ATLAS_DATA_DIR"] = str(home)
+    if sys.platform == "win32":
+        os.environ["ATLAS_DESKTOP"] = "1"  # Settings (keys, data packs): the Windows app only
     registry = bundle / "data" / "registry" / "sources.json"
     if registry.is_file():
         os.environ.setdefault("ATLAS_REGISTRY_PATH", str(registry))
@@ -126,6 +166,10 @@ def main() -> int:
     bundle = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[4]))
     configure_environment(bundle)
     watch_app()
+
+    from atlas.credentials import CredentialStore
+
+    CredentialStore(Path(os.environ["ATLAS_DATA_DIR"])).apply_to_environment()  # keys saved in Settings
 
     from atlas.cli import main as cli
     from atlas.config import get_settings

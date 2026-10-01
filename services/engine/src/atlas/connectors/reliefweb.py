@@ -43,6 +43,8 @@ class ReliefWebConnector(DataConnector):
 
     def availability(self) -> tuple[bool, str | None]:
         if not self.ctx.settings.reliefweb_appname:
+            if self.ctx.settings.desktop:
+                return False, "Needs a free approved appname: add it in Settings → Data sources"
             return False, "Requires a free approved appname (set ATLAS_RELIEFWEB_APPNAME)"
         return True, None
 

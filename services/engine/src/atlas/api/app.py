@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from atlas import __version__
 from atlas.api.routes import router
 from atlas.api.service import QueryService
+from atlas.api.settings_routes import router as settings_router
 from atlas.config import Settings, get_settings
 from atlas.observability import configure_logging, metrics
 from atlas.runtime import Runtime
@@ -59,7 +60,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["*"],
         max_age=3600,
     )
@@ -96,4 +97,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse({"error": {"code": "internal", "message": "Internal error. See engine logs."}}, status_code=500)
 
     app.include_router(router)
+    app.include_router(settings_router)
     return app

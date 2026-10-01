@@ -13,6 +13,7 @@ import json
 import logging
 import shutil
 import zipfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -23,6 +24,11 @@ from atlas.util.timeutil import iso_z, utcnow
 log = logging.getLogger("atlas.packs")
 
 NE_BASE = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
+
+# progress(stage, done, total): stage is "downloading", "extracting" or "copying"
+Progress = Callable[[str, int, int | None], None]
+IMPORT_SUFFIXES = {".tif", ".tiff", ".geojson", ".json"}
+MAX_IMPORT_BYTES = 4 << 30
 
 
 @dataclass
@@ -129,7 +135,7 @@ class PackManager:
             )
         return out
 
-    async def install(self, pack_id: str, *, force: bool = False) -> dict[str, Any]:
+    async def install(self, pack_id: str, *, force: bool = False, progress: Progress | None = None) -> dict[str, Any]:
         if self.http is None:
             raise RuntimeError("pack installation requires an HTTP client")
         spec = PACKS[pack_id]
@@ -147,6 +153,8 @@ class PackManager:
             last_log = [0.0]
 
             def report(done: int, expected: int | None, name: str = pf.name, last_log: list[float] = last_log) -> None:
+                if progress is not None:
+                    progress("downloading", done, expected)
                 if done - last_log[0] < (expected / 10 if expected else 5 << 20):
                     return
                 last_log[0] = done
@@ -159,6 +167,8 @@ class PackManager:
             size, digest = await self.http.download(pf.url, dest, max_bytes=pf.max_bytes, progress=report)
             entry = {"name": pf.name, "url": pf.url, "bytes": size, "sha256": digest}
             if pf.extract:
+                if progress is not None:
+                    progress("extracting", 0, None)
                 entry["extracted"] = _safe_extract(dest, staging, pf.extract)
                 dest.unlink()
             files.append(entry)
@@ -175,6 +185,68 @@ class PackManager:
             shutil.rmtree(target)
         staging.rename(target)
         return manifest
+
+    def import_from(self, pack_id: str, source: Path, *, progress: Progress | None = None) -> dict[str, Any]:
+        """Copy a pack that was already downloaded elsewhere (e.g. `atlas packs install` in a
+        checkout), so it need not be downloaded again. Only the pack's own file types are copied."""
+        spec = PACKS[pack_id]
+        source = source.expanduser()
+        if not source.is_dir():
+            raise ValueError("That folder does not exist.")
+        if source.resolve() == self.path(pack_id).resolve():
+            raise ValueError("That is already this app's own copy of the pack.")
+        try:
+            man = json.loads((source / "manifest.json").read_text("utf-8"))
+        except (OSError, ValueError):
+            raise ValueError("No ATLAS pack (manifest.json) in that folder.") from None
+        if not isinstance(man, dict) or man.get("id") != pack_id:
+            raise ValueError(f"That folder does not hold the {spec.title}.")
+        files = [f for f in source.iterdir() if f.is_file() and not f.is_symlink() and f.suffix.lower() in IMPORT_SUFFIXES]
+        total = sum(f.stat().st_size for f in files)
+        if total > MAX_IMPORT_BYTES:
+            raise ValueError("That folder is larger than any ATLAS pack.")
+        staging = self.root / f".{pack_id}.staging"
+        if staging.exists():
+            shutil.rmtree(staging)
+        staging.mkdir(parents=True)
+        done = 0
+        for f in files:
+            with f.open("rb") as src, (staging / f.name).open("wb") as dst:
+                while chunk := src.read(4 << 20):
+                    dst.write(chunk)
+                    done += len(chunk)
+                    if progress is not None:
+                        progress("copying", done, total)
+        man["imported_from"] = str(source)
+        man["imported_at"] = iso_z(utcnow())
+        (staging / "manifest.json").write_text(json.dumps(man, indent=2), "utf-8")
+        target = self.path(pack_id)
+        if target.exists():
+            shutil.rmtree(target)
+        staging.rename(target)
+        return man
+
+    def candidates(self, pack_id: str, home: Path | None = None) -> list[str]:
+        """Existing downloads of a pack in ATLAS checkouts in the usual places (Desktop,
+        Documents, Downloads, source folders), so the app can offer to import instead of
+        downloading again. Shallow and bounded: two folder levels under a few roots."""
+        home = home or Path.home()
+        roots = [home, *(home / d for d in ("Desktop", "Documents", "Downloads", "source", "repos", "Projects", "dev", "code"))]
+        roots += [home / "OneDrive" / d for d in ("Desktop", "Documents")]
+        found: list[str] = []
+        own = self.path(pack_id).resolve()
+        for root in roots:
+            if not root.is_dir():
+                continue
+            for pattern in (f"*/data/runtime/packs/{pack_id}", f"*/*/data/runtime/packs/{pack_id}"):
+                try:
+                    hits = list(root.glob(pattern))
+                except OSError:
+                    continue
+                for hit in hits:
+                    if (hit / "manifest.json").is_file() and hit.resolve() != own and str(hit) not in found:
+                        found.append(str(hit))
+        return found[:5]
 
     def remove(self, pack_id: str) -> bool:
         spec = PACKS.get(pack_id)

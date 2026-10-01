@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     # Disable network entirely (offline mode): connectors serve cached data only.
     offline: bool = False
 
+    # Set by the desktop app's entry point: enables Settings (API keys, data packs) in the API.
+    desktop: bool = False
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "atlas.duckdb"

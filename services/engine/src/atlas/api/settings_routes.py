@@ -1,0 +1,207 @@
+"""Settings for the desktop app: optional API keys and data packs.
+
+Only mounted behaviour in the desktop app (``ATLAS_DESKTOP``); a 404 elsewhere. Every request
+must come from the app itself: the Host must be the loopback engine (no DNS rebinding) and a
+browser Origin, when sent, must be one the engine already allows — so a web page cannot change
+keys or start downloads. Secret values are never returned, only whether one is set.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import time
+from datetime import timedelta
+from pathlib import Path
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field
+
+from atlas import __version__
+from atlas.credentials import SPECS, CredentialStore, hint, validate
+from atlas.http.client import FetchError
+from atlas.packs import PACKS
+from atlas.runtime import Runtime
+
+router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
+
+_CANDIDATES: dict[str, tuple[float, list[str]]] = {}
+BUSY = ("starting", "downloading", "extracting", "copying", "indexing")
+
+
+def guard(request: Request) -> Runtime:
+    r: Runtime = request.app.state.runtime
+    if not r.settings.desktop:
+        raise HTTPException(404, "Settings are part of the ATLAS desktop app.")
+    host = (request.headers.get("host") or "").lower()
+    if host not in {f"127.0.0.1:{r.settings.port}", f"localhost:{r.settings.port}"}:
+        raise HTTPException(403, "Settings only answer the ATLAS app on this computer.")
+    origin = request.headers.get("origin")
+    if origin and origin not in r.settings.cors_origins:
+        raise HTTPException(403, "Settings only answer the ATLAS app on this computer.")
+    return r
+
+
+def _current(r: Runtime, name: str) -> str | None:
+    if name == "openaq_api_key":
+        return r.settings.openaq_api_key.get_secret_value() if r.settings.openaq_api_key else None
+    if name == "reliefweb_appname":
+        return r.settings.reliefweb_appname
+    raise KeyError(name)
+
+
+def _credentials(r: Runtime) -> dict[str, Any]:
+    stored = CredentialStore(r.settings.data_dir).load()
+    out: dict[str, Any] = {}
+    for name, spec in SPECS.items():
+        value = _current(r, name)
+        source = None
+        if value:
+            source = "settings" if stored.get(name) == value else "environment"
+        out[name] = {"label": spec.label, "configured": bool(value), "hint": hint(value, spec.secret), "source": source}
+    return out
+
+
+def _connector(r: Runtime, cid: str) -> dict[str, Any]:
+    ok, why = r.availability()[cid]
+    jobs = [j.snapshot() for j in r.scheduler.jobs.values() if j.group == cid]
+    last_ok = max((j["last_ok"] for j in jobs if j["last_ok"]), default=None)
+    last_error = next((j["last_error"] for j in jobs if j["last_error"]), None)
+    return {"enabled": ok, "reason": why, "scheduled": bool(jobs), "last_ok": last_ok, "last_error": last_error}
+
+
+async def _candidates(r: Runtime, pack_id: str) -> list[str]:
+    hit = _CANDIDATES.get(pack_id)
+    if hit and time.monotonic() - hit[0] < 30:
+        return hit[1]
+    found = await asyncio.to_thread(r.packs.candidates, pack_id)
+    _CANDIDATES[pack_id] = (time.monotonic(), found)
+    return found
+
+
+async def _packs(r: Runtime) -> list[dict[str, Any]]:
+    out = []
+    for p in r.packs.status():
+        task = r.pack_tasks.get(p["id"])
+        p["task"] = task
+        busy = bool(task and task["state"] in BUSY)
+        p["candidates"] = await _candidates(r, p["id"]) if p["optional"] and not p["installed"] and not busy else []
+        out.append(p)
+    return out
+
+
+@router.get("")
+async def settings_view(request: Request) -> dict[str, Any]:
+    r = guard(request)
+    return {
+        "version": __version__,
+        "data_dir": str(r.settings.data_dir),
+        "credentials": _credentials(r),
+        "connectors": {"reliefweb": _connector(r, "reliefweb")},
+        "packs": await _packs(r),
+        "population_ready": r.population is not None,
+    }
+
+
+class CredentialBody(BaseModel):
+    value: str | None = Field(default=None, max_length=300)
+
+
+async def _test(r: Runtime, name: str) -> dict[str, Any]:
+    value = _current(r, name)
+    if not value:
+        return {"ok": False, "message": "Nothing saved yet."}
+    if name == "openaq_api_key":
+        try:
+            await r.http.get(
+                "https://api.openaq.org/v3/parameters", params={"limit": 1},
+                headers={"X-API-Key": value, "Accept": "application/json"}, ttl=timedelta(seconds=1), force=True,
+                attempts=1, timeout_s=20, max_bytes=1 << 20, source_id="openaq",
+            )  # fmt: skip
+        except FetchError as exc:
+            if exc.status in (401, 403):
+                return {"ok": False, "message": "OpenAQ rejected this key. Copy it again from explore.openaq.org/account."}
+            return {"ok": False, "message": f"Couldn't reach OpenAQ to check the key ({exc}). It is saved; try again later."}
+        return {"ok": True, "message": "OpenAQ accepted the key. Incidents near monitoring stations now show air quality."}
+    try:
+        await r.http.get(
+            "https://api.reliefweb.int/v2/disasters", params={"appname": value, "limit": 1},
+            ttl=timedelta(seconds=1), force=True, attempts=1, timeout_s=20, max_bytes=2 << 20, source_id="reliefweb",
+        )  # fmt: skip
+    except FetchError as exc:
+        if exc.status == 403:
+            return {
+                "ok": False, "pending": True,
+                "message": "ReliefWeb hasn't approved this appname yet (HTTP 403). It is saved: ATLAS retries at most "
+                "hourly and starts using it as soon as ReliefWeb approves it.",
+            }  # fmt: skip
+        return {"ok": False, "message": f"Couldn't reach ReliefWeb to check the appname ({exc}). It is saved; try again later."}
+    return {"ok": True, "message": "ReliefWeb accepted the appname. Its disaster reports now corroborate incidents."}
+
+
+@router.put("/credentials/{name}")
+async def save_credential(request: Request, name: str, body: CredentialBody) -> dict[str, Any]:
+    r = guard(request)
+    if name not in SPECS:
+        raise HTTPException(404, "unknown setting")
+    value: str | None = None
+    if body.value and body.value.strip():
+        try:
+            value = validate(name, body.value)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from None
+    CredentialStore(r.settings.data_dir).set(name, value)
+    r.set_credential(name, value)
+    if name == "reliefweb_appname":
+        await r.refresh_connector("reliefweb")
+    test = await _test(r, name) if value else None
+    return {"credentials": _credentials(r), "test": test}
+
+
+@router.post("/credentials/{name}/test")
+async def test_credential(request: Request, name: str) -> dict[str, Any]:
+    r = guard(request)
+    if name not in SPECS:
+        raise HTTPException(404, "unknown setting")
+    return await _test(r, name)
+
+
+def _pack_id(pack_id: str) -> str:
+    spec = PACKS.get(pack_id)
+    if spec is None or not spec.optional:
+        raise HTTPException(404, "unknown optional pack")
+    return pack_id
+
+
+@router.post("/packs/{pack_id}/install")
+async def install_pack(request: Request, pack_id: str) -> dict[str, Any]:
+    r = guard(request)
+    _CANDIDATES.pop(pack_id, None)
+    return r.start_pack_task(_pack_id(pack_id))
+
+
+class ImportBody(BaseModel):
+    path: str = Field(min_length=3, max_length=1000)
+
+
+@router.post("/packs/{pack_id}/import")
+async def import_pack(request: Request, pack_id: str, body: ImportBody) -> dict[str, Any]:
+    r = guard(request)
+    pack_id = _pack_id(pack_id)
+    source = Path(body.path.strip().strip('"'))
+    if not await asyncio.to_thread((source / "manifest.json").is_file):
+        raise HTTPException(400, "That folder doesn't contain an ATLAS pack (no manifest.json).")
+    _CANDIDATES.pop(pack_id, None)
+    return r.start_pack_task(pack_id, source)
+
+
+@router.delete("/packs/{pack_id}")
+async def remove_pack(request: Request, pack_id: str) -> dict[str, Any]:
+    r = guard(request)
+    pack_id = _pack_id(pack_id)
+    task = r.pack_tasks.get(pack_id)
+    if task and task["state"] in BUSY:
+        raise HTTPException(409, "The pack is being installed.")
+    removed = await asyncio.to_thread(r.remove_pack, pack_id)
+    _CANDIDATES.pop(pack_id, None)
+    return {"removed": removed, "packs": await _packs(r)}

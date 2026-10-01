@@ -181,7 +181,13 @@ async def incident_population(request: Request, incident_id: str) -> dict[str, A
     """People living within distance rings (GHSL 2025). Milliseconds; requires the Population Pack."""
     r = rt(request)
     hazard, lat, lon = _incident_point(r, incident_id)
-    return await asyncio.to_thread(exposure.population_exposure, r.population, hazard, lat, lon)
+    result = await asyncio.to_thread(exposure.population_exposure, r.population, hazard, lat, lon)
+    if r.settings.desktop and result.get("action") == "install-pack":
+        result["reason"] = (
+            "Population Pack not installed. Add it in Settings → Data packs (~484 MB download, CC BY 4.0), "
+            "or import a copy you already downloaded."
+        )
+    return result
 
 
 @router.get("/incidents/{incident_id}/exposure/infrastructure")
@@ -243,7 +249,10 @@ async def incident_air_quality(request: Request, incident_id: str) -> dict[str, 
     r = rt(request)
     _hazard, lat, lon = _incident_point(r, incident_id)
     key = r.settings.openaq_api_key.get_secret_value() if r.settings.openaq_api_key else None
-    return await airquality.nearby(r.http, key, lat, lon)
+    result = await airquality.nearby(r.http, key, lat, lon)
+    if r.settings.desktop and result.get("action") == "configure":
+        result["reason"] = "Air quality needs a free OpenAQ API key: add it in Settings → Data sources."
+    return result
 
 
 @router.get("/context/space-weather")

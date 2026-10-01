@@ -86,6 +86,11 @@ class PopulationGrid:
             log.warning("population grid unavailable: %s", exc)
             return None
 
+    def close(self) -> None:
+        """Release the raster file (Windows cannot replace or delete a file that is open)."""
+        with self._lock:
+            self._ds.close()
+
     def _read(self, west: float, south: float, east: float, north: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         from rasterio.windows import from_bounds
 
