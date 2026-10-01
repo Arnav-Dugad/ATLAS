@@ -86,7 +86,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build web app in snapshot mode
         env:
-          ATLAS_BASE: /${{ github.event.repository.name }}/
+          ATLAS_BASE: ./ # relative: the same build serves from /ATLAS/ on Pages and from a root domain
+          ATLAS_SOURCEMAP: "0"
           VITE_ATLAS_STATIC: "1"
         run: pnpm --filter @atlas/web build
 
@@ -94,6 +95,38 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: apps/web/dist
+      - name: Keep the build for the site branch
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: apps/web/dist
+          retention-days: 2
+
+  # Publishes the same build to the `site` branch as a single commit. Any static host that can
+  # follow a git branch (Vercel, Cloudflare Pages, Netlify) serves it with no build step.
+  # Isolated from the build job so the only code holding a write token is this short script.
+  publish-branch:
+    name: Publish site branch
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: site
+          path: site
+      - name: Push orphan commit to the site branch
+        working-directory: site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git init -q -b site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Public snapshot $(date -u +%Y-%m-%dT%H:%MZ) from ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" site
 
   deploy:
     name: Deploy to GitHub Pages

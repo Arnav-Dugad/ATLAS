@@ -7,7 +7,8 @@ import { defineConfig, type Plugin } from "vite";
 const CESIUM_BUILD = resolve(import.meta.dirname, "node_modules/cesium/Build/Cesium");
 const CESIUM_DIRS = ["Workers", "ThirdParty", "Assets", "Widgets"];
 
-// The public web demo is served from a sub-path on GitHub Pages; local builds use "/".
+// Local builds use "/". The public build uses "./" (relative), so one artifact works at any
+// path: GitHub Pages' /ATLAS/ sub-path, a root domain on Vercel or Cloudflare, or a folder.
 const base = process.env.ATLAS_BASE ?? "/";
 
 const MIME: Record<string, string> = {
@@ -65,7 +66,7 @@ export default defineConfig({
   preview: { port: 4173 },
   build: {
     target: "es2022",
-    sourcemap: true,
+    sourcemap: process.env.ATLAS_SOURCEMAP !== "0",
     chunkSizeWarningLimit: 6000,
     rollupOptions: {
       output: {
