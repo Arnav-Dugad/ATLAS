@@ -8,6 +8,7 @@ casualty or damage figures are added.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from dataclasses import dataclass
@@ -115,7 +116,12 @@ async def build_demo(out: Path = OUT) -> int:
         "note": "Historical events for offline demonstrations. Timestamps are historical; this is not live data.",
         "events": events,
     }
+    size = await asyncio.to_thread(_write_json, out, payload)
+    print(f"wrote {out} ({size / 1024:.0f} KB, {len(events)} events)")
+    return 0
+
+
+def _write_json(out: Path, payload: dict[str, Any]) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, separators=(",", ":")), "utf-8")
-    print(f"wrote {out} ({out.stat().st_size / 1024:.0f} KB, {len(events)} events)")
-    return 0
+    return out.stat().st_size

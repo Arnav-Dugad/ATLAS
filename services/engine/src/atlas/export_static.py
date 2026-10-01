@@ -52,7 +52,9 @@ def export_static(rt: Runtime, out: Path) -> dict[str, Any]:
         status=None, hazards=None, min_severity=0, q=None, bbox=None, since=now - timedelta(days=30),
         until=None, country=None, sort="severity", limit=3000,
     )  # fmt: skip
-    sizes["incidents"] = _write(root, "incidents", {"items": [_dump(i) for i in items], "total": total, "generated_at": iso_z(now)})
+    sizes["incidents"] = _write(
+        root, "incidents", {"items": [_dump(i) for i in items], "total": total, "generated_at": iso_z(now)}
+    )
 
     detail_bytes = 0
     for inc in items:
@@ -78,8 +80,12 @@ def export_static(rt: Runtime, out: Path) -> dict[str, Any]:
     sizes["earthquakes"] = _write(
         root,
         "layers/earthquakes",
-        {"count": len(rows), "columns": {c: [r[i] for r in rows] for i, c in enumerate(cols)},
-         "generated_at": iso_z(now), "attribution": ["Earthquake data: U.S. Geological Survey (USGS)"]},  # fmt: skip
+        {
+            "count": len(rows),
+            "columns": {c: [r[i] for r in rows] for i, c in enumerate(cols)},
+            "generated_at": iso_z(now),
+            "attribution": ["Earthquake data: U.S. Geological Survey (USGS)"],
+        },  # fmt: skip
     )
 
     cells = fire_grid(rt.db, 5, now - timedelta(hours=48))
@@ -113,8 +119,11 @@ def export_static(rt: Runtime, out: Path) -> dict[str, Any]:
         slim = {
             "type": "FeatureCollection",
             "features": [
-                {"type": "Feature", "geometry": f["geometry"],
-                 "properties": {"name": f["properties"].get("NAME"), "iso3": f["properties"].get("ISO_A3")}}  # fmt: skip
+                {
+                    "type": "Feature",
+                    "geometry": f["geometry"],
+                    "properties": {"name": f["properties"].get("NAME"), "iso3": f["properties"].get("ISO_A3")},
+                }  # fmt: skip
                 for f in data.get("features", [])
             ],
         }

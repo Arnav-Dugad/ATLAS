@@ -24,6 +24,7 @@ tracks how they change, and renders it all on a real-time 3D Earth.
 - **One incident per real event.** USGS, GDACS, NOAA NHC, NASA EONET, Smithsonian GVP and NASA FIRMS reports are **correlated** (shared identifiers first, then hazard-specific space–time–name matching) into stable `ATL-…` incidents instead of duplicates.
 - **Provenance on every number.** Each metric is labelled *Observed*, *Derived*, *Model estimate*, *Simulation* or *Unavailable*, and names its source and method. ATLAS never invents values. Where data is missing it says so.
 - **Replay history.** Press play (or `Space`) and the planet replays the window at 1 h – 1 day per second: the real sun position follows the playhead, earthquakes appear at their true times with arrival ripples, incidents materialise at onset. Layers that only describe the present (48 h fire detections) step aside during replay.
+- **Demo Mode — real historical replays.** Eight curated USGS ComCat sequences (2011 Tōhoku, 2023 Kahramanmaraş, 2004 Sumatra, 2010 Maule, 2015 Gorkha, 2010 Haiti, 2023 Morocco, 2024 Noto) ship as a 135 KB asset, so presentations work offline. Each replays the mainshock and every M4+ event within 300 km over 7 days, with the sun at the true historical angle. Clearly labelled historical — never mixed with live data.
 - **Change, not replacement.** Magnitude revisions, alert escalations, intensity changes and fire-cluster growth are written to an audit trail. A **Data Time Machine** reconstructs what ATLAS knew at any past instant.
 - **Transparent assessment.** A documented *Severity Scale* and *Confidence Heuristic*, with the basis and every component one click away ([methodology](docs/METHODOLOGY.md)).
 - **Ask in plain language, without AI.** `⌘K` → *"earthquakes above magnitude 6 in Japan during 2024"* is parsed deterministically into filters and answered from the live store or the USGS archive.
@@ -39,6 +40,12 @@ tracks how they change, and renders it all on a real-time 3D Earth.
 <tr>
 <td><sub><b>Incident intelligence</b> — Hurricane Rachel fused from NHC, GDACS and EONET. Current intensity (NHC) is kept distinct from GDACS's lifetime peak; forecast cone and wind buffers on the globe.</sub></td>
 <td><sub><b>Deterministic queries</b> — "M7+ earthquakes in Japan since 2010" → chips + 19 USGS ComCat events, led by the 2011 Tōhoku M9.1.</sub></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/assets/replay-tohoku.webp" alt="Historical replay of the 2011 Tōhoku earthquake: 723 of 1,929 M4+ aftershocks one day after the mainshock, with the sun at its true historical position" /></td>
+</tr>
+<tr>
+<td colspan="2"><sub><b>Historical replay</b> — 2011 Tōhoku M9.1, one day in: 723 of 1,929 M4+ aftershocks from USGS ComCat, arrival ripples, dusk over Japan at the true sun angle. The timeline shows the sequence's Omori-law decay.</sub></td>
 </tr>
 <tr>
 <td width="50%"><img src="docs/assets/exposure.webp" alt="Exposure tab: GHSL population rings and OpenStreetMap infrastructure counts around an earthquake in Baghlan, Afghanistan" /></td>
