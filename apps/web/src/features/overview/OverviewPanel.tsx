@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Play } from "lucide-react";
 import { STATIC_MODE, type IncidentSummary, type Overview } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
 import { compact, decimal, int, relTime, utcFull } from "../../lib/format";
@@ -45,6 +45,16 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
         <div className="label">Planetary state</div>
         <div className={s.stamp}>{data ? utcFull(data.generated_at) : "—"}</div>
       </header>
+
+      <button type="button" className={s.storyBtn} onClick={() => useUi.getState().setStory({ index: 0, playing: true })} disabled={!data}>
+        <span className={s.storyIcon}>
+          <Play size={12} />
+        </span>
+        <span className={s.storyText}>
+          <span className={s.storyTitle}>Play the planet story</span>
+          <span className={s.storySub}>A one-minute guided tour of what is happening now</span>
+        </span>
+      </button>
 
       <div className={s.hero}>
         <div className={s.heroMain}>

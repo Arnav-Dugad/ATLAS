@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronRight, Columns2, Copy, Crosshair, Eye, FlaskConical, Download, ExternalLink, FileJson, Info, Map as MapIcon, ShieldAlert, X } from "lucide-react";
+import { Check, ChevronRight, Columns2, Copy, Crosshair, Eye, FlaskConical, Pin, Download, ExternalLink, FileJson, Info, Map as MapIcon, ShieldAlert, X } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { RELATION_META, type IncidentDetail, type Metric, type RelationType } from "../../lib/api";
 import { compareIncident } from "../../lib/compare";
@@ -26,6 +26,8 @@ type Tab = "brief" | "exposure" | "satellite" | "links" | "timeline" | "sources"
 export function IncidentPanel({ id }: { id: string }) {
   const q = useIncident(id);
   const select = useUi((st) => st.select);
+  const pinned = useUi((st) => st.pinned);
+  const togglePin = useUi((st) => st.togglePin);
   const [tab, setTab] = useState<Tab>("brief");
   const d = q.data;
 
@@ -87,6 +89,9 @@ export function IncidentPanel({ id }: { id: string }) {
               <Eye size={13} /> Watch area
             </button>
           ) : null}
+          <button type="button" className={cx(s.action, pinned.includes(d.id) && s.actionOn)} onClick={() => togglePin(d.id)} aria-pressed={pinned.includes(d.id)} title="Pin to compare side by side (up to 3)">
+            <Pin size={13} /> {pinned.includes(d.id) ? "Pinned" : "Pin"}
+          </button>
           <ExportMenu d={d} />
           <CopyId id={d.id} />
         </div>

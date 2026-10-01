@@ -10,6 +10,8 @@ import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/
 import { CommandPalette } from "../features/command/CommandPalette";
 import { CompareTool } from "../features/compare/CompareTool";
 import { SimulationLab } from "../features/simulation/SimulationLab";
+import { StoryPlayer } from "../features/story/StoryPlayer";
+import { CompareTray, IncidentComparison } from "../features/comparison/IncidentComparison";
 import { WatchPanel } from "../features/watch/WatchPanel";
 import { useWatchAlerts } from "../lib/useWatchAlerts";
 import { useWatch } from "../lib/watch";
@@ -82,7 +84,9 @@ export function Shell() {
       }
       if (typing || ui.paletteOpen) return;
       if (e.key === "Escape") {
-        if (ui.assistantOpen) ui.closeAssistant();
+        if (ui.comparingIncidents) ui.setComparingIncidents(false);
+        else if (ui.story) ui.setStory(null);
+        else if (ui.assistantOpen) ui.closeAssistant();
         else if (ui.groundPick) ui.setGroundPick(null);
         else if (ui.simulation) ui.setSimulation(null);
         else if (ui.compare) ui.setCompare(null);
@@ -181,6 +185,11 @@ export function Shell() {
 
       <CompareTool />
       <SimulationLab />
+      <AnimatePresence>
+        <StoryPlayer key="story" incidents={incidents} />
+      </AnimatePresence>
+      <CompareTray incidents={incidents} />
+      <IncidentComparison />
       <PlaybackBanner />
       <MapControls />
       <Attribution />

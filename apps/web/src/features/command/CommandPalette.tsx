@@ -11,6 +11,7 @@ import {
   Database,
   Download,
   Eye,
+  Film,
   FlaskConical,
   Globe2,
   History,
@@ -142,6 +143,14 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
           if (inc) compareIncident(inc);
           else compareView();
         }),
+      },
+      {
+        id: "story",
+        section: "View",
+        label: "Story: tour the planet right now",
+        icon: <Film size={15} />,
+        keywords: "tour narrate presentation guided highlights play",
+        run: done(() => ui.setStory({ index: 0, playing: true })),
       },
       {
         id: "watch",

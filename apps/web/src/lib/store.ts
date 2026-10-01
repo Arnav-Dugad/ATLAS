@@ -138,6 +138,10 @@ interface UiState {
   assistantOpen: boolean;
   assistantSeed: string;
   simulation: SimulationState | null;
+  story: { index: number; playing: boolean } | null;
+  /** incident ids pinned for side-by-side comparison (max 3) */
+  pinned: string[];
+  comparingIncidents: boolean;
   /** waiting for a click on the globe to place something (the scenario epicentre) */
   groundPick: "simulation" | "watch" | null;
 
@@ -175,6 +179,10 @@ interface UiState {
   setRasterOverlay: (o: RasterOverlay | null) => void;
   openAssistant: (seed?: string) => void;
   setSimulation: (s: SimulationState | null) => void;
+  setStory: (s: { index: number; playing: boolean } | null) => void;
+  togglePin: (id: string) => void;
+  clearPins: () => void;
+  setComparingIncidents: (on: boolean) => void;
   patchSimulation: (p: Partial<SimulationState>) => void;
   setGroundPick: (p: "simulation" | "watch" | null) => void;
   closeAssistant: () => void;
@@ -222,6 +230,9 @@ export const useUi = create<UiState>()(
       assistantSeed: "",
       simulation: null,
       groundPick: null,
+      story: null,
+      pinned: [],
+      comparingIncidents: false,
 
       setView: (view) => set({ view }),
       select: (selectedId) =>
@@ -263,6 +274,11 @@ export const useUi = create<UiState>()(
       setRasterOverlay: (rasterOverlay) => set({ rasterOverlay }),
       setSimulation: (simulation) =>
         set((s) => ({ simulation, groundPick: simulation ? s.groundPick : null, autoRotate: simulation ? false : s.autoRotate, compare: simulation ? null : s.compare })),
+      setStory: (story) =>
+        set((s) => ({ story, autoRotate: story ? false : s.autoRotate, compare: story ? null : s.compare, simulation: story ? null : s.simulation })),
+      togglePin: (id) => set((s) => ({ pinned: s.pinned.includes(id) ? s.pinned.filter((x) => x !== id) : [...s.pinned, id].slice(-3) })),
+      clearPins: () => set({ pinned: [], comparingIncidents: false }),
+      setComparingIncidents: (comparingIncidents) => set({ comparingIncidents }),
       patchSimulation: (p) => set((s) => (s.simulation ? { simulation: { ...s.simulation, ...p } } : {})),
       setGroundPick: (groundPick) => set({ groundPick }),
       openAssistant: (seed = "") => set({ assistantOpen: true, assistantSeed: seed, paletteOpen: false }),
@@ -282,6 +298,7 @@ export const useUi = create<UiState>()(
         sort: s.sort,
         speed: s.speed,
         exaggeration: s.exaggeration,
+        pinned: s.pinned,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<UiState>;
