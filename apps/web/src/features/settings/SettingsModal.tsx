@@ -20,6 +20,7 @@ import {
   Info,
   KeyRound,
   LoaderCircle,
+  MonitorCog,
   Palette,
   Trash,
   X,
@@ -27,11 +28,13 @@ import {
 import { motion } from "motion/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { api, ApiError, type AppSettings, type CredentialName, type CredentialTest, type PackStatus, type PackTask } from "../../lib/api";
+import { NATIVE, pickFolder } from "../../lib/desktop";
 import { relTime } from "../../lib/format";
 import { gpuInfo } from "../../lib/media";
 import { isIntegratedGpu, QUALITY, type QualityChoice, resolveQuality, type SettingsSection, type Surface, useSettings } from "../../lib/settings";
 import { useUi } from "../../lib/store";
 import { cx, Toggle } from "../../ui/primitives";
+import { AppSection } from "./AppSection";
 import s from "./SettingsModal.module.css";
 
 const SECTIONS: { id: SettingsSection; label: string; icon: ReactNode }[] = [
@@ -39,6 +42,7 @@ const SECTIONS: { id: SettingsSection; label: string; icon: ReactNode }[] = [
   { id: "packs", label: "Data packs", icon: <Database size={15} /> },
   { id: "appearance", label: "Appearance", icon: <Palette size={15} /> },
   { id: "graphics", label: "Graphics", icon: <Cpu size={15} /> },
+  { id: "app", label: "App", icon: <MonitorCog size={15} /> },
   { id: "about", label: "About & storage", icon: <Info size={15} /> },
 ];
 
@@ -149,6 +153,7 @@ export function SettingsModal() {
             {section === "packs" ? <PacksSection data={q.data} /> : null}
             {section === "appearance" ? <AppearanceSection /> : null}
             {section === "graphics" ? <GraphicsSection /> : null}
+            {section === "app" ? <AppSection data={q.data} /> : null}
             {section === "about" ? <AboutSection data={q.data} /> : null}
           </div>
         </div>
@@ -528,8 +533,24 @@ function PackCard({ pack }: { pack: PackStatus }) {
                 aria-label={`Folder to import the ${pack.title} from`}
               />
             </div>
+            {NATIVE ? (
+              <button
+                type="button"
+                className={s.btn}
+                onClick={() =>
+                  void pickFolder(`Choose the folder that holds the ${pack.title}`).then((dir) => {
+                    if (dir) {
+                      setPath(dir);
+                      run.mutate({ import: dir });
+                    }
+                  })
+                }
+              >
+                <FolderInput size={14} /> Choose folder…
+              </button>
+            ) : null}
             <button type="submit" className={s.btn} disabled={!path.trim()}>
-              <FolderInput size={14} /> Import
+              Import
             </button>
           </form>
         </>

@@ -9,7 +9,11 @@ keys or start downloads. Secret values are never returned, only whether one is s
 from __future__ import annotations
 
 import asyncio
+import json
+import platform
+import sys
 import time
+import zipfile
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -20,8 +24,10 @@ from pydantic import BaseModel, Field
 from atlas import __version__
 from atlas.credentials import SPECS, CredentialStore, hint, validate
 from atlas.http.client import FetchError
+from atlas.observability import log_buffer, metrics
 from atlas.packs import PACKS
 from atlas.runtime import Runtime
+from atlas.util.timeutil import iso_z, utcnow
 
 router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
 
@@ -205,3 +211,41 @@ async def remove_pack(request: Request, pack_id: str) -> dict[str, Any]:
     removed = await asyncio.to_thread(r.remove_pack, pack_id)
     _CANDIDATES.pop(pack_id, None)
     return {"removed": removed, "packs": await _packs(r)}
+
+
+def _diagnostics(r: Runtime, view: dict[str, Any]) -> Path:
+    """Zip what helps diagnose a problem. Never credentials.json, keys or the database."""
+    out_dir = r.settings.data_dir / "diagnostics"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stamp = utcnow().strftime("%Y%m%d-%H%M%S")
+    path = out_dir / f"atlas-diagnostics-{stamp}.zip"
+    about = {
+        "generated_at": iso_z(utcnow()),
+        "engine_version": __version__,
+        "python": sys.version,
+        "platform": platform.platform(),
+        "settings": view,
+        "connectors": {cid: {"enabled": ok, "reason": why} for cid, (ok, why) in r.availability().items()},
+        "jobs": [j.snapshot() for j in r.scheduler.jobs.values()],
+        "metrics": metrics.snapshot(),
+        "db_bytes": r.db.size_bytes(),
+        "cache_bytes": r.cache.total_bytes(),
+    }
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("about.json", json.dumps(about, indent=2, default=str))
+        zf.writestr("recent-log.json", json.dumps(list(log_buffer.records), indent=1, default=str))
+        logs = r.settings.data_dir / "logs"
+        if logs.is_dir():
+            for f in sorted(logs.glob("engine.log*")):
+                zf.write(f, f"logs/{f.name}")
+    for old in sorted(out_dir.glob("atlas-diagnostics-*.zip"))[:-5]:  # keep the last five
+        old.unlink(missing_ok=True)
+    return path
+
+
+@router.post("/diagnostics")
+async def export_diagnostics(request: Request) -> dict[str, Any]:
+    r = guard(request)
+    view = {"credentials": _credentials(r), "packs": [{k: v for k, v in p.items() if k != "candidates"} for p in await _packs(r)]}
+    path = await asyncio.to_thread(_diagnostics, r, view)
+    return {"path": str(path), "bytes": path.stat().st_size}

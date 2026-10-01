@@ -7,7 +7,8 @@ import "./styles/base.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ApiError, STATIC_MODE } from "./lib/api";
+import { ApiError, DESKTOP, setApiBase, STATIC_MODE } from "./lib/api";
+import { engineUrl } from "./lib/desktop";
 import { Shell } from "./app/Shell";
 
 const client = new QueryClient({
@@ -35,10 +36,18 @@ if (import.meta.env.PROD && "serviceWorker" in navigator && (location.protocol =
   });
 }
 
-createRoot(root).render(
-  <StrictMode>
-    <QueryClientProvider client={client}>
-      <Shell />
-    </QueryClientProvider>
-  </StrictMode>,
-);
+async function boot(el: HTMLElement) {
+  if (DESKTOP) {
+    const url = await engineUrl(); // the Windows app picks a free port when 8787 is taken
+    if (url) setApiBase(url);
+  }
+  createRoot(el).render(
+    <StrictMode>
+      <QueryClientProvider client={client}>
+        <Shell />
+      </QueryClientProvider>
+    </StrictMode>,
+  );
+}
+
+void boot(root);

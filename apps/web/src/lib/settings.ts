@@ -11,7 +11,7 @@ export type Surface = "solid" | "glass";
 export type Quality = "saver" | "balanced" | "high";
 /** "auto" picks from the graphics processor: High on a dedicated GPU, Battery saver on integrated graphics. */
 export type QualityChoice = "auto" | Quality;
-export type SettingsSection = "sources" | "packs" | "appearance" | "graphics" | "about";
+export type SettingsSection = "sources" | "packs" | "appearance" | "graphics" | "app" | "about";
 
 export interface QualityProfile {
   label: string;

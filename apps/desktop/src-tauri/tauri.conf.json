@@ -30,7 +30,31 @@
     "shortDescription": "Open planetary disaster intelligence, running on your computer.",
     "longDescription": "ATLAS ingests authoritative open disaster and Earth-observation data, correlates it into incidents and renders it on a live 3D Earth. The engine runs locally; no account, no keys, no telemetry. Not an official warning service.",
     "copyright": "Apache-2.0 — data remains under each provider's licence",
-    "externalBin": ["binaries/atlas-engine"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+    "externalBin": [
+      "binaries/atlas-engine"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYwRjBFMzkyNDYxMzc5MzkKUldRNWVSTkdrdVB3WUdsWGgvOXBMRXhtY2FpV2JMTjZ0a2ZXYzY1ZnRtdnRMR1RYWVdYTnB0NHgK",
+      "endpoints": [
+        "https://github.com/Arnav-Dugad/ATLAS/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    },
+    "deep-link": {
+      "desktop": {
+        "schemes": []
+      }
+    }
   }
 }

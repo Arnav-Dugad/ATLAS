@@ -24,6 +24,22 @@ const MIME: Record<string, string> = {
   ".xml": "application/xml",
 };
 
+/**
+ * Desktop builds: the engine may run on a port other than 8787 (the app picks a free one), and
+ * the app talks to its native side over Tauri's IPC. The website's CSP is left untouched.
+ */
+function desktopCsp(): Plugin {
+  return {
+    name: "atlas-desktop-csp",
+    transformIndexHtml(html) {
+      if (process.env.VITE_ATLAS_DESKTOP !== "1") return html;
+      return html
+        .replaceAll("http://127.0.0.1:8787 http://localhost:8787", "http://127.0.0.1:* http://localhost:*")
+        .replace("connect-src 'self'", "connect-src 'self' ipc: http://ipc.localhost");
+    },
+  };
+}
+
 /** Serves CesiumJS's static assets in dev and copies them into the build — no extra dependency. */
 function cesiumAssets(): Plugin {
   let outDir = "dist";
@@ -55,7 +71,7 @@ export default defineConfig({
   define: {
     CESIUM_BASE_URL: JSON.stringify(`${base}cesium`),
   },
-  plugins: [react(), cesiumAssets()],
+  plugins: [react(), cesiumAssets(), desktopCsp()],
   server: {
     port: 5173,
     strictPort: true,

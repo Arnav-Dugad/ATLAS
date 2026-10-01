@@ -10,6 +10,7 @@ import { useSettings } from "../lib/settings";
 import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
+import { useNativeIntents } from "../lib/useNativeIntents";
 import { useWatchAlerts } from "../lib/useWatchAlerts";
 import { useWatch } from "../lib/watch";
 import { IncidentFeed } from "../features/feed/IncidentFeed";
@@ -56,6 +57,7 @@ export function Shell() {
   const phone = useMediaQuery(PHONE_QUERY);
   const webgl = useMemo(() => supportsWebGL(), []);
   useWatchAlerts(incidents);
+  useNativeIntents();
 
   useEffect(() => connectLive(client), [client]);
 

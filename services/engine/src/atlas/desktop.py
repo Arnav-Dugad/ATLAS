@@ -162,6 +162,19 @@ def watch_app(on_exit: Callable[[], None] = stop_engine) -> list[threading.Threa
     return threads
 
 
+def log_to_file(path: Path) -> None:
+    """A small rotating log next to the data (the app has no console); used by Diagnostics."""
+    from logging.handlers import RotatingFileHandler
+
+    from atlas.observability import configure_logging
+
+    configure_logging()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handler = RotatingFileHandler(path, maxBytes=1_000_000, backupCount=2, encoding="utf-8")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-7s %(name)s · %(message)s"))
+    logging.getLogger("atlas").addHandler(handler)
+
+
 def main() -> int:
     bundle = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[4]))
     configure_environment(bundle)
@@ -169,7 +182,9 @@ def main() -> int:
 
     from atlas.credentials import CredentialStore
 
-    CredentialStore(Path(os.environ["ATLAS_DATA_DIR"])).apply_to_environment()  # keys saved in Settings
+    data_dir = Path(os.environ["ATLAS_DATA_DIR"])
+    CredentialStore(data_dir).apply_to_environment()  # keys saved in Settings
+    log_to_file(data_dir / "logs" / "engine.log")
 
     from atlas.cli import main as cli
     from atlas.config import get_settings

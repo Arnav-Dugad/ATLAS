@@ -200,3 +200,18 @@ def test_windows_data_moves_out_of_the_install_folder(tmp_path: Path) -> None:
     assert (old / "atlas-desktop.exe").exists(), "program files stay where the installer put them"
     assert not (old / "atlas.duckdb").exists()
     assert desktop.migrate_legacy_data(new, old) == new  # idempotent
+
+
+def test_diagnostics_never_contain_keys(app_client: TestClient, tmp_path: Path) -> None:
+    import zipfile
+
+    app_client.put("/api/v1/settings/credentials/openaq_api_key", json={"value": KEY}, headers=APP)
+    res = app_client.post("/api/v1/settings/diagnostics", headers=APP)
+    assert res.status_code == 200
+    path = Path(res.json()["path"])
+    assert path.parent == tmp_path / "diagnostics" and path.exists()
+    with zipfile.ZipFile(path) as zf:
+        names = zf.namelist()
+        blob = b"".join(zf.read(n) for n in names)
+    assert "about.json" in names and not any("credentials" in n for n in names)
+    assert KEY.encode() not in blob

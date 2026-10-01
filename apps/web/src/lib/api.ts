@@ -430,9 +430,14 @@ export const ENGINE_HINT: string = DESKTOP
   ? "ATLAS's built-in engine is starting or has stopped. This view reloads by itself when it is back; restart ATLAS if it doesn't."
   : "Start the ATLAS engine with `pnpm dev`. This view reloads by itself when the engine is back.";
 
-export const API_BASE: string = STATIC_MODE
+export let API_BASE: string = STATIC_MODE
   ? `${import.meta.env.BASE_URL}snapshot`
   : ((import.meta.env.VITE_ATLAS_API as string | undefined) ?? "");
+
+/** The Windows app's engine may run on another port when 8787 is taken; set before first render. */
+export function setApiBase(url: string): void {
+  API_BASE = url.replace(/\/$/, "");
+}
 
 export const LOCAL_ONLY_MESSAGE =
   "Available when you run ATLAS locally. This public page is a static snapshot refreshed every few hours.";
@@ -719,6 +724,7 @@ export const api = {
       body: JSON.stringify({ path }),
     }),
   removePack: (id: string) => request<{ removed: boolean }>(`/api/v1/settings/packs/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  exportDiagnostics: () => request<{ path: string; bytes: number }>("/api/v1/settings/diagnostics", { method: "POST" }),
   knowledge: (id: string, at?: string, signal?: AbortSignal) =>
     request<KnowledgeSnapshot>(`/api/v1/incidents/${encodeURIComponent(id)}/knowledge${qs({ at })}`, { signal }),
   changes: (params: { since?: string; min_significance?: number; limit?: number }, signal?: AbortSignal) =>

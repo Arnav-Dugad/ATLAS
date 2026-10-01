@@ -7,6 +7,7 @@ import { Bell, BellOff, Crosshair, Eye, MapPin, Plus, Trash2, X } from "lucide-r
 import { useEffect, useState } from "react";
 import { globeRef } from "../../globe/ref";
 import type { IncidentSummary } from "../../lib/api";
+import { ensureNotificationPermission } from "../../lib/desktop";
 import { focusIncident, focusPoint } from "../../lib/focus";
 import { coord } from "../../lib/format";
 import { HAZARDS, type HazardId } from "../../lib/hazards";
@@ -85,10 +86,7 @@ function Draft({ at, incidents, onDone }: { at: { lat: number; lon: number }; in
   }, [at, radius]);
 
   const save = async () => {
-    let allowed = notify;
-    if (notify && "Notification" in window && Notification.permission !== "granted") {
-      allowed = (await Notification.requestPermission()) === "granted";
-    }
+    const allowed = notify ? await ensureNotificationPermission() : false;
     add({ name: name.trim() || "Watched area", lat: at.lat, lon: at.lon, radius_km: radius, hazards, minSeverity, notify: allowed });
     onDone();
   };
@@ -155,8 +153,8 @@ function WatchRow({ w, incidents }: { w: Watch; incidents: IncidentSummary[] }) 
   const [expanded, setExpanded] = useState(false);
   const found = matches(w, incidents);
   const toggleNotify = async () => {
-    if (!w.notify && "Notification" in window && Notification.permission !== "granted") {
-      if ((await Notification.requestPermission()) !== "granted") return;
+    if (!w.notify) {
+      if (!(await ensureNotificationPermission())) return;
     }
     update(w.id, { notify: !w.notify });
   };

@@ -12,8 +12,25 @@
         "center": true,
         "maximized": true,
         "backgroundColor": "#05070a",
-        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --force_high_performance_gpu"
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --force_high_performance_gpu",
+        "visible": false
       }
     ]
+  },
+  "bundle": {
+    "externalBin": null,
+    "resources": [
+      "engine/**/*"
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "atlas"
+        ]
+      }
+    }
   }
 }

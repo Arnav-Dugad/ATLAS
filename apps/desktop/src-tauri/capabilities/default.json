@@ -1,7 +1,20 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window gets core window permissions only; the web interface has no shell access.",
-  "windows": ["main"],
-  "permissions": ["core:default"]
+  "description": "The main window: core window APIs plus the app's own plugins (notifications, folder picker, links in the browser, start with Windows, updates). No shell or file-system access.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "notification:default",
+    "dialog:allow-open",
+    "opener:default",
+    "opener:allow-reveal-item-in-dir",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
+    "updater:default",
+    "process:allow-restart"
+  ]
 }
