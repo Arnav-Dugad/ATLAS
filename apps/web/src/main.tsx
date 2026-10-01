@@ -23,6 +23,13 @@ const client = new QueryClient({
 const root = document.getElementById("root");
 if (!root) throw new Error("#root missing");
 
+// Installable app + last data readable offline (production builds only; never intercepts /api).
+if (import.meta.env.PROD && "serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
+  });
+}
+
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={client}>
