@@ -1,0 +1,85 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "atlas-engine"
+version = "0.1.0"
+description = "ATLAS planetary intelligence engine: ingestion, normalization, correlation and geospatial analytics."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "ATLAS contributors" }]
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "pydantic>=2.9",
+  "pydantic-settings>=2.6",
+  "httpx>=0.27",
+  "duckdb>=1.1",
+  "shapely>=2.0",
+  "h3>=4.1",
+  "numpy>=2.0",
+  "orjson>=3.10",
+  "sse-starlette>=2.1",
+  "defusedxml>=0.7",
+  "rapidfuzz>=3.10",
+  "pyarrow>=17",
+]
+
+[project.optional-dependencies]
+raster = ["rasterio>=1.4"]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "respx>=0.21",
+  "ruff>=0.7",
+  "mypy>=1.13",
+]
+
+[project.scripts]
+atlas = "atlas.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/atlas"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error::DeprecationWarning:atlas.*"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF", "ASYNC", "PTH", "N"]
+ignore = [
+  "RUF001", "RUF002", "RUF003",  # intentional typographic symbols (arrows, >=, superscripts) in user-facing text
+  "RUF028", # fmt: skip placement on wrapped statements
+  "SIM105", # explicit try/except/pass reads clearer around DB cleanup
+  "S101",   # assert is fine in tests
+  "S608",   # SQL is built from validated identifiers only; values are always bound
+  "RUF012",
+  "E501",   # line length is managed by `ruff format`; fmt:skip blocks hold intentional tables
+  "S311",   # `random` is used only for retry/backoff jitter, never for security
+  "N818",   # exception names describe the condition (ResponseTooLarge)
+  "B027",   # optional no-op lifecycle hooks on connector base class are intentional
+  "SIM102", "SIM108",  # nested conditions kept where they mirror the documented decision order
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "PTH", "E402"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["h3.*", "shapely.*", "duckdb.*", "defusedxml.*", "rasterio.*", "sse_starlette.*", "rapidfuzz.*", "pyarrow.*"]
+ignore_missing_imports = true
