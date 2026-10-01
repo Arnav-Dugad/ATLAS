@@ -78,6 +78,26 @@ export function useWeather(id: string | null, enabled = true) {
   });
 }
 
+export function usePopulationExposure(id: string | null) {
+  return useQuery({
+    queryKey: ["exposure", "population", id ?? "none"],
+    queryFn: ({ signal }) => api.population(id as string, signal),
+    enabled: Boolean(id),
+    staleTime: 10 * 60_000,
+  });
+}
+
+/** OpenStreetMap scan is user-initiated (public Overpass is a shared, rate-limited service). */
+export function useInfrastructureExposure(id: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["exposure", "infrastructure", id ?? "none"],
+    queryFn: ({ signal }) => api.infrastructure(id as string, signal),
+    enabled: Boolean(id) && enabled,
+    staleTime: 24 * 3600_000,
+    retry: 0,
+  });
+}
+
 export function useKnowledge(id: string | null, at?: string) {
   return useQuery({
     queryKey: qk.knowledge(id ?? "none", at),

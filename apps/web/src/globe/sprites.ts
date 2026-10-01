@@ -151,3 +151,31 @@ export function dotSprite(color: string): HTMLCanvasElement {
   cache.set(key, c);
   return c;
 }
+
+/** Infrastructure facility marker: rounded tile, accent ring, white glyph. */
+export function facilitySprite(glyph: string): HTMLCanvasElement {
+  const key = `fac:${glyph}`;
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const size = 30;
+  const [c, ctx] = canvas(size);
+  const r = 8;
+  ctx.beginPath();
+  ctx.roundRect(3, 3, size - 6, size - 6, r);
+  ctx.fillStyle = "rgba(8, 14, 22, 0.92)";
+  ctx.fill();
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = "rgba(156, 201, 255, 0.9)";
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(7, 7);
+  ctx.scale(16 / 24, 16 / 24);
+  ctx.lineWidth = 2.2;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#e8ecf2";
+  ctx.stroke(new Path2D(glyph));
+  ctx.restore();
+  cache.set(key, c);
+  return c;
+}

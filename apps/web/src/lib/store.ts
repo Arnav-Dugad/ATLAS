@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { Facility } from "./api";
 import type { HazardId } from "./hazards";
 
 export type TimeWindow = "1h" | "24h" | "7d" | "30d";
@@ -87,6 +88,7 @@ interface UiState {
   autoRotate: boolean;
   fly: FlyRequest | null;
   workspace: boolean;
+  facilities: Facility[];
 
   setView: (v: View) => void;
   select: (id: string | null, opts?: { fly?: boolean }) => void;
@@ -110,6 +112,7 @@ interface UiState {
   setAutoRotate: (on: boolean) => void;
   flyTo: (req: Omit<FlyRequest, "id">) => void;
   setWorkspace: (on: boolean) => void;
+  setFacilities: (f: Facility[]) => void;
 }
 
 function yesterdayUtc(): string {
@@ -142,6 +145,7 @@ export const useUi = create<UiState>()(
       autoRotate: true,
       fly: null,
       workspace: false,
+      facilities: [],
 
       setView: (view) => set({ view }),
       select: (selectedId) => set((s) => ({ selectedId, autoRotate: selectedId ? false : s.autoRotate, workspace: selectedId ? s.workspace : false })),
@@ -166,6 +170,7 @@ export const useUi = create<UiState>()(
       setAutoRotate: (autoRotate) => set({ autoRotate }),
       flyTo: (req) => set({ fly: { ...req, id: ++flySeq }, autoRotate: false }),
       setWorkspace: (workspace) => set({ workspace }),
+      setFacilities: (facilities) => set({ facilities }),
     }),
     {
       name: "atlas.ui.v1",

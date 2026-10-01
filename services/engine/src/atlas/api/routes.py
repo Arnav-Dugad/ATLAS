@@ -20,9 +20,11 @@ from atlas.api.schemas import (
 )
 from atlas.api.service import QueryService
 from atlas.engine import context as context_engine
+from atlas.engine import exposure
 from atlas.engine import query as query_engine
 from atlas.engine.fires import fire_grid
 from atlas.http.client import FetchError
+from atlas.models import Hazard
 from atlas.observability import log_buffer, metrics
 from atlas.runtime import Runtime
 from atlas.util.timeutil import iso_z, parse_iso, utcnow
@@ -161,6 +163,40 @@ async def incident_weather(request: Request, incident_id: str) -> dict[str, Any]
         return await context_engine.weather(r.http, row[0], row[1])
     except FetchError as exc:
         raise HTTPException(503, {"code": "source_unavailable", "source": "open-meteo", "message": str(exc)}) from exc
+
+
+def _incident_point(r: Runtime, incident_id: str) -> tuple[Hazard, float, float]:
+    with r.db.read() as cur:
+        row = cur.execute("SELECT hazard, lat, lon FROM incidents WHERE id = ?", [incident_id]).fetchone()
+    if row is None or row[1] is None:
+        raise HTTPException(404, "incident not found or has no location")
+    return Hazard(row[0]), float(row[1]), float(row[2])
+
+
+@router.get("/incidents/{incident_id}/exposure/population")
+async def incident_population(request: Request, incident_id: str) -> dict[str, Any]:
+    """People living within distance rings (GHSL 2025). Milliseconds; requires the Population Pack."""
+    r = rt(request)
+    hazard, lat, lon = _incident_point(r, incident_id)
+    return await asyncio.to_thread(exposure.population_exposure, r.population, hazard, lat, lon)
+
+
+@router.get("/incidents/{incident_id}/exposure/infrastructure")
+async def incident_infrastructure(request: Request, incident_id: str) -> dict[str, Any]:
+    """Mapped facilities within distance rings (OpenStreetMap via Overpass; cached 24 h)."""
+    r = rt(request)
+    hazard, lat, lon = _incident_point(r, incident_id)
+    return await exposure.infrastructure_exposure(r.http, hazard, lat, lon)
+
+
+@router.post("/packs/reload")
+async def packs_reload(request: Request) -> dict[str, Any]:
+    """Re-open optional packs after installation and recompute open incidents."""
+    r = rt(request)
+    available = r.reload_population()
+    if available:
+        await asyncio.to_thread(r.pipeline.sweep)
+    return {"population": available, "packs": r.packs.status()}
 
 
 @router.get("/incidents/{incident_id}/knowledge")
@@ -362,7 +398,7 @@ def countries(request: Request, response: Response, res: str = "110m") -> Respon
 async def search(request: Request, q: Annotated[str, Query(min_length=1, max_length=200)]) -> dict[str, Any]:
     r = rt(request)
     now = utcnow()
-    parsed = query_engine.parse(q, r.geocoder, now)
+    parsed = query_engine.parse(q, r.geocoder, now, population_available=r.population is not None)
     places = r.geocoder.search(q, limit=6)
     countries = r.geocoder.search_countries(q, limit=3)
     s = svc(request)
@@ -383,6 +419,15 @@ async def search(request: Request, q: Annotated[str, Query(min_length=1, max_len
                 for i in items
                 if any(
                     m.key == "magnitude" and isinstance(m.value, (int, float)) and m.value >= parsed.min_magnitude
+                    for m in i.headline
+                )
+            ]
+        if parsed.min_population is not None:
+            items = [
+                i
+                for i in items
+                if any(
+                    m.key == "population_ring" and isinstance(m.value, (int, float)) and m.value >= parsed.min_population
                     for m in i.headline
                 )
             ]

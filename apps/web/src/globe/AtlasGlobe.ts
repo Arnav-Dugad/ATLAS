@@ -41,17 +41,18 @@ import {
   type PointPrimitive,
   type Polyline,
 } from "cesium";
-import type { Columnar, FireClusterFeature, IncidentDetail, IncidentSummary } from "../lib/api";
-import { hazardMeta, severityColor } from "../lib/hazards";
+import type { Columnar, Facility, FireClusterFeature, IncidentDetail, IncidentSummary } from "../lib/api";
+import { EXPOSURE_RINGS_KM, FACILITY_META, hazardMeta, severityColor, type FacilityKey, type HazardId } from "../lib/hazards";
 import type { FlyRequest, LayerId } from "../lib/store";
 import { BASE, BASE_FALLBACK, NIGHT_LIGHTS, OVERLAYS, overlayDate, type ImageryDef } from "./imagery";
-import { incidentSprite, reticleSprite, ringSprite } from "./sprites";
+import { facilitySprite, incidentSprite, reticleSprite, ringSprite } from "./sprites";
 
 export type PickTarget =
   | { kind: "incident"; id: string }
   | { kind: "quake"; index: number }
   | { kind: "fire"; index: number; source: "grid" | "detail" }
-  | { kind: "cluster"; id: string };
+  | { kind: "cluster"; id: string }
+  | { kind: "facility"; index: number };
 
 export interface HoverInfo {
   target: PickTarget;
@@ -95,6 +96,9 @@ export class AtlasGlobe {
   private borders = new PolylineCollection();
   private tracks = new PolylineCollection();
   private focusLines = new PolylineCollection();
+  private ringLabels = new LabelCollection();
+  private facilityMarkers = new BillboardCollection();
+  facilityData: Facility[] = [];
   private focusFill: GroundPrimitive | null = null;
   private trackFill: GroundPrimitive | null = null;
   private overlays = new Map<string, ImageryLayer>();
@@ -182,6 +186,8 @@ export class AtlasGlobe {
       this.quakes,
       this.tracks,
       this.focusLines,
+      this.ringLabels,
+      this.facilityMarkers,
       this.pulses,
       this.incidents,
       this.reticle,
@@ -656,6 +662,7 @@ export class AtlasGlobe {
   // -- focus geometry for the selected incident ----------------------------------------
   setFocus(detail: IncidentDetail | null) {
     this.focusLines.removeAll();
+    this.ringLabels.removeAll();
     if (this.focusFill) {
       this.widget.scene.primitives.remove(this.focusFill);
       this.focusFill = null;
@@ -697,15 +704,36 @@ export class AtlasGlobe {
         }
       }
     }
-    // Distance rings for point hazards: a reference scale, not an impact footprint.
-    if (detail.hazard === "earthquake" || detail.hazard === "volcano") {
-      for (const km of [25, 50, 100, 250]) {
+    // Exposure rings (same radii as the Exposure tab): a distance reference, not an impact footprint.
+    this.ringLabels.removeAll();
+    const rings = EXPOSURE_RINGS_KM[detail.hazard as HazardId];
+    if (rings && detail.hazard !== "tropical_cyclone") {
+      rings.forEach((km, i) => {
+        const outer = i === rings.length - 1;
         this.focusLines.add({
-          positions: circle(detail.lat, detail.lon, km),
-          width: km === 100 ? 1.4 : 1,
-          material: Material.fromType("PolylineDash", { color: Color.fromCssColorString("#c4e0ff").withAlpha(km === 100 ? 0.55 : 0.32), gapColor: Color.TRANSPARENT, dashLength: 8 }),
+          positions: circle(detail.lat as number, detail.lon as number, km),
+          width: outer ? 1.4 : 1,
+          material: Material.fromType("PolylineDash", {
+            color: Color.fromCssColorString("#c4e0ff").withAlpha(outer ? 0.6 : 0.34),
+            gapColor: Color.TRANSPARENT,
+            dashLength: 8,
+          }),
         });
-      }
+        const north = Cartesian3.fromRadians(...destinationRad(detail.lat as number, detail.lon as number, km), 900);
+        this.ringLabels.add({
+          position: north,
+          text: `${km} km`,
+          font: "500 11px 'IBM Plex Mono', monospace",
+          fillColor: Color.fromCssColorString("#c4e0ff").withAlpha(0.85),
+          outlineColor: Color.fromCssColorString("#04060a").withAlpha(0.9),
+          outlineWidth: 3,
+          style: LabelStyle.FILL_AND_OUTLINE,
+          pixelOffset: new Cartesian2(0, -8),
+          horizontalOrigin: HorizontalOrigin.CENTER,
+          verticalOrigin: VerticalOrigin.BOTTOM,
+          translucencyByDistance: new NearFarScalar(2e5, 1, 4e6, 0),
+        });
+      });
     }
     if (fills.length) {
       this.focusFill = new GroundPrimitive({
@@ -715,6 +743,26 @@ export class AtlasGlobe {
       });
       this.widget.scene.primitives.add(this.focusFill);
     }
+    this.requestRender();
+  }
+
+  // -- facilities (from an OpenStreetMap exposure scan) --------------------------------
+  setFacilities(list: Facility[]) {
+    this.facilityData = list;
+    this.facilityMarkers.removeAll();
+    list.forEach((f, index) => {
+      const meta = FACILITY_META[f.category as FacilityKey];
+      if (!meta) return;
+      this.facilityMarkers.add({
+        position: Cartesian3.fromDegrees(f.lon, f.lat, 300),
+        image: facilitySprite(meta.glyph),
+        scale: 0.9,
+        id: { kind: "facility", index } satisfies PickTarget,
+        scaleByDistance: new NearFarScalar(5e3, 1.15, 8e5, 0.55),
+        translucencyByDistance: new NearFarScalar(4e5, 1, 2.5e6, 0),
+        verticalOrigin: VerticalOrigin.CENTER,
+      });
+    });
     this.requestRender();
   }
 
@@ -789,6 +837,16 @@ export class AtlasGlobe {
     this.handler.destroy();
     if (!this.widget.isDestroyed()) this.widget.destroy();
   }
+}
+
+function destinationRad(lat: number, lon: number, km: number, bearingDeg = 0): [number, number] {
+  const d = (km * 1000) / R_EARTH;
+  const b = CMath.toRadians(bearingDeg);
+  const p1 = CMath.toRadians(lat);
+  const l1 = CMath.toRadians(lon);
+  const p2 = Math.asin(Math.sin(p1) * Math.cos(d) + Math.cos(p1) * Math.sin(d) * Math.cos(b));
+  const l2 = l1 + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(p1), Math.cos(d) - Math.sin(p1) * Math.sin(p2));
+  return [l2, p2];
 }
 
 function liftTo(p: Cartesian3, height: number): Cartesian3 {

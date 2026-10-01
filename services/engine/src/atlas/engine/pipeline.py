@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 
 from atlas.engine.changes import incident_diffs, observation_diffs
 from atlas.engine.correlate import Correlator, IncidentKey
+from atlas.engine.exposure import PopulationGrid
 from atlas.engine.fusion import FusionContext, fuse
 from atlas.engine.geocode import Geocoder
 from atlas.jobs.bus import EventBus
@@ -62,6 +63,7 @@ class IngestPipeline:
         self.registry = registry
         self.bus = bus
         self.snapshots: dict[str, datetime] = {}
+        self.population: PopulationGrid | None = None
 
     def load_snapshots(self) -> None:
         """Restore each complete-snapshot source's latest successful sync time."""
@@ -144,7 +146,7 @@ class IngestPipeline:
                 ).fetchall():
                     affected.setdefault(iid, [])
 
-            ctx = FusionContext(self.geocoder, self.registry, dict(self.snapshots), now)
+            ctx = FusionContext(self.geocoder, self.registry, dict(self.snapshots), now, self.population)
             for inc_id, obs_changes in affected.items():
                 created, inc_changes = self._refuse(cur, inc_id, ctx, obs_changes)
                 if created:
@@ -180,7 +182,7 @@ class IngestPipeline:
         report = IngestReport(source="sweep")
         with self.db.write() as cur:
             ids = [r[0] for r in cur.execute("SELECT id FROM incidents WHERE status <> 'closed'").fetchall()]
-            ctx = FusionContext(self.geocoder, self.registry, dict(self.snapshots), now)
+            ctx = FusionContext(self.geocoder, self.registry, dict(self.snapshots), now, self.population)
             for inc_id in ids:
                 _created, changes = self._refuse(cur, inc_id, ctx, [])
                 if changes:

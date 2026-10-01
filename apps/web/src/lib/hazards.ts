@@ -113,3 +113,32 @@ export const SOURCE_LABELS: Record<string, string> = {
 export function sourceLabel(id: string): string {
   return SOURCE_LABELS[id] ?? id;
 }
+
+/** Infrastructure facility glyphs (24×24), shared by the panel and globe sprites. */
+export const FACILITY_META = {
+  hospital: { label: "Hospital", glyph: "M9.5 3.5h5v6h6v5h-6v6h-5v-6h-6v-5h6z" },
+  fire_station: {
+    label: "Fire station",
+    glyph: "M4 20.5v-10l8-6.5 8 6.5v10z M12 18.2a2.6 2.6 0 0 1-2.6-2.6c0-1.7 2.6-4.3 2.6-4.3s2.6 2.6 2.6 4.3a2.6 2.6 0 0 1-2.6 2.6z",
+  },
+  shelter: { label: "Shelter / assembly point", glyph: "M3 11.5l9-7.5 9 7.5 M5.2 10v10.5h13.6V10 M10 20.5v-6h4v6" },
+  airport: {
+    label: "Airport",
+    glyph: "M21 15.5l-8-4.2V5.2a1.1 1.1 0 0 0-2.2 0v6.1l-7.8 4.2v2.1l7.8-2.2v4.3l-2.1 1.5v1.6l3.2-1 3.2 1v-1.6L13 19.7v-4.3l8 2.2z",
+  },
+  port: { label: "Port / harbour", glyph: "M12 3.6a1.9 1.9 0 1 0 0.001 0z M12 7.4v13.4 M5 13.6a7 7 0 0 0 14 0 M8.2 10.6h7.6" },
+  water: { label: "Water / wastewater works", glyph: "M12 3.2c3.1 4.2 6 7.2 6 11a6 6 0 0 1-12 0c0-3.8 2.9-6.8 6-11z" },
+} as const;
+
+export type FacilityKey = keyof typeof FACILITY_META;
+
+/** Exposure rings per hazard — mirrors the engine's RINGS_KM so map and tables agree. */
+export const EXPOSURE_RINGS_KM: Partial<Record<HazardId, number[]>> = {
+  earthquake: [5, 10, 25, 50],
+  volcano: [5, 10, 25, 50],
+  wildfire: [5, 10, 25],
+  tropical_cyclone: [25, 50, 100],
+  severe_storm: [25, 50, 100],
+  landslide: [5, 10, 25],
+  tsunami: [10, 25, 50],
+};

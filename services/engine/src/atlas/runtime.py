@@ -9,6 +9,7 @@ from typing import Any
 
 from atlas.config import Settings
 from atlas.connectors import CONNECTORS, ConnectorContext, DataConnector, FetchOutcome
+from atlas.engine.exposure import PopulationGrid
 from atlas.engine.fires import FireEngine
 from atlas.engine.geocode import Geocoder
 from atlas.engine.pipeline import IngestPipeline
@@ -47,6 +48,8 @@ class Runtime:
         self.bus = EventBus()
         self.pipeline = IngestPipeline(self.db, self.geocoder, self.registry, self.bus)
         self.pipeline.load_snapshots()
+        self.population: PopulationGrid | None = None
+        self.reload_population()
         self.fires = FireEngine(self.db, settings.fire_window_hours)
         ctx = ConnectorContext(http=self.http, settings=settings, registry=self.registry)
         self.connectors: dict[str, DataConnector] = {c.id: c(ctx) for c in CONNECTORS}
@@ -56,6 +59,14 @@ class Runtime:
     def _load_geocoder(self) -> Geocoder:
         core = self.packs.path("core")
         return Geocoder(core / "countries_50m.geojson", core / "places.geojson", core / "admin1_50m.geojson")
+
+    def reload_population(self) -> bool:
+        """(Re)open the optional GHSL population grid; returns whether it is available."""
+        self.population = PopulationGrid.find(self.packs.path("population-ghsl"))
+        self.pipeline.population = self.population
+        if self.population is not None:
+            log.info("population grid ready: %s", self.population.path.name)
+        return self.population is not None
 
     def reload_geocoder(self) -> None:
         self.geocoder = self._load_geocoder()

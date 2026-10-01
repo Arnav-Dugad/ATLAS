@@ -16,6 +16,7 @@ import asyncio
 import logging
 import random
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
@@ -130,6 +131,7 @@ class HttpClient:
         source_id: str | None = None,
         attempts: int = 3,
         force: bool = False,
+        timeout_s: float | None = None,
     ) -> FetchResult:
         full_url = f"{url}?{urlencode(params)}" if params else url
         self.policy.check(full_url)
@@ -165,7 +167,7 @@ class HttpClient:
             try:
                 async with self._sem(host):
                     await self._space(host)
-                    result = await self._fetch_once(full_url, req_headers, limit, host)
+                    result = await self._fetch_once(full_url, req_headers, limit, host, timeout_s)
                 if result.status == 304 and cached:
                     entry, path = cached
                     entry.fetched_at = utcnow()
@@ -228,9 +230,12 @@ class HttpClient:
         base = min(30.0, 1.5 * (2**attempt))
         return random.uniform(0.25 * base, base)
 
-    async def _fetch_once(self, url: str, headers: dict[str, str], limit: int, host: str) -> FetchResult:
+    async def _fetch_once(
+        self, url: str, headers: dict[str, str], limit: int, host: str, timeout_s: float | None = None
+    ) -> FetchResult:
         t0 = time.perf_counter()
-        async with self._client.stream("GET", url, headers=headers) as resp:
+        timeout = httpx.Timeout(timeout_s, connect=10.0) if timeout_s else httpx.USE_CLIENT_DEFAULT
+        async with self._client.stream("GET", url, headers=headers, timeout=timeout) as resp:
             if resp.status_code in RETRY_STATUSES:
                 err = FetchError(f"HTTP {resp.status_code}", status=resp.status_code, url=url)
                 ra = resp.headers.get("retry-after")
@@ -256,6 +261,50 @@ class HttpClient:
                 content_type=resp.headers.get("content-type"), fetched_at=utcnow(),
                 latency_ms=latency, headers={k.lower(): v for k, v in resp.headers.items()},
             )  # fmt: skip
+
+    async def download(
+        self,
+        url: str,
+        dest: Path,
+        *,
+        max_bytes: int,
+        progress: Callable[[int, int | None], None] | None = None,
+    ) -> tuple[int, str]:
+        """Stream a large file straight to disk (never into memory).
+
+        Writes to ``dest.part`` and renames on success; returns (bytes, sha256). Used for data
+        packs of hundreds of megabytes.
+        """
+        self.policy.check(url)
+        if self.offline:
+            raise FetchError("offline mode: downloads disabled", url=url)
+        import hashlib
+
+        host = (urlsplit(url).hostname or "").lower()
+        part = dest.with_suffix(dest.suffix + ".part")
+        digest = hashlib.sha256()
+        total = 0
+        async with self._sem(host):
+            await self._space(host)
+            async with self._client.stream("GET", url, timeout=httpx.Timeout(60.0, connect=15.0)) as resp:
+                if resp.status_code >= 400:
+                    raise FetchError(f"HTTP {resp.status_code}", status=resp.status_code, url=url)
+                declared = resp.headers.get("content-length")
+                expected = int(declared) if declared and declared.isdigit() else None
+                if expected is not None and expected > max_bytes:
+                    raise ResponseTooLarge(f"declared size {expected} exceeds limit {max_bytes}", url=url)
+                with part.open("wb") as fh:
+                    async for chunk in resp.aiter_bytes(1 << 20):
+                        total += len(chunk)
+                        if total > max_bytes:
+                            raise ResponseTooLarge(f"download exceeded {max_bytes} bytes", url=url)
+                        fh.write(chunk)
+                        digest.update(chunk)
+                        if progress:
+                            progress(total, expected)
+        part.replace(dest)
+        metrics.inc(f"http.bytes.{host}", total)
+        return total, digest.hexdigest()
 
 
 class _Permanent(Exception):

@@ -50,6 +50,7 @@ class ParsedQuery:
     text: str
     hazards: list[str] = field(default_factory=list)
     min_magnitude: float | None = None
+    min_population: int | None = None
     start: datetime | None = None
     end: datetime | None = None
     country_iso3: str | None = None
@@ -71,7 +72,7 @@ class ParsedQuery:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "text": self.text, "hazards": self.hazards, "min_magnitude": self.min_magnitude,
+            "text": self.text, "hazards": self.hazards, "min_magnitude": self.min_magnitude, "min_population": self.min_population,
             "start": self.start.isoformat() + "Z" if self.start else None, "end": self.end.isoformat() + "Z" if self.end else None,
             "country_iso3": self.country_iso3, "country_name": self.country_name, "place": self.place,
             "status": self.status, "sort": self.sort, "unsupported": self.unsupported, "chips": self.chips,
@@ -79,7 +80,16 @@ class ParsedQuery:
         }  # fmt: skip
 
 
-def parse(text: str, geocoder: Geocoder, now: datetime) -> ParsedQuery:
+def _parse_count(number: str, unit: str | None) -> int:
+    value = float(number.replace(",", ""))
+    if unit in ("k", "thousand"):
+        value *= 1_000
+    elif unit in ("m", "million"):
+        value *= 1_000_000
+    return int(value)
+
+
+def parse(text: str, geocoder: Geocoder, now: datetime, *, population_available: bool = False) -> ParsedQuery:
     raw = text.strip()
     t = " " + raw.lower() + " "
     pq = ParsedQuery(text=raw)
@@ -136,9 +146,14 @@ def parse(text: str, geocoder: Geocoder, now: datetime) -> ParsedQuery:
         pq.sort = "recent"
 
     if m := POP_RE.search(t):
-        pq.unsupported.append(
-            "Population-exposure filters need the Population Pack (GHSL). Install it from Storage to enable this filter."
-        )
+        if population_available:
+            pq.min_population = _parse_count(m.group(1), m.group(2))
+            pq.chips.append(f"≥ {pq.min_population:,} people nearby")
+            pq.unsupported.append("Interpreted as residents within each incident's reference radius (GHSL), not people affected.")
+        else:
+            pq.unsupported.append(
+                "Population-exposure filters need the Population Pack (GHSL). Install it from Storage to enable this filter."
+            )
     if m := INFRA_RE.search(t):
         pq.unsupported.append(f"Infrastructure proximity ('{m.group(1)}') is not yet indexed in this version.")
 

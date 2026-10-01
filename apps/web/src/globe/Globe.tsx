@@ -24,6 +24,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const fly = useUi((s) => s.fly);
   const autoRotate = useUi((s) => s.autoRotate);
   const reducedMotion = useUi((s) => s.reducedMotion);
+  const facilities = useUi((s) => s.facilities);
   const appView = useUi((s) => s.view);
 
   // ---- mount ------------------------------------------------------------------------
@@ -67,6 +68,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   }, [globe, layers, imageryDate]);
   useEffect(() => globe?.setIncidents(incidents), [globe, incidents]);
   useEffect(() => globe?.setSelected(selectedId), [globe, selectedId]);
+  useEffect(() => globe?.setFacilities(facilities), [globe, facilities]);
   useEffect(() => globe?.highlight(hoveredId), [globe, hoveredId]);
   useEffect(() => {
     if (globe && fly) globe.fly(fly);
@@ -212,6 +214,18 @@ function HoverCard({ info, globe, incidents }: { info: HoverInfo; globe: AtlasGl
           </div>
         </>
       );
+  } else if (t.kind === "facility") {
+    const f = globe.facilityData[t.index];
+    if (!f) return null;
+    body = (
+      <>
+        <div className={styles.hoverKicker} style={{ color: "var(--accent)" }}>
+          {f.category.replace("_", " ")} · OpenStreetMap
+        </div>
+        <div className={styles.hoverTitle}>{f.name ?? "Unnamed facility"}</div>
+        <div className={styles.hoverMeta}>{f.distance_km.toFixed(1)} km from the incident position</div>
+      </>
+    );
   } else if (t.kind === "cluster") {
     const f = globe.clusterData.get(t.id);
     if (!f) return null;

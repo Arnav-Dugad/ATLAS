@@ -26,6 +26,7 @@ tracks how they change, and renders it all on a real-time 3D Earth.
 - **Change, not replacement.** Magnitude revisions, alert escalations, intensity changes and fire-cluster growth are written to an audit trail. A **Data Time Machine** reconstructs what ATLAS knew at any past instant.
 - **Transparent assessment.** A documented *Severity Scale* and *Confidence Heuristic*, with the basis and every component one click away ([methodology](docs/METHODOLOGY.md)).
 - **Ask in plain language, without AI.** `⌘K` → *"earthquakes above magnitude 6 in Japan during 2024"* is parsed deterministically into filters and answered from the live store or the USGS archive.
+- **Exposure.** People living within distance rings (GHSL 2025 1 km grid, optional pack) and exact per-ring counts of OpenStreetMap hospitals, fire stations, schools, airports, ports, power and water facilities and bridges, with the nearest named facilities on the globe. Descriptive, never "people affected".
 - **Satellite layers.** 13 NASA GIBS overlays: daily true colour, IMERG precipitation, sea-surface temperature, TROPOMI NO₂/SO₂, aerosols, land-surface temperature, MODIS flood, OPERA surface water, NDVI, population density, relief and labels.
 - **A real registry.** Licence, attribution, cadence, latency, limits and live health for every source, plus local observability (job scheduler, latency percentiles, storage, logs).
 
@@ -39,7 +40,12 @@ tracks how they change, and renders it all on a real-time 3D Earth.
 <td><sub><b>Deterministic queries</b> — "M7+ earthquakes in Japan since 2010" → chips + 19 USGS ComCat events, led by the 2011 Tōhoku M9.1.</sub></td>
 </tr>
 <tr>
-<td colspan="2"><img src="docs/assets/health.webp" alt="Engine health: scheduled jobs, upstream and API latency, storage, data packs and logs" /></td>
+<td width="50%"><img src="docs/assets/exposure.webp" alt="Exposure tab: GHSL population rings and OpenStreetMap infrastructure counts around an earthquake in Baghlan, Afghanistan" /></td>
+<td width="50%"><img src="docs/assets/health.webp" alt="Engine health: scheduled jobs, upstream and API latency, storage, data packs and logs" /></td>
+</tr>
+<tr>
+<td><sub><b>Exposure</b> — M5.2 near Baghlan: ~658k people within 25 km (GHSL), mapped hospitals, schools, power and bridges per ring (OpenStreetMap).</sub></td>
+<td><sub><b>Observability</b> — scheduler, upstream/API latency percentiles, storage, data packs and engine logs, all local.</sub></td>
 </tr>
 </table>
 

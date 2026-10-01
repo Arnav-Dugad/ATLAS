@@ -36,6 +36,58 @@ export interface WeatherContext {
   hourly_units: Record<string, string>;
 }
 
+export interface ExposureUnavailable {
+  status: "unavailable";
+  kind: "population" | "infrastructure";
+  provenance: "unavailable";
+  reason: string;
+  action: "install-pack" | "retry" | null;
+}
+
+export interface PopulationExposure {
+  status: "ok";
+  kind: "population";
+  provenance: "model";
+  method: string;
+  dataset: string;
+  source: string;
+  attribution: string;
+  centre: { lat: number; lon: number };
+  rings: { radius_km: number; population: number }[];
+  note: string;
+  computed_at: string;
+}
+
+export interface Facility {
+  category: "hospital" | "fire_station" | "shelter" | "airport" | "port" | "water";
+  name: string | null;
+  lat: number;
+  lon: number;
+  distance_km: number;
+  osm: string;
+  iata?: string | null;
+  beds?: string | null;
+  emergency?: boolean | null;
+}
+
+export interface InfrastructureExposure {
+  status: "ok";
+  kind: "infrastructure";
+  provenance: "derived";
+  method: string;
+  source: string;
+  attribution: string;
+  centre: { lat: number; lon: number };
+  rings_km: number[];
+  categories: { key: string; label: string; counts: number[] }[];
+  facilities: Facility[];
+  facilities_truncated: boolean;
+  note: string;
+  computed_at: string;
+  from_cache?: boolean;
+  fetched_at?: string;
+}
+
 export interface ChangeFeedItem {
   id: number;
   incident_id: string;
@@ -289,6 +341,11 @@ export const api = {
     request<IncidentDetail>(`/api/v1/incidents/${encodeURIComponent(id)}`, { signal }),
   weather: (id: string, signal?: AbortSignal) =>
     request<WeatherContext>(`/api/v1/incidents/${encodeURIComponent(id)}/weather`, { signal }),
+  population: (id: string, signal?: AbortSignal) =>
+    request<PopulationExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/population`, { signal }),
+  infrastructure: (id: string, signal?: AbortSignal) =>
+    request<InfrastructureExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/infrastructure`, { signal }),
+  reloadPacks: () => request<{ population: boolean }>("/api/v1/packs/reload", { method: "POST" }),
   knowledge: (id: string, at?: string, signal?: AbortSignal) =>
     request<KnowledgeSnapshot>(`/api/v1/incidents/${encodeURIComponent(id)}/knowledge${qs({ at })}`, { signal }),
   changes: (params: { since?: string; min_significance?: number; limit?: number }, signal?: AbortSignal) =>

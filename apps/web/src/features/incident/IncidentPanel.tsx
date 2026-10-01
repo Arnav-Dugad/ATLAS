@@ -10,12 +10,13 @@ import { useIncident } from "../../lib/queries";
 import { useUi } from "../../lib/store";
 import { ConfidenceMeter, cx, Dot, ErrorState, HazardGlyph, Label, ProvenanceBadge, SeverityMeter, Skeleton } from "../../ui/primitives";
 import { Chronology } from "./Chronology";
+import { ExposureTab } from "./ExposureTab";
 import { SourceDrawer } from "./SourceDrawer";
 import { WeatherCard } from "./WeatherCard";
 import { TrackChart } from "./TrackChart";
 import s from "./IncidentPanel.module.css";
 
-type Tab = "brief" | "timeline" | "sources" | "context";
+type Tab = "brief" | "exposure" | "timeline" | "sources" | "context";
 
 export function IncidentPanel({ id }: { id: string }) {
   const q = useIncident(id);
@@ -103,6 +104,7 @@ export function IncidentPanel({ id }: { id: string }) {
         {(
           [
             ["brief", "Intelligence"],
+            ["exposure", "Exposure"],
             ["timeline", `Chronology · ${d.changes.length}`],
             ["sources", `Sources · ${d.citations.filter((c) => c.source_id !== "natural-earth").length}`],
             ["context", "Context"],
@@ -119,6 +121,7 @@ export function IncidentPanel({ id }: { id: string }) {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={tab} initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.14 }}>
             {tab === "brief" ? <BriefTab d={d} /> : null}
+            {tab === "exposure" ? <ExposureTab d={d} /> : null}
             {tab === "timeline" ? <Chronology d={d} /> : null}
             {tab === "sources" ? <SourceDrawer d={d} /> : null}
             {tab === "context" ? <ContextTab d={d} /> : null}
@@ -221,15 +224,6 @@ function ContextTab({ d }: { d: IncidentDetail }) {
           ))}
           {d.nearby_places.length === 0 ? <li className={s.dim}>No populated places in the Natural Earth gazetteer within 500 km.</li> : null}
         </ul>
-      </section>
-      <section className={s.unavailable}>
-        <div className={s.unavailableHead}>
-          <ProvenanceBadge kind="unavailable" /> Population & infrastructure exposure
-        </div>
-        <p>
-          Exposure estimates need the optional Population Pack (GHSL 2025, ~484 MB) and OpenStreetMap extracts. ATLAS shows nothing rather than guess. Install
-          the pack from Sources → Storage to enable radius-based population exposure.
-        </p>
       </section>
     </div>
   );

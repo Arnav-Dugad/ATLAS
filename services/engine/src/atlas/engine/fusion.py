@@ -13,6 +13,7 @@ from typing import Any
 
 from atlas.engine import confidence as confidence_engine
 from atlas.engine import severity as severity_engine
+from atlas.engine.exposure import PopulationGrid
 from atlas.engine.geocode import Geocoder
 from atlas.engine.severity import current_wind
 from atlas.models import (
@@ -65,6 +66,20 @@ class FusionContext:
     registry: Registry
     snapshots: dict[str, datetime]  # source -> time of its latest complete snapshot
     now: datetime
+    population: PopulationGrid | None = None
+
+
+# Reference ring for the headline "population within" metric. A descriptive distance, not an
+# impact footprint; the full ring table is available per incident.
+REFERENCE_RING_KM: dict[Hazard, float] = {
+    Hazard.EARTHQUAKE: 25,
+    Hazard.VOLCANO: 10,
+    Hazard.WILDFIRE: 10,
+    Hazard.TROPICAL_CYCLONE: 100,
+    Hazard.SEVERE_STORM: 100,
+    Hazard.LANDSLIDE: 10,
+    Hazard.TSUNAMI: 25,
+}
 
 
 def _rank(hazard: Hazard, source: str) -> int:
@@ -136,6 +151,18 @@ def fuse(incident_id: str, rows: Sequence[ObsRow], ctx: FusionContext, previous:
         geometry["track"] = track
 
     title = _title(hazard, primary, obs, place, country_name, geocode_hit)
+    headline = headline_metrics(hazard, obs)
+    ring = REFERENCE_RING_KM.get(hazard)
+    if ctx.population is not None and ring and lat is not None and lon is not None:
+        pop = ctx.population.rings(lat, lon, [ring])[0]
+        headline.append(
+            Metric(
+                key="population_ring", label=f"Population within {ring:g} km", value=round(pop, -2) if pop >= 1000 else round(pop),
+                unit=None, provenance=Provenance.MODEL, source="ghsl-pop",
+                method=f"GHSL 2025 30″ grid cells with centres within {ring:g} km of the incident position",
+                note="Residential population living nearby — not the number of people affected",
+            )
+        )  # fmt: skip
     sources = sorted({o.source for o in obs}, key=lambda s: _rank(hazard, s))
     now = ctx.now
     ended = None if status != IncidentStatus.CLOSED else (previous.ended_at if previous and previous.ended_at else last_obs)
@@ -148,7 +175,7 @@ def fuse(incident_id: str, rows: Sequence[ObsRow], ctx: FusionContext, previous:
         bbox=list(bbox) if bbox else None, geometry=geometry, started_at=started, ended_at=ended,
         created_at=previous.created_at if previous else now, updated_at=now, last_observation_at=last_obs,
         severity_level=sev.level, severity=sev.model_dump(mode="json"), confidence=conf.model_dump(mode="json"),
-        headline=[m.model_dump(mode="json") for m in headline_metrics(hazard, obs)], country_iso3=country_iso3,
+        headline=[m.model_dump(mode="json") for m in headline], country_iso3=country_iso3,
         country_name=country_name, place=place_dict, source_count=len(sources), sources=sources,
         primary_observation=primary.id, revision=(previous.revision + 1) if previous else 1,
     )  # fmt: skip

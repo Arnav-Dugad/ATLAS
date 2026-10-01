@@ -73,18 +73,31 @@ async def _sync(source: str) -> int:
 
 
 async def _packs(action: str, pack_id: str | None) -> int:
-    rt = _runtime()
-    if action == "list":
-        for p in rt.packs.status():
-            mark = "✓" if p["installed"] else " "
-            print(f"[{mark}] {p['id']:<18} {p['title']}  (~{p['approx_size_mb']} MB)  {p['license']}")
-    elif action == "install" and pack_id:
-        man = await rt.packs.install(pack_id, force=True)
-        print(json.dumps(man, indent=2))
-    elif action == "remove" and pack_id:
-        print("removed" if rt.packs.remove(pack_id) else "not removed (missing or required pack)")
-    await rt.http.aclose()
-    rt.db.close()
+    # Packs never touch the database, so this works while the engine is running.
+    from atlas.http.cache import HttpCache
+    from atlas.http.client import HttpClient
+    from atlas.http.security import UrlPolicy
+    from atlas.packs import PackManager
+    from atlas.registry import load_registry
+
+    settings = get_settings()
+    registry = load_registry(settings.registry_path)
+    http = HttpClient(HttpCache(settings.cache_dir / "http"), UrlPolicy(registry.all_hosts()), offline=settings.offline)
+    packs = PackManager(settings.packs_dir, http)
+    try:
+        if action == "list":
+            for p in packs.status():
+                mark = "✓" if p["installed"] else " "
+                print(f"[{mark}] {p['id']:<18} {p['title']}  (~{p['approx_size_mb']} MB)  {p['license']}")
+        elif action == "install" and pack_id:
+            man = await packs.install(pack_id, force=True)
+            print(json.dumps(man, indent=2))
+            if pack_id == "population-ghsl":
+                print("Restart the engine (or call POST /api/v1/packs/reload) to enable population exposure.")
+        elif action == "remove" and pack_id:
+            print("removed" if packs.remove(pack_id) else "not removed (missing or required pack)")
+    finally:
+        await http.aclose()
     return 0
 
 

@@ -14,7 +14,6 @@ import logging
 import shutil
 import zipfile
 from dataclasses import dataclass, field
-from datetime import timedelta
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -144,10 +143,16 @@ class PackManager:
         files: list[dict[str, Any]] = []
         for pf in spec.files:
             log.info("pack %s: downloading %s", pack_id, pf.url)
-            res = await self.http.get(pf.url, ttl=timedelta(days=30), max_bytes=pf.max_bytes, source_id=spec.source_ids[0])
             dest = staging / pf.name
-            dest.write_bytes(res.content)
-            entry = {"name": pf.name, "url": pf.url, "bytes": len(res.content), "sha256": _sha256(dest)}
+            last_log = [0.0]
+
+            def report(done: int, expected: int | None, name: str = pf.name, last_log: list[float] = last_log) -> None:
+                if expected and done - last_log[0] >= expected / 10:
+                    last_log[0] = done
+                    log.info("pack %s: %s %.0f%%", pack_id, name, 100 * done / expected)
+
+            size, digest = await self.http.download(pf.url, dest, max_bytes=pf.max_bytes, progress=report)
+            entry = {"name": pf.name, "url": pf.url, "bytes": size, "sha256": digest}
             if pf.extract:
                 entry["extracted"] = _safe_extract(dest, staging, pf.extract)
                 dest.unlink()

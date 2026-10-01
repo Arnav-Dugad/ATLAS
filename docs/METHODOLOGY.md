@@ -110,6 +110,32 @@ alert, tsunami flag or USGS significance ≥ 600). Everything else stays visible
 8. **12 h trend**: detections in the last 12 h vs the preceding 12 h; satellite overpass
    timing affects short-term trends, which the interface notes.
 
+## Exposure (Phase 2)
+
+Exposure is **descriptive**: what lies within geodesic distance rings of the incident
+position. It is never an estimate of damage, casualties or people affected.
+
+| Hazard | Rings (km) | Headline "Population within" ring |
+|---|---|---|
+| Earthquake, volcano | 5 · 10 · 25 · 50 | 25 km (EQ), 10 km (VO) |
+| Wildfire, landslide | 5 · 10 · 25 | 10 km |
+| Tropical cyclone, severe storm | 25 · 50 · 100 (around the current position) | 100 km |
+| Flood, drought | — (area hazards; polygon exposure on the roadmap) | — |
+
+**Population** — GHSL GHS-POP R2023A, epoch 2025, 30 arc-seconds (~1 km), CC BY 4.0
+(optional Population Pack). Cells whose centres fall inside a ring are summed using windowed
+reads of the tiled GeoTIFF (2–15 ms per incident). Provenance **Model estimate**: the grid is
+a modelled disaggregation of census counts representing residential (night-time) population.
+Headline values are rounded to the nearest hundred above 1,000.
+
+**Infrastructure** — OpenStreetMap via the public Overpass API, on demand only (never
+polled). One request per incident selects each of 11 facility categories within the largest
+ring, then filters that set for each smaller ring (`out count`) — exact counts without
+downloading features. Named critical facilities (hospitals, fire stations, shelters,
+airports, ports, water works) are listed by distance (capped at 800). Results are cached
+24 h per ~100 m-rounded centre. Provenance **Derived**; OSM completeness varies strongly by
+country, so absence of a mapped facility is not absence of the facility.
+
 ## Geocoding
 
 Point-in-polygon against Natural Earth 1:50m countries (STRtree), with a nearest-coastline

@@ -14,9 +14,10 @@ ATLAS is built vertically: each phase is usable end to end before the next begin
 - Timeline histogram, GIBS layer manager (13 overlays), registry and health views
 - Exports (Markdown brief, JSON, GeoJSON) with attribution
 
-## Phase 2 — Exposure & history
-- GHSL population exposure (5/10/25/50 km rings, by intensity band) via windowed raster reads
-- OpenStreetMap infrastructure exposure via Overpass (hospitals, schools, airports, ports, power, bridges) with per-incident caching
+## Phase 2 — Exposure & history (in progress)
+- ✅ GHSL population exposure: ring table per incident + "Population within" headline metric; population filters in natural-language queries
+- ✅ OpenStreetMap infrastructure exposure via Overpass (11 categories, exact per-ring counts, nearest named facilities, globe markers), cached 24 h
+- Population by intensity band (ShakeMap MMI contours) where USGS publishes them
 - Historical time machine for all layers: playback controls (1× … 1 month/sec)
 - Static public demo snapshots (GitHub Pages)
 
