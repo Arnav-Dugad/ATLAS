@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from atlas.engine.correlate import Correlator, IncidentKey, score
+from atlas.engine.correlate import Correlator, IncidentKey, is_storm_designation, score
 from atlas.engine.geocode import Geocoder
 from atlas.engine.pipeline import IngestPipeline
 from atlas.engine.query import parse
@@ -55,6 +55,37 @@ class TestCorrelation:
     def test_differently_named_storms_never_merge(self) -> None:
         a = storm("nhc", "ep1", "Rachel", 19.0, -108.0, NOW)
         b = storm("gdacs", "TC:2", "POLO-26", 19.5, -108.2, NOW)
+        assert score(b, key_for(a)) is None
+
+    def test_similar_storm_names_are_still_different_storms(self) -> None:
+        polo = storm("gdacs", "TC:1001325", "POLO-26", 16.0, -112.0, NOW)
+        nolo = storm("eonet", "E2", "Hurricane Nolo", 16.5, -112.5, NOW)
+        assert score(nolo, key_for(polo)) is None
+
+    def test_numbered_depression_links_to_its_later_name(self) -> None:
+        td = storm("gdacs", "TC:9", "FIFTEEN-26", 15.0, -110.0, NOW)
+        named = storm("nhc", "ep152026", "Tropical Storm Nolo", 15.2, -110.3, NOW)
+        assert score(named, key_for(td)) is not None
+        assert is_storm_designation("fifteen e") and is_storm_designation("91l") and not is_storm_designation("nolo")
+
+    def test_reused_glide_number_does_not_merge_different_storms(self) -> None:
+        # GDACS issued TC-2026-000184-MEX to both POLO-26 (off Mexico) and NOLO-26 (near Hawaii).
+        polo = storm("gdacs", "TC:1001325", "POLO-26", 30.5, -108.0, NOW)
+        nolo = storm("gdacs", "TC:1001321", "NOLO-26", 21.5, -164.8, NOW)
+        corr = Correlator([key_for(polo, "ATL-TC-POLO")])
+        iid, method = corr.match(nolo, ["ATL-TC-POLO"])
+        assert iid is None and method == "none"
+
+    def test_storm_track_extent_does_not_capture_another_storm(self) -> None:
+        polo = storm("gdacs", "TC:1", "POLO-26", 30.5, -108.0, NOW)
+        k = key_for(polo)
+        k.bbox = (-170.0, 10.0, -100.0, 35.0)
+        td = storm("nhc", "ep192026", "Tropical Depression Nineteen-E", 15.2, -125.9, NOW)
+        assert score(td, k) is None
+
+    def test_different_depression_numbers_do_not_merge(self) -> None:
+        a = storm("gdacs", "TC:7", "EIGHTEEN-E-26", 15.0, -120.0, NOW)
+        b = storm("nhc", "ep192026", "Tropical Depression Nineteen-E", 15.3, -120.4, NOW)
         assert score(b, key_for(a)) is None
 
     def test_external_ids_win(self) -> None:

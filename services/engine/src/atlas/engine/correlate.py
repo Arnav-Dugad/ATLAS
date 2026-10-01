@@ -2,7 +2,8 @@
 
 Order of evidence:
   1. Shared external identifiers (USGS id embedded in GDACS geometry, GLIDE numbers, NHC
-     storm ids, GDACS ids referenced by EONET). These are exact and win outright.
+     storm ids, GDACS ids referenced by EONET). These win unless the pair is contradictory
+     (different storm names, or thousands of km apart): upstream ids are occasionally reused.
   2. Spatio-temporal matching with hazard-specific tolerances, magnitude agreement and
      storm-name similarity. The best-scoring candidate above zero wins.
 
@@ -12,6 +13,7 @@ the positional/timing uncertainty of the feeds, not tuned to make demos look goo
 
 from __future__ import annotations
 
+import logging
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -22,6 +24,8 @@ from rapidfuzz import fuzz
 from atlas.models import Hazard, Observation
 from atlas.util.geo import bbox_contains, haversine_km
 from atlas.util.text import normalize_storm_name
+
+log = logging.getLogger("atlas.correlate")
 
 
 @dataclass(frozen=True)
@@ -96,11 +100,58 @@ def _interval_gap(a0: datetime, a1: datetime, b0: datetime, b1: datetime) -> tim
     return timedelta(0)
 
 
+_NUMBER_WORDS = frozenset((
+    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen",
+    "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty", "unnamed", "unknown",
+))  # fmt: skip
+
+
+def is_storm_designation(name: str) -> bool:
+    """True for placeholder designations ('fifteen e', '15e', '91l', 'twenty one') rather than a
+    proper storm name. A numbered depression is legitimately renamed once it strengthens."""
+    tokens = name.split()
+    return bool(tokens) and all(t in _NUMBER_WORDS or any(c.isdigit() for c in t) or len(t) == 1 for t in tokens)
+
+
+STORMS = (Hazard.TROPICAL_CYCLONE, Hazard.SEVERE_STORM)
+# A shared external id is trusted unless the pair is this far apart (and outside the incident's extent).
+EXTERNAL_ID_MAX_KM = 2500.0
+
+
+def _designations(names: Iterable[str]) -> set[str]:
+    return {n for n in names if n and is_storm_designation(n)}
+
+
+def _designation_conflict(obs: Observation, inc: IncidentKey) -> bool:
+    """'Nineteen-E' and 'Eighteen-E' are different depressions even when neither has a name yet."""
+    mine = _designations(normalize_storm_name(x) for x in obs.names)
+    theirs = _designations(inc.names)
+    return bool(mine and theirs and not mine & theirs)
+
+
+def ref_conflict(obs: Observation, inc: IncidentKey) -> str | None:
+    """Evidence that a shared external id is wrong. Upstream ids are occasionally reused; GDACS has
+    issued one GLIDE number to two different storms. Returns the reason, or None if consistent."""
+    if obs.hazard in STORMS:
+        similarity = _name_similarity(obs, inc)
+        if similarity is not None and similarity < 0.88:
+            return "storm names differ"
+        if similarity is None and _designation_conflict(obs, inc):
+            return "storm designations differ"
+    if obs.has_location() and inc.lat is not None and inc.lon is not None:
+        inside = inc.bbox is not None and bbox_contains(inc.bbox, obs.lat, obs.lon)  # type: ignore[arg-type]
+        if not inside and haversine_km(obs.lat, obs.lon, inc.lat, inc.lon) > EXTERNAL_ID_MAX_KM:  # type: ignore[arg-type]
+            return "locations too far apart"
+    return None
+
+
 def _name_similarity(obs: Observation, inc: IncidentKey) -> float | None:
-    names = {n for n in (normalize_storm_name(x) for x in obs.names) if n}
-    if not names or not inc.names:
+    """Best similarity between proper names, or None when either side has no proper name."""
+    names = {n for n in (normalize_storm_name(x) for x in obs.names) if n and not is_storm_designation(n)}
+    theirs = {n for n in inc.names if not is_storm_designation(n)}
+    if not names or not theirs:
         return None
-    return max(fuzz.token_set_ratio(a, b) for a in names for b in inc.names) / 100.0
+    return max(fuzz.token_set_ratio(a, b) for a in names for b in theirs) / 100.0
 
 
 def score(obs: Observation, inc: IncidentKey) -> float | None:
@@ -119,7 +170,8 @@ def score(obs: Observation, inc: IncidentKey) -> float | None:
 
     if not obs.has_location() or inc.lat is None or inc.lon is None:
         return None
-    if inc.bbox and bbox_contains(inc.bbox, obs.lat, obs.lon):  # type: ignore[arg-type]
+    # A storm's extent spans its whole track, which can enclose a different, later storm.
+    if inc.bbox and obs.hazard not in STORMS and bbox_contains(inc.bbox, obs.lat, obs.lon):  # type: ignore[arg-type]
         dist = 0.0
     else:
         dist = haversine_km(obs.lat, obs.lon, inc.lat, inc.lon)  # type: ignore[arg-type]
@@ -131,8 +183,11 @@ def score(obs: Observation, inc: IncidentKey) -> float | None:
         if similarity >= 0.88:
             allowed = max(rule.max_km, rule.named_max_km)
             bonus = 0.4
-        elif similarity < 0.6 and obs.hazard in (Hazard.TROPICAL_CYCLONE, Hazard.SEVERE_STORM):
-            return None  # two differently-named storms are never the same storm
+        elif obs.hazard in STORMS:
+            # Storm names are identifiers: 'Polo' and 'Nolo' are different storms however close.
+            return None
+    elif obs.hazard in STORMS and _designation_conflict(obs, inc):
+        return None
     if dist > allowed:
         return None
 
@@ -157,10 +212,12 @@ class Correlator:
 
     def match(self, obs: Observation, ref_incidents: list[str]) -> tuple[str | None, str]:
         """Return (incident_id, method)."""
-        if ref_incidents:
-            best = Counter(ref_incidents).most_common(1)[0][0]
-            if best in self.incidents or best:
-                return best, "external-id"
+        for iid, _ in Counter(ref_incidents).most_common():
+            inc = self.incidents.get(iid)
+            reason = ref_conflict(obs, inc) if inc is not None else None
+            if reason is None:
+                return iid, "external-id"
+            log.warning("ignoring external-id link %s -> %s: %s", obs.id, iid, reason)
         best_id, best_score = None, 0.0
         for inc in self.incidents.values():
             if inc.closed and obs.hazard is not Hazard.EARTHQUAKE:

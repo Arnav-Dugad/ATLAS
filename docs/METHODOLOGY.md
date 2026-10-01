@@ -21,14 +21,18 @@ Every metric carries one of:
 
 Order of evidence (`engine/correlate.py`):
 
-1. **Shared external identifiers** win outright: the USGS event id embedded in GDACS
-   earthquake geometry, GLIDE numbers, NHC storm ids, GDACS ids referenced by EONET.
+1. **Shared external identifiers**: the USGS event id embedded in GDACS earthquake geometry,
+   GLIDE numbers, NHC storm ids, GDACS ids referenced by EONET. They win unless the pair is
+   contradictory: different storm names or depression numbers, or more than 2,500 km apart
+   and outside the incident's extent. Upstream identifiers are occasionally reused (GDACS
+   once issued the same GLIDE number, `TC-2026-000184-MEX`, to storms Polo and Nolo), so a
+   rejected link is logged and the observation falls through to scoring.
 2. **Space–time–name scoring** with hazard-specific tolerances:
 
 | Hazard | Max distance | Max time gap | Extra rules |
 |---|---|---|---|
 | Earthquake | 120 km | 150 s **between origin times** | \|ΔM\| ≤ 1.0 — aftershocks never merge into the mainshock |
-| Tropical cyclone | 350 km (2,500 km if names match ≥ 0.88) | 3 days | Differently named storms (similarity < 0.6) never merge |
+| Tropical cyclone | 350 km from the latest position (2,500 km if names match ≥ 0.88) | 3 days | Proper names are identifiers: storms whose names match < 0.88 never merge (Polo ≠ Nolo). A numbered depression (`Nineteen-E`) may link to its later name; two different numbers never merge |
 | Wildfire | 25 km (0 inside the incident's bbox) | 10 days | |
 | Volcano | 30 km (60 km with name match) | 45 days | |
 | Flood | 300 km | 14 days | Country must agree unless very close |
@@ -36,7 +40,8 @@ Order of evidence (`engine/correlate.py`):
 
 Score = `1 − 0.5·(distance/allowed) − 0.3·(gap/max_gap) + 0.4·[name match]`; the best
 positive score wins. Storm names are normalised (`"Tropical Storm Hanna"`, `"HANNA-26"` →
-`hanna`). Tolerances reflect feed positional and timing uncertainty and are unit-tested.
+`hanna`). For storms the incident's bounding box is not used as a shortcut, because a
+track's extent can enclose a different, later storm. Tolerances reflect feed positional and timing uncertainty and are unit-tested.
 
 ## ATLAS Severity Scale v1.1
 
