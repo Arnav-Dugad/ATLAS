@@ -105,7 +105,7 @@ async def _shakemap(http: HttpClient, p: dict[str, Any]) -> dict[str, Any]:
     url = _content(p, "download/cont_mmi.json")
     if url:
         data = await _json(http, url, timedelta(minutes=30))
-        feats = []
+        feats: list[dict[str, Any]] = []
         for f in (data.get("features") or [])[:40]:
             g = f.get("geometry") or {}
             pr = f.get("properties") or {}
