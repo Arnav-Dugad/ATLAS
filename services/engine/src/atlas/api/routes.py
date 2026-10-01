@@ -23,7 +23,7 @@ from atlas.api.schemas import (
 )
 from atlas.api.service import QueryService
 from atlas.engine import context as context_engine
-from atlas.engine import exposure
+from atlas.engine import exposure, quake
 from atlas.engine import query as query_engine
 from atlas.engine.fires import fire_grid
 from atlas.http.client import FetchError
@@ -196,6 +196,55 @@ async def incident_infrastructure(request: Request, incident_id: str) -> dict[st
     r = rt(request)
     hazard, lat, lon = _incident_point(r, incident_id)
     return await exposure.infrastructure_exposure(r.http, hazard, lat, lon)
+
+
+def _usgs_ids(r: Runtime, incident_id: str) -> tuple[float, float, list[str]]:
+    """Epicentre and the USGS event ids recorded for an earthquake incident (newest first)."""
+    hazard, lat, lon = _incident_point(r, incident_id)
+    if hazard != Hazard.EARTHQUAKE:
+        raise HTTPException(400, "earthquake intelligence applies to earthquakes only")
+    with r.db.read() as cur:
+        rows = cur.execute(
+            "SELECT external_id FROM observations WHERE incident_id = ? AND source = 'usgs' AND NOT retracted ORDER BY last_seen_at DESC",
+            [incident_id],
+        ).fetchall()
+    return lat, lon, [str(x[0]) for x in rows if quake.valid_event_id(str(x[0]))]
+
+
+@router.get("/incidents/{incident_id}/usgs")
+async def incident_usgs(request: Request, incident_id: str) -> dict[str, Any]:
+    """Official USGS products as issued: ShakeMap contours, PAGER, aftershock forecast, location uncertainty."""
+    r = rt(request)
+    _lat, _lon, ids = _usgs_ids(r, incident_id)
+    if not ids:
+        return {
+            "status": "unavailable",
+            "provenance": "unavailable",
+            "reason": "No USGS record is linked to this incident (it may be EMSC-only).",
+        }
+    try:
+        return await quake.products(r.http, ids[0])
+    except FetchError as exc:
+        raise HTTPException(503, {"code": "source_unavailable", "source": "usgs", "message": str(exc)}) from exc
+
+
+@router.get("/incidents/{incident_id}/seismic-context")
+async def incident_seismic_context(request: Request, incident_id: str) -> dict[str, Any]:
+    """Largest earthquakes nearby since 1900, and this week's activity against the 10-year rate."""
+    r = rt(request)
+    lat, lon, ids = _usgs_ids(r, incident_id)
+    results = await asyncio.gather(
+        quake.analogs(r.http, lat, lon, set(ids)), quake.activity(r.http, lat, lon), return_exceptions=True
+    )
+    out: dict[str, Any] = {}
+    for key, res in zip(("analogs", "activity"), results, strict=True):
+        if isinstance(res, FetchError):
+            out[key] = {"status": "unavailable", "provenance": "unavailable", "reason": f"USGS did not answer ({res})."}
+        elif isinstance(res, BaseException):
+            raise res
+        else:
+            out[key] = res
+    return out
 
 
 class AskTurn(BaseModel):

@@ -155,6 +155,8 @@ export class AtlasGlobe {
   private watchLines = new PolylineCollection();
   private watchLabels = new LabelCollection();
   private watchDraft = new PolylineCollection();
+  private shakeLines = new PolylineCollection();
+  private shakeLabels = new LabelCollection();
   private measureLines = new PolylineCollection();
   private measurePoints = new PointPrimitiveCollection();
   private measureLabels = new LabelCollection();
@@ -261,6 +263,8 @@ export class AtlasGlobe {
       this.watchLines,
       this.watchLabels,
       this.watchDraft,
+      this.shakeLines,
+      this.shakeLabels,
       this.measureLines,
       this.measurePoints,
       this.measureLabels,
@@ -697,6 +701,60 @@ export class AtlasGlobe {
       horizontalOrigin: HorizontalOrigin.CENTER,
       verticalOrigin: VerticalOrigin.TOP,
     });
+    this.requestRender();
+  }
+
+  /** USGS ShakeMap intensity contours (as issued) and the origin's horizontal location uncertainty. */
+  setQuakeProducts(
+    p: {
+      contours: { properties: { mmi: number | null; color: string | null }; geometry: GeoJSON.LineString | GeoJSON.MultiLineString }[];
+      uncertainty: { lat: number; lon: number; km: number } | null;
+    } | null,
+  ) {
+    this.shakeLines.removeAll();
+    this.shakeLabels.removeAll();
+    if (!p) {
+      this.requestRender();
+      return;
+    }
+    const roman = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+    const label = (pos: Cartesian3, text: string, colour: Color) =>
+      this.shakeLabels.add({
+        position: pos,
+        text,
+        font: "700 11px 'IBM Plex Sans Variable', sans-serif",
+        fillColor: colour,
+        outlineColor: Color.fromCssColorString("#04060a").withAlpha(0.95),
+        outlineWidth: 3,
+        style: LabelStyle.FILL_AND_OUTLINE,
+        horizontalOrigin: HorizontalOrigin.CENTER,
+        verticalOrigin: VerticalOrigin.CENTER,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      });
+    for (const f of p.contours) {
+      const mmi = f.properties.mmi;
+      const colour = Color.fromCssColorString(f.properties.color ?? "#ffd166");
+      const lines = f.geometry.type === "LineString" ? [f.geometry.coordinates] : f.geometry.coordinates;
+      for (const line of lines) {
+        if (line.length < 2) continue;
+        const positions = line.map(([lon, lat]) => Cartesian3.fromDegrees(lon as number, lat as number, 800));
+        this.shakeLines.add({ positions, width: 2, material: Material.fromType("Color", { color: colour.withAlpha(0.95) }) });
+        if (mmi != null && line.length > 8) {
+          const mid = line[Math.floor(line.length / 2)]!;
+          label(Cartesian3.fromDegrees(mid[0] as number, mid[1] as number, 900), Number.isInteger(mmi) ? (roman[mmi] ?? String(mmi)) : mmi.toFixed(1), colour);
+        }
+      }
+    }
+    const u = p.uncertainty;
+    if (u && u.km > 0) {
+      const white = Color.fromCssColorString("#e8ecf2");
+      this.shakeLines.add({
+        positions: circle(u.lat, u.lon, u.km, 96),
+        width: 1.6,
+        material: Material.fromType("PolylineDash", { color: white.withAlpha(0.9), gapColor: Color.TRANSPARENT, dashLength: 8 }),
+      });
+      label(Cartesian3.fromRadians(...destinationRad(u.lat, u.lon, u.km, 90), 900), `± ${dist(u.km, u.km < 10 ? 1 : 0)}`, white);
+    }
     this.requestRender();
   }
 

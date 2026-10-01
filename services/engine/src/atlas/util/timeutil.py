@@ -16,10 +16,15 @@ def utcnow() -> datetime:
     return now.replace(microsecond=(now.microsecond // 1000) * 1000)
 
 
+_EPOCH = datetime(1970, 1, 1)
+
+
 def from_epoch_ms(ms: float | None) -> datetime | None:
     if ms is None:
         return None
-    return datetime.fromtimestamp(float(ms) / 1000.0, tz=UTC).replace(tzinfo=None)
+    # Arithmetic rather than datetime.fromtimestamp, which rejects times before 1970 on
+    # Windows (historical earthquakes go back to 1900).
+    return _EPOCH + timedelta(milliseconds=round(float(ms)))
 
 
 def parse_iso(value: str | None) -> datetime | None:

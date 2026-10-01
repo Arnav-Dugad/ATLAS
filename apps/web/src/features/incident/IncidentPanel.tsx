@@ -25,6 +25,7 @@ import { showUndo } from "../../lib/undo";
 
 const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default: m.SatelliteTab })));
 const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
+const QuakeIntel = lazy(() => import("./QuakeIntel").then((m) => ({ default: m.QuakeIntel })));
 
 type Tab = "brief" | "exposure" | "satellite" | "links" | "timeline" | "sources" | "context";
 
@@ -191,6 +192,12 @@ function BriefTab({ d }: { d: IncidentDetail }) {
           {d.headline.length ? d.headline.map((m) => <MetricTile key={`${m.key}-${m.source}`} m={m} />) : <div className={s.dim}>No quantitative observations available for this incident.</div>}
         </div>
       </section>
+
+      {d.hazard === "earthquake" ? (
+        <Suspense fallback={<Skeleton height={140} />}>
+          <QuakeIntel d={d} />
+        </Suspense>
+      ) : null}
 
       {d.track.length > 1 ? (
         <section>

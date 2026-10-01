@@ -1,0 +1,300 @@
+.card {
+  display: grid;
+  gap: 8px;
+}
+
+.titleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  line-height: 1.45;
+}
+
+.attr {
+  margin: 0;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+
+.attr a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-2);
+}
+
+.dim {
+  color: var(--text-3);
+}
+
+.sub {
+  margin-bottom: 5px;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-3);
+  text-align: left;
+}
+
+.official {
+  display: grid;
+  gap: 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(150, 168, 194, 0.08);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+  font-size: var(--fs-xs);
+  color: var(--text-1);
+  text-transform: capitalize;
+}
+
+.mmiSwatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.bars {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: 128px 1fr 52px;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+}
+
+.barKey {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+.barTrack {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(150, 168, 194, 0.08);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  opacity: 0.85;
+  transform-origin: left;
+  animation: grow 600ms var(--ease-out) both;
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.barVal {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+
+.loc {
+  display: grid;
+  gap: 4px;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+  gap: 2px 14px;
+  margin: 0;
+  font-size: var(--fs-xs);
+}
+
+.kv dt {
+  grid-row: 1;
+  color: var(--text-3);
+}
+
+.kv dd {
+  grid-row: 2;
+  margin: 0;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.forecastTag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: #c9a6ff;
+  background: rgba(201, 166, 255, 0.12);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: 5px 6px;
+  text-align: right;
+  border-bottom: 1px solid var(--line-1);
+}
+
+.table th[scope="row"],
+.table thead th:first-child {
+  text-align: left;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.table thead th {
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.table td {
+  color: var(--text-1);
+  background: rgba(201, 166, 255, calc(var(--p, 0) * 0.32));
+}
+
+.agree td {
+  background: none;
+}
+
+.off td:last-child {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.analogs {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.analog {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 6px;
+  border-radius: var(--r-sm);
+  text-align: left;
+  font-size: var(--fs-sm);
+  color: var(--text-1);
+}
+
+.analog:hover,
+.analog:focus-visible {
+  background: rgba(150, 168, 194, 0.08);
+}
+
+.analogMag {
+  flex: none;
+  width: 44px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--hz, var(--accent));
+}
+
+.analogPlace {
+  min-width: 0;
+}
+
+.activity {
+  display: grid;
+  gap: 4px;
+}
+
+.activityRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.big {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.how {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.how:hover {
+  color: var(--text-1);
+}
+
+.chev {
+  transition: transform var(--dur-1) var(--ease-out);
+}
+
+.chevOpen {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFill {
+    animation: none;
+  }
+}

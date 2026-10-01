@@ -106,3 +106,10 @@ class TestIds:
     def test_crockford_alphabet(self) -> None:
         out = crockford32(b"\xff" * 16, 12)
         assert len(out) == 12 and not set(out) & set("ILOU")
+
+
+def test_from_epoch_ms_handles_times_before_1970() -> None:
+    from atlas.util.timeutil import from_epoch_ms, iso_z
+
+    assert iso_z(from_epoch_ms(-1134832594180)) == "1934-01-15T08:43:25.820Z"  # 1934 Bihar–Nepal earthquake
+    assert iso_z(from_epoch_ms(1429942285950)) == "2015-04-25T06:11:25.950Z"  # 2015 Gorkha

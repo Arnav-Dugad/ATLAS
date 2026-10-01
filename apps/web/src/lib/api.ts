@@ -169,6 +169,69 @@ export interface PointContext {
   time_zone_note: string;
 }
 
+export interface UsgsProducts {
+  status: "ok";
+  event_id: string;
+  event_url: string | null;
+  attribution: string;
+  shakemap: {
+    version: string | null;
+    status: string | null;
+    max_mmi: number | null;
+    /** highest contour drawn, when the ShakeMap does not state its maximum */
+    max_contour_mmi: number | null;
+    updated_at: string | null;
+    contours: { type: "FeatureCollection"; features: { type: "Feature"; properties: { mmi: number | null; color: string | null }; geometry: GeoJSON.LineString | GeoJSON.MultiLineString }[] } | null;
+  } | null;
+  pager: { alert_level: string | null; status: string | null; updated_at: string | null; exposure: { mmi: number; population: number }[] | null } | null;
+  aftershocks: {
+    issued_at: string | null;
+    expires_at: string | null;
+    next_forecast_at: string | null;
+    advisory_window: string | null;
+    model: string | null;
+    observed: { magnitude: number | null; count: number | null }[];
+    windows: { label: string; start: string | null; end: string | null; bins: { magnitude: number | null; probability: number | null; median: number | null; p95_min: number | null; p95_max: number | null }[] }[];
+  } | null;
+  location: {
+    horizontal_error_km: number | null;
+    depth_error_km: number | null;
+    magnitude_error: number | null;
+    azimuthal_gap_deg: number | null;
+    stations: number | null;
+    status: string | null;
+  } | null;
+  errors: string[];
+}
+
+export interface Unavailable {
+  status: "unavailable";
+  provenance: "unavailable";
+  reason: string;
+}
+
+export interface SeismicContext {
+  analogs:
+    | { status: "ok"; radius_km: number; min_magnitude: number; note: string; items: { id: string; magnitude: number | null; place: string | null; time: string | null; lat: number | null; lon: number | null; depth_km: number | null; url: string | null }[] }
+    | Unavailable;
+  activity:
+    | {
+        status: "ok";
+        radius_km: number;
+        min_magnitude: number;
+        week_count: number;
+        baseline_count: number;
+        baseline_years: number;
+        weekly_rate: number;
+        ratio: number | null;
+        p_value: number;
+        verdict: string;
+        method: string;
+        computed_at: string;
+      }
+    | Unavailable;
+}
+
 export interface PolygonExposure {
   status: "ok";
   area_km2: number;
@@ -515,6 +578,8 @@ const LOCAL_ONLY: RegExp[] = [
   /\/layers\/fires\/detections$/,
   /\/search$/,
   /\/context\/point$/,
+  /\/usgs$/,
+  /\/seismic-context$/,
 ];
 
 export function isLocalOnly(err: unknown): boolean {
@@ -768,6 +833,8 @@ export const api = {
   aurora: (signal?: AbortSignal) => request<AuroraData>("/api/v1/context/aurora", { signal }),
   pointContext: (lat: number, lon: number, signal?: AbortSignal) =>
     request<PointContext>(`/api/v1/context/point${qs({ lat: lat.toFixed(5), lon: lon.toFixed(5) })}`, { signal }),
+  usgsProducts: (id: string, signal?: AbortSignal) => request<UsgsProducts | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/usgs`, { signal }),
+  seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   polygonExposure: (points: { lat: number; lon: number }[], signal?: AbortSignal) =>
     request<PolygonExposure>("/api/v1/exposure/polygon", {
       method: "POST",
