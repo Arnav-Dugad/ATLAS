@@ -912,16 +912,25 @@ export class AtlasGlobe {
   // -- camera --------------------------------------------------------------------------
   fly(req: FlyRequest) {
     const duration = this.reducedMotion ? 0 : (req.duration ?? 2.2);
+    // Fraction of the screen hidden at the bottom (phone sheet): frame the target above it.
+    const screenH = this.widget.canvas.clientHeight || window.innerHeight;
+    const hidden = Math.min(0.7, Math.max(0, (req.insetBottom ?? 0) / screenH));
     if (req.bbox) {
       const [w, s, e, n] = req.bbox;
       const pad = 0.25;
       const dx = Math.max(0.5, (e - w) * pad);
       const dy = Math.max(0.5, (n - s) * pad);
-      const rect = Rectangle.fromDegrees(Math.max(-180, w - dx), Math.max(-89, s - dy), Math.min(180, e + dx), Math.min(89, n + dy));
+      const extra = ((n - s + 2 * dy) * hidden) / (1 - hidden);
+      const rect = Rectangle.fromDegrees(Math.max(-180, w - dx), Math.max(-89, s - dy - extra), Math.min(180, e + dx), Math.min(89, n + dy));
       this.camera.flyTo({ destination: rect, duration, easingFunction: EasingFunction.QUINTIC_IN_OUT });
     } else {
+      // Looking straight down, the visible ground spans ~2·h·tan(fovy/2) vertically; moving the
+      // camera south by hidden/2 of that span lifts the target into the middle of the free area.
+      const fovy = (this.camera.frustum as { fovy?: number }).fovy ?? CMath.toRadians(60);
+      const shiftM = hidden * req.height * Math.tan(fovy / 2);
+      const lat = Math.max(-89, req.lat - shiftM / 111_320);
       this.camera.flyTo({
-        destination: Cartesian3.fromDegrees(req.lon, req.lat, req.height),
+        destination: Cartesian3.fromDegrees(req.lon, lat, req.height),
         duration,
         easingFunction: EasingFunction.QUINTIC_IN_OUT,
         maximumHeight: Math.max(req.height * 2.2, 6_000_000),

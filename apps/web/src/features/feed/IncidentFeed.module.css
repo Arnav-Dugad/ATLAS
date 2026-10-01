@@ -242,3 +242,13 @@
   box-shadow: inset 0 0 0 1px var(--line-2);
   text-transform: capitalize;
 }
+
+/* Phones: the bottom sheet's tab already names the stream and its count */
+@media (max-width: 760px) {
+  .titleRow {
+    display: none;
+  }
+  .head {
+    padding-top: 10px;
+  }
+}

@@ -288,3 +288,24 @@
   gap: 8px;
   margin-top: 14px;
 }
+
+/* Phones: float above the bottom sheet (MobileSheet publishes its height as --sheet-h) */
+@media (max-width: 760px) {
+  .controls {
+    right: 8px;
+    bottom: calc(var(--sheet-h, 212px) + 10px);
+  }
+  .attr {
+    left: 8px;
+    right: 56px;
+    bottom: calc(var(--sheet-h, 212px) + 4px);
+  }
+  .ticker {
+    top: calc(var(--topbar-h) + 8px);
+    bottom: auto;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    flex-direction: column;
+  }
+}

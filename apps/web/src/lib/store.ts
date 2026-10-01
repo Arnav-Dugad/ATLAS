@@ -19,6 +19,8 @@ export interface FlyRequest {
   /** optional bounding box [w, s, e, n] to frame instead of a point */
   bbox?: [number, number, number, number] | null;
   duration?: number;
+  /** screen pixels hidden at the bottom (the phone sheet); the target is framed above them */
+  insetBottom?: number;
 }
 
 export type LayerId =

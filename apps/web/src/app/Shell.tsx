@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo } from "react";
 import { globeRef } from "../globe/ref";
 import { connectLive } from "../lib/live";
+import { PHONE_QUERY, supportsWebGL, useMediaQuery } from "../lib/media";
 import { useIncidentFeed } from "../lib/queries";
 import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
@@ -14,6 +15,7 @@ import { OverviewPanel } from "../features/overview/OverviewPanel";
 import { PlaybackBanner, Timeline } from "../features/timeline/Timeline";
 import { TopBar } from "../features/topbar/TopBar";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
+import { MobileSheet } from "./MobileSheet";
 import s from "./Shell.module.css";
 
 // The globe pulls in CesiumJS (~4 MB); load it as its own chunk so the shell paints first.
@@ -31,6 +33,8 @@ export function Shell() {
   const reducedMotion = useUi((st) => st.reducedMotion);
   const highContrast = useUi((st) => st.highContrast);
   const incidents = useMemo(() => feed.data?.items ?? [], [feed.data]);
+  const phone = useMediaQuery(PHONE_QUERY);
+  const webgl = useMemo(() => supportsWebGL(), []);
 
   useEffect(() => connectLive(client), [client]);
 
@@ -109,40 +113,54 @@ export function Shell() {
       <a className={s.skip} href="#incident-stream">
         Skip to incident stream
       </a>
-      <ErrorBoundary region="Globe" fallback={(reset) => <GlobeCrash onRetry={reset} />}>
-        <Suspense fallback={<GlobeBoot />}>
-          <Globe incidents={incidents} />
-        </Suspense>
-      </ErrorBoundary>
+      {webgl ? (
+        <ErrorBoundary region="Globe" fallback={(reset) => <GlobeCrash onRetry={reset} />}>
+          <Suspense fallback={<GlobeBoot />}>
+            <Globe incidents={incidents} />
+          </Suspense>
+        </ErrorBoundary>
+      ) : (
+        <div className={s.noGlobe} role="note">
+          <div className={s.bootOrb} style={{ animation: "none", opacity: 0.35, width: 120, height: 120 }} />
+          <div>This device or browser can't draw the 3D globe (WebGL is unavailable).</div>
+          <div>Incidents, details, exposure and sources all still work.</div>
+        </div>
+      )}
 
       <TopBar />
 
-      <aside className={s.rail} id="incident-stream">
-        <ErrorBoundary region="Incident stream">
-          <IncidentFeed incidents={incidents} loading={feed.isLoading} error={feed.error as Error | null} onRetry={() => void feed.refetch()} />
-        </ErrorBoundary>
-      </aside>
-
-      <aside className={s.panel} aria-label={selectedId ? "Incident intelligence" : "Planetary overview"}>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={selectedId ? `inc-${selectedId}` : "overview"}
-            className={s.panelInner}
-            initial={{ opacity: 0, x: 14 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ type: "spring", stiffness: 380, damping: 36 }}
-          >
-            <ErrorBoundary region={selectedId ? "Incident panel" : "Overview"}>
-              {selectedId ? <IncidentPanel id={selectedId} /> : <OverviewPanel incidents={incidents} />}
+      {phone ? (
+        <MobileSheet incidents={incidents} loading={feed.isLoading} error={feed.error as Error | null} onRetry={() => void feed.refetch()} />
+      ) : (
+        <>
+          <aside className={s.rail} id="incident-stream">
+            <ErrorBoundary region="Incident stream">
+              <IncidentFeed incidents={incidents} loading={feed.isLoading} error={feed.error as Error | null} onRetry={() => void feed.refetch()} />
             </ErrorBoundary>
-          </motion.div>
-        </AnimatePresence>
-      </aside>
+          </aside>
 
-      <footer className={s.timeline}>
-        <Timeline incidents={incidents} />
-      </footer>
+          <aside className={s.panel} aria-label={selectedId ? "Incident intelligence" : "Planetary overview"}>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={selectedId ? `inc-${selectedId}` : "overview"}
+                className={s.panelInner}
+                initial={{ opacity: 0, x: 14 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ type: "spring", stiffness: 380, damping: 36 }}
+              >
+                <ErrorBoundary region={selectedId ? "Incident panel" : "Overview"}>
+                  {selectedId ? <IncidentPanel id={selectedId} /> : <OverviewPanel incidents={incidents} />}
+                </ErrorBoundary>
+              </motion.div>
+            </AnimatePresence>
+          </aside>
+
+          <footer className={s.timeline}>
+            <Timeline incidents={incidents} />
+          </footer>
+        </>
+      )}
 
       <PlaybackBanner />
       <MapControls />

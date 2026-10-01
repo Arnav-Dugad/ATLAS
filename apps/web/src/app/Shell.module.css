@@ -120,35 +120,27 @@
   }
 }
 
-/* Phones: focused global-event viewer — globe on top, stream below */
+/* Phones: globe on top, a draggable sheet (MobileSheet) below; rails and timeline aren't rendered */
 @media (max-width: 760px) {
   :root {
     --timeline-h: 0px;
     --gutter: 8px;
+    --rail-w: 0px;
+    --panel-w: 0px;
   }
-  .rail {
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: auto;
-    height: 46vh;
-    border-radius: var(--r-xl) var(--r-xl) 0 0;
-  }
-  .panel {
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: auto;
-    height: 72vh;
-    border-radius: var(--r-xl) var(--r-xl) 0 0;
-    z-index: calc(var(--z-chrome) + 1);
-  }
-  .panel:has(> div > div[class*="OverviewPanel"]) {
-    display: none;
-  }
-  .timeline {
-    display: none;
-  }
+}
+
+.noGlobe {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: start;
+  padding: calc(var(--topbar-h) + 28vh) 24px 0;
+  gap: 10px;
+  text-align: center;
+  background: radial-gradient(60% 50% at 50% 30%, #0c1726, var(--void) 70%);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
 }

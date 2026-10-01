@@ -177,11 +177,33 @@
   }
   .wordmark,
   .clockZone,
-  .chip,
   .live span {
     display: none;
   }
+  .chip {
+    padding: 0 8px;
+    font-size: 0;
+    gap: 0;
+  }
   .searchKeys {
+    display: none;
+  }
+}
+
+/* Phones: the search field shrinks with an ellipsis; the clock gives way to it */
+@media (max-width: 760px) {
+  .search {
+    min-width: 0;
+  }
+  .searchText {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+@media (max-width: 520px) {
+  .clock {
     display: none;
   }
 }
