@@ -5,8 +5,9 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { Wind } from "lucide-react";
-import { api, type AirQuality, type AirQualityUnavailable } from "../../lib/api";
+import { api, WINDOWS_APP, type AirQuality, type AirQualityUnavailable } from "../../lib/api";
 import { relTime } from "../../lib/format";
+import { openSettings } from "../../lib/settings";
 import { Label, ProvenanceBadge, Skeleton } from "../../ui/primitives";
 import s from "./IncidentPanel.module.css";
 
@@ -32,7 +33,14 @@ export function AirQualityCard({ id }: { id: string }) {
       ) : !d ? (
         <p className={s.dimNote}>Air quality could not be loaded.</p>
       ) : !isOk(d) ? (
-        <p className={s.dimNote}>{d.reason}</p>
+        <>
+          <p className={s.dimNote}>{d.reason}</p>
+          {WINDOWS_APP && d.action === "configure" ? (
+            <button type="button" className={s.linkBtn} onClick={() => openSettings("sources")}>
+              Add your OpenAQ key in Settings
+            </button>
+          ) : null}
+        </>
       ) : d.stations.length === 0 ? (
         <p className={s.dimNote}>{d.note}</p>
       ) : (

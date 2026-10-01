@@ -145,3 +145,7 @@
     font-size: var(--fs-xs);
   }
 }
+
+:global([data-surface="solid"]) .card {
+  background: var(--glass-strong);
+}

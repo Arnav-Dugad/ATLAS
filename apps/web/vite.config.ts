@@ -60,7 +60,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      "/api": { target: "http://127.0.0.1:8787", changeOrigin: false },
+      // ATLAS_ENGINE_URL points the dev server at an engine on another port (e.g. a second instance).
+      "/api": { target: process.env.ATLAS_ENGINE_URL ?? "http://127.0.0.1:8787", changeOrigin: Boolean(process.env.ATLAS_ENGINE_URL) },
     },
   },
   preview: { port: 4173 },

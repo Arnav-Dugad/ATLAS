@@ -1,11 +1,12 @@
-import { Activity, Command, Database, Eye, Globe2, Layers, Search, Sparkles } from "lucide-react";
+import { Activity, Command, Database, Eye, Globe2, Layers, Search, Settings, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { fetchSnapshotInfo, STATIC_MODE } from "../../lib/api";
+import { fetchSnapshotInfo, STATIC_MODE, WINDOWS_APP } from "../../lib/api";
 import { relTime } from "../../lib/format";
 import { useLive } from "../../lib/live";
 import { useIncidentFeed } from "../../lib/queries";
 import { useUi, type View } from "../../lib/store";
+import { useSettings } from "../../lib/settings";
 import { matches, useWatch } from "../../lib/watch";
 import { cx, Dot, Kbd } from "../../ui/primitives";
 import s from "./TopBar.module.css";
@@ -37,6 +38,8 @@ export function TopBar() {
   const watches = useWatch((st) => st.watches);
   const watchOpen = useWatch((st) => st.panelOpen);
   const setWatchOpen = useWatch((st) => st.setPanelOpen);
+  const settingsOpen = useSettings((st) => st.open);
+  const openSettings = useSettings((st) => st.openSettings);
   const feed = useIncidentFeed();
   const watchHits = watches.reduce((n, w) => n + matches(w, feed.data?.items ?? []).length, 0);
   const live = useLive((st) => st.status);
@@ -98,9 +101,7 @@ export function TopBar() {
         <Search size={14} aria-hidden />
         <span className={s.searchText}>{STATIC_MODE ? "Search incidents, layers and commands" : "Search places, incidents, or try “M6+ in Japan since 2020”"}</span>
         <span className={s.searchKeys}>
-          <Kbd>
-            <Command size={10} aria-hidden />
-          </Kbd>
+          <Kbd>{WINDOWS_APP ? "Ctrl" : <Command size={10} aria-hidden />}</Kbd>
           <Kbd>K</Kbd>
         </span>
       </button>
@@ -137,6 +138,17 @@ export function TopBar() {
         >
           <Layers size={14} aria-hidden /> Layers
         </button>
+        {WINDOWS_APP ? (
+          <button
+            type="button"
+            className={cx(s.chip, s.iconChip, settingsOpen && s.chipOn)}
+            onClick={() => openSettings()}
+            aria-label="Settings (Ctrl+,)"
+            title="Settings (Ctrl+,)"
+          >
+            <Settings size={15} aria-hidden />
+          </button>
+        ) : null}
         <div className={s.live} title={liveTitle}>
           <Dot color={liveColor} pulse={live === "live"} />
           <span className={s.liveText}>{liveText}</span>

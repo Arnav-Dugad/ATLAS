@@ -2,9 +2,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo } from "react";
 import { globeRef } from "../globe/ref";
+import { WINDOWS_APP } from "../lib/api";
 import { connectLive } from "../lib/live";
 import { PHONE_QUERY, supportsWebGL, useMediaQuery } from "../lib/media";
 import { useIncidentFeed } from "../lib/queries";
+import { useSettings } from "../lib/settings";
 import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
@@ -32,6 +34,7 @@ const CompareTray = lazy(() => import("../features/comparison/IncidentComparison
 const IncidentComparison = lazy(() => import("../features/comparison/IncidentComparison").then((m) => ({ default: m.IncidentComparison })));
 const WatchPanel = lazy(() => import("../features/watch/WatchPanel").then((m) => ({ default: m.WatchPanel })));
 const HealthView = lazy(() => import("../features/sources/HealthView").then((m) => ({ default: m.HealthView })));
+const SettingsModal = lazy(() => import("../features/settings/SettingsModal").then((m) => ({ default: m.SettingsModal })));
 
 const WINDOWS: TimeWindow[] = ["1h", "24h", "7d", "30d"];
 
@@ -48,6 +51,8 @@ export function Shell() {
   const storyOn = useUi((st) => st.story !== null);
   const pinnedAny = useUi((st) => st.pinned.length > 0);
   const watchOpen = useWatch((st) => st.panelOpen);
+  const settingsOpen = useSettings((st) => st.open) && WINDOWS_APP;
+  const surface = useSettings((st) => st.surface);
   const phone = useMediaQuery(PHONE_QUERY);
   const webgl = useMemo(() => supportsWebGL(), []);
   useWatchAlerts(incidents);
@@ -71,13 +76,25 @@ export function Shell() {
     const root = document.documentElement;
     root.dataset.motion = reducedMotion ? "reduced" : "full";
     root.dataset.contrast = highContrast ? "high" : "normal";
-  }, [reducedMotion, highContrast]);
+    if (WINDOWS_APP) {
+      root.dataset.app = "windows"; // Windows-app-only styling hooks; the website is unchanged
+      root.dataset.surface = surface; // the website keeps its glass panels
+    }
+  }, [reducedMotion, highContrast, surface]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const ui = useUi.getState();
       const target = e.target as HTMLElement | null;
       const typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if (WINDOWS_APP && (e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        const st = useSettings.getState();
+        if (st.open) st.closeSettings();
+        else st.openSettings();
+        return;
+      }
+      if (WINDOWS_APP && useSettings.getState().open) return; // the dialog handles its own keys
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         if (ui.paletteOpen) ui.closePalette();
@@ -198,6 +215,7 @@ export function Shell() {
         {storyOn ? <StoryPlayer incidents={incidents} /> : null}
         {pinnedAny ? <CompareTray incidents={incidents} /> : null}
         {pinnedAny ? <IncidentComparison /> : null}
+        <AnimatePresence>{settingsOpen ? <SettingsModal key="settings" /> : null}</AnimatePresence>
       </Suspense>
       <PlaybackBanner />
       <MapControls />

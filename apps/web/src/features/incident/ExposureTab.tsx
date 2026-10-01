@@ -1,10 +1,11 @@
 import { motion } from "motion/react";
-import { ExternalLink, Radar, RefreshCw, Users } from "lucide-react";
+import { ExternalLink, Radar, RefreshCw, Settings, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import { LOCAL_ONLY_MESSAGE, STATIC_MODE, type ExposureUnavailable, type IncidentDetail, type InfrastructureExposure, type PopulationExposure } from "../../lib/api";
+import { LOCAL_ONLY_MESSAGE, STATIC_MODE, WINDOWS_APP, type ExposureUnavailable, type IncidentDetail, type InfrastructureExposure, type PopulationExposure } from "../../lib/api";
 import { compact, int, relTime } from "../../lib/format";
 import { FACILITY_META, type FacilityKey } from "../../lib/hazards";
 import { useInfrastructureExposure, usePopulationExposure } from "../../lib/queries";
+import { openSettings, type SettingsSection } from "../../lib/settings";
 import { useUi } from "../../lib/store";
 import { cx, ErrorState, Label, ProvenanceBadge, Skeleton } from "../../ui/primitives";
 import s from "./ExposureTab.module.css";
@@ -40,7 +41,7 @@ function PopulationSection({ id }: { id: string }) {
       ) : q.error ? (
         <ErrorState title="Population exposure failed" message={(q.error as Error).message} onRetry={() => void q.refetch()} />
       ) : !data ? null : isUnavailable(data) ? (
-        <Unavailable reason={data.reason} />
+        <Unavailable reason={data.reason} settings={WINDOWS_APP && data.action === "install-pack" ? "packs" : undefined} />
       ) : (
         <PopulationRings data={data} />
       )}
@@ -210,11 +211,16 @@ function InfraTable({ data }: { data: InfrastructureExposure }) {
   );
 }
 
-function Unavailable({ reason, onRetry }: { reason: string; onRetry?: () => void }) {
+function Unavailable({ reason, onRetry, settings }: { reason: string; onRetry?: () => void; settings?: SettingsSection }) {
   const command = /`([^`]+)`/.exec(reason)?.[1];
   return (
     <div className={s.unavailable}>
       <p>{reason.replace(/`[^`]+`/, "the command below")}</p>
+      {settings ? (
+        <button type="button" className={s.secondary} onClick={() => openSettings(settings)}>
+          <Settings size={12} /> Open Settings → Data packs
+        </button>
+      ) : null}
       {command ? <code className={s.code}>{command}</code> : null}
       {command ? (
         <button

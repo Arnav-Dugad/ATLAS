@@ -130,6 +130,29 @@
   --z-toast: 70;
 }
 
+/*
+ * Windows app, Settings → Appearance → Solid (the default there): opaque panels and no backdrop
+ * blur. Easier to read over the bright planet, and much cheaper to draw — every blurred panel
+ * is otherwise recomputed each time the globe redraws.
+ */
+:root[data-surface="solid"] {
+  --glass: #0b1017;
+  --glass-strong: #0d131b;
+  --scrim: rgba(3, 5, 8, 0.8);
+  --line-1: rgba(160, 178, 204, 0.12);
+  --line-2: rgba(160, 178, 204, 0.2);
+  --text-2: #bdc6d2;
+  --text-3: #8e98a7;
+  --text-4: #697384;
+}
+
+:root[data-surface="solid"] *,
+:root[data-surface="solid"] *::before,
+:root[data-surface="solid"] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 :root[data-contrast="high"] {
   --line-1: rgba(200, 214, 235, 0.22);
   --line-2: rgba(200, 214, 235, 0.36);
@@ -138,6 +161,11 @@
   --text-3: #a3adbb;
   --glass: rgba(6, 9, 13, 0.94);
   --glass-strong: rgba(6, 9, 13, 0.97);
+}
+
+:root[data-surface="solid"][data-contrast="high"] {
+  --glass: #06090d;
+  --glass-strong: #06090d;
 }
 
 @media (prefers-reduced-motion: reduce) {

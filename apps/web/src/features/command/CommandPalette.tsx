@@ -21,13 +21,15 @@ import {
   RefreshCw,
   RotateCw,
   Search,
+  Settings,
   Sparkles,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
-import { api, STATIC_MODE, type IncidentSummary, type SearchResponse } from "../../lib/api";
+import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary, type SearchResponse } from "../../lib/api";
 import { compareIncident, compareView } from "../../lib/compare";
+import { openSettings } from "../../lib/settings";
 import { openSimulation } from "../../lib/simulate";
 import { useWatch } from "../../lib/watch";
 import { exportBrief } from "../../lib/export";
@@ -176,6 +178,14 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
       },
       { id: "motion", section: "Accessibility", label: ui.reducedMotion ? "Enable motion" : "Reduce motion", icon: <Accessibility size={15} />, keywords: "animation a11y", run: done(() => ui.setReducedMotion(!ui.reducedMotion)) },
       { id: "contrast", section: "Accessibility", label: ui.highContrast ? "Standard contrast" : "High contrast", icon: <Contrast size={15} />, keywords: "a11y readability", run: done(() => ui.setHighContrast(!ui.highContrast)) },
+      ...(WINDOWS_APP
+        ? [
+            { id: "settings", section: "App", label: "Settings", icon: <Settings size={15} />, keywords: "preferences options configure ctrl+,", run: done(() => openSettings()) },
+            { id: "settings-keys", section: "App", label: "Add OpenAQ or ReliefWeb keys", icon: <Settings size={15} />, keywords: "api key appname air quality openaq reliefweb", run: done(() => openSettings("sources")) },
+            { id: "settings-packs", section: "App", label: "Install the Population Pack", icon: <Database size={15} />, keywords: "data pack population ghsl download import", run: done(() => openSettings("packs")) },
+            { id: "settings-graphics", section: "App", label: "Graphics quality (smoother globe)", icon: <Settings size={15} />, keywords: "performance lag slow gpu fps battery", run: done(() => openSettings("graphics")) },
+          ]
+        : []),
       { id: "intro", section: "Help", label: "Replay the introduction", icon: <Sparkles size={15} />, keywords: "onboarding tour help", run: done(() => ui.resetIntro()) },
       ...(STATIC_MODE ? [] : [{ id: "refresh", section: "Data", label: "Refresh all live sources now", icon: <RefreshCw size={15} />, keywords: "sync update poll", run: done(() => ["usgs", "gdacs", "nhc", "eonet", "firms", "gvp"].forEach((id) => void api.syncSource(id).catch(() => undefined))) }]),
     ];

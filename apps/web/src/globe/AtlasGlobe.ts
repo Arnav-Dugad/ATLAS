@@ -370,6 +370,22 @@ export class AtlasGlobe {
     this.requestRender();
   }
 
+  /**
+   * Graphics quality (Windows app Settings): drawing-buffer resolution, anti-aliasing, frame
+   * rate cap and tile detail. Without a GPU the light profile always wins.
+   */
+  setQuality(q: { maxPixelRatio: number; msaa: number; fxaa: boolean; fps: number; screenSpaceError: number }) {
+    if (this.renderProfile === "light") return;
+    const scene = this.widget.scene;
+    const dpr = window.devicePixelRatio || 1;
+    this.widget.resolutionScale = Math.min(1, q.maxPixelRatio / dpr);
+    scene.msaaSamples = q.msaa;
+    scene.postProcessStages.fxaa.enabled = q.fxaa;
+    scene.globe.maximumScreenSpaceError = q.screenSpaceError;
+    this.widget.targetFrameRate = q.fps;
+    this.requestRender();
+  }
+
   setReducedMotion(on: boolean) {
     this.reducedMotion = on;
     for (const p of this.pulseState) p.billboard.show = !on;

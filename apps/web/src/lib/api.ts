@@ -420,6 +420,12 @@ export const STATIC_MODE: boolean = import.meta.env.VITE_ATLAS_STATIC === "1";
 export const DESKTOP: boolean = import.meta.env.VITE_ATLAS_DESKTOP === "1";
 
 /** What to tell people when the engine does not answer. */
+/**
+ * The Windows desktop app. Settings (keys, data packs, graphics), solid panels and the other
+ * Windows-app changes apply only here; the website and other desktop builds are unchanged.
+ */
+export const WINDOWS_APP: boolean = DESKTOP && typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent);
+
 export const ENGINE_HINT: string = DESKTOP
   ? "ATLAS's built-in engine is starting or has stopped. This view reloads by itself when it is back; restart ATLAS if it doesn't."
   : "Start the ATLAS engine with `pnpm dev`. This view reloads by itself when the engine is back.";
@@ -614,6 +620,66 @@ export interface IncidentQuery {
   limit?: number;
 }
 
+// ---------------------------------------------------------------- Windows app Settings
+export type CredentialName = "openaq_api_key" | "reliefweb_appname";
+
+export interface CredentialStatus {
+  label: string;
+  configured: boolean;
+  /** last four characters of a secret, or the full appname; never a whole key */
+  hint: string | null;
+  source: "settings" | "environment" | null;
+}
+
+export interface CredentialTest {
+  ok: boolean;
+  /** ReliefWeb: saved, waiting for approval */
+  pending?: boolean;
+  message: string;
+}
+
+export type PackTaskState = "starting" | "downloading" | "extracting" | "copying" | "indexing" | "done" | "error";
+
+export interface PackTask {
+  pack: string;
+  state: PackTaskState;
+  done: number;
+  total: number | null;
+  error: string | null;
+  mode: "download" | "import";
+  started_at: string;
+  finished_at?: string;
+}
+
+export interface PackStatus {
+  id: string;
+  title: string;
+  description: string;
+  license: string;
+  sources: string[];
+  optional: boolean;
+  approx_size_mb: number;
+  installed: boolean;
+  installed_at: string | null;
+  size_bytes: number;
+  task: PackTask | null;
+  /** existing downloads found in ATLAS checkouts on this computer */
+  candidates: string[];
+}
+
+export interface AppSettings {
+  version: string;
+  data_dir: string;
+  credentials: Record<CredentialName, CredentialStatus>;
+  connectors: {
+    reliefweb: { enabled: boolean; reason: string | null; scheduled: boolean; last_ok: string | null; last_error: string | null };
+  };
+  packs: PackStatus[];
+  population_ready: boolean;
+}
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
 export const api = {
   meta: (signal?: AbortSignal) => request<MetaInfo>("/api/v1/meta", { signal }),
   health: (signal?: AbortSignal) => request<HealthInfo>("/api/v1/health", { signal }),
@@ -637,6 +703,22 @@ export const api = {
   spectral: (id: string, index: SpectralIndex | null, signal?: AbortSignal) =>
     request<SpectralChange | SpectralUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/imagery/change${qs({ index })}`, { signal }),
   reloadPacks: () => request<{ population: boolean }>("/api/v1/packs/reload", { method: "POST" }),
+  settings: (signal?: AbortSignal) => request<AppSettings>("/api/v1/settings", { signal }),
+  saveCredential: (name: CredentialName, value: string | null) =>
+    request<{ credentials: AppSettings["credentials"]; test: CredentialTest | null }>(`/api/v1/settings/credentials/${name}`, {
+      method: "PUT",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ value }),
+    }),
+  testCredential: (name: CredentialName) => request<CredentialTest>(`/api/v1/settings/credentials/${name}/test`, { method: "POST" }),
+  installPack: (id: string) => request<PackTask>(`/api/v1/settings/packs/${encodeURIComponent(id)}/install`, { method: "POST" }),
+  importPack: (id: string, path: string) =>
+    request<PackTask>(`/api/v1/settings/packs/${encodeURIComponent(id)}/import`, {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ path }),
+    }),
+  removePack: (id: string) => request<{ removed: boolean }>(`/api/v1/settings/packs/${encodeURIComponent(id)}`, { method: "DELETE" }),
   knowledge: (id: string, at?: string, signal?: AbortSignal) =>
     request<KnowledgeSnapshot>(`/api/v1/incidents/${encodeURIComponent(id)}/knowledge${qs({ at })}`, { signal }),
   changes: (params: { since?: string; min_significance?: number; limit?: number }, signal?: AbortSignal) =>

@@ -2,10 +2,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { HardDrive, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { api, ENGINE_HINT, LOCAL_ONLY_MESSAGE, STATIC_MODE } from "../../lib/api";
+import { api, ENGINE_HINT, LOCAL_ONLY_MESSAGE, STATIC_MODE, WINDOWS_APP } from "../../lib/api";
 import { bytes, compact, duration, relTime } from "../../lib/format";
 import { useLive } from "../../lib/live";
 import { useHealth, useMetrics, useStorage } from "../../lib/queries";
+import { openSettings } from "../../lib/settings";
 import { useUi } from "../../lib/store";
 import { cx, Dot, ErrorState, Label, Skeleton } from "../../ui/primitives";
 import s from "./SourcesView.module.css";
@@ -208,7 +209,13 @@ export function HealthView() {
                       <div className={h.dim}>
                         {p.installed ? `${bytes(p.size_bytes)} · installed ${relTime(p.installed_at)}` : `~${p.approx_size_mb} MB · not installed`} · {p.license}
                       </div>
-                      {!p.installed ? <code className={h.cmd}>pnpm engine packs install {p.id}</code> : null}
+                      {!p.installed && WINDOWS_APP ? (
+                        <button type="button" className={h.cmd} onClick={() => openSettings("packs")}>
+                          Install in Settings → Data packs
+                        </button>
+                      ) : !p.installed ? (
+                        <code className={h.cmd}>pnpm engine packs install {p.id}</code>
+                      ) : null}
                     </div>
                   ))}
                 </div>

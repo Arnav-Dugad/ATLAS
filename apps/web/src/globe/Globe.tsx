@@ -1,9 +1,10 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api, STATIC_MODE, type IncidentSummary } from "../lib/api";
+import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary } from "../lib/api";
 import { compact, coord, decimal, observedAgo, relTime, utcShort } from "../lib/format";
 import { hazardMeta } from "../lib/hazards";
 import { qk, useCountries, useEarthquakeLayer, useFireClusters, useFireGrid, useIncident } from "../lib/queries";
+import { QUALITY, resolveQuality, useSettings } from "../lib/settings";
 import { useUi } from "../lib/store";
 import { matches, useWatch } from "../lib/watch";
 import { AtlasGlobe, DETAIL_HEIGHT, type HoverInfo, type ViewInfo } from "./AtlasGlobe";
@@ -35,6 +36,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const rasterOverlay = useUi((s) => s.rasterOverlay);
   const groundPick = useUi((s) => s.groundPick);
   const watches = useWatch((s) => s.watches);
+  const quality = useSettings((s) => s.quality);
 
   // ---- mount ------------------------------------------------------------------------
   useEffect(() => {
@@ -83,6 +85,9 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
 
   // ---- state → globe ----------------------------------------------------------------
   useEffect(() => globe?.setReducedMotion(reducedMotion), [globe, reducedMotion]);
+  useEffect(() => {
+    if (WINDOWS_APP) globe?.setQuality(QUALITY[resolveQuality(quality)]);
+  }, [globe, quality]);
   useEffect(() => globe?.setPaused(appView !== "planet"), [globe, appView]);
   useEffect(() => globe?.setAutoRotate(autoRotate), [globe, autoRotate]);
   useEffect(() => {
