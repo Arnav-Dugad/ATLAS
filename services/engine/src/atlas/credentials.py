@@ -49,7 +49,7 @@ def validate(name: str, value: str) -> str:
         raise KeyError(name)
     value = value.strip()
     if not spec.pattern.fullmatch(value):
-        raise ValueError(f"That doesn't look like a {spec.label}.")
+        raise ValueError(f"That doesn't look like a valid {spec.label}.")
     return value
 
 
