@@ -265,3 +265,42 @@ async def export_diagnostics(request: Request) -> dict[str, Any]:
     view = {"credentials": _credentials(r), "packs": [{k: v for k, v in p.items() if k != "candidates"} for p in await _packs(r)]}
     path = await asyncio.to_thread(_diagnostics, r, view)
     return {"path": str(path), "bytes": path.stat().st_size}
+
+
+# ---------------------------------------------------------------------------- offline regions
+class RegionBody(BaseModel):
+    name: str = Field(default="Saved area", max_length=60)
+    bbox: tuple[float, float, float, float]
+    max_zoom: int = Field(ge=6, le=14)
+
+
+@router.post("/offline/estimate")
+async def offline_estimate(request: Request, body: RegionBody) -> dict[str, Any]:
+    from atlas.offline import MAX_TILES, estimate
+
+    guard(request)
+    return {**estimate(body.bbox, body.max_zoom), "limit": MAX_TILES}
+
+
+@router.get("/offline/regions")
+async def offline_regions(request: Request) -> dict[str, Any]:
+    r = guard(request)
+    return {"regions": r.offline_store.list()}
+
+
+@router.post("/offline/regions")
+async def offline_create(request: Request, body: RegionBody) -> dict[str, Any]:
+    r = guard(request)
+    try:
+        reg = r.offline_store.create(body.name, body.bbox, body.max_zoom)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return {"region": reg.__dict__, "regions": r.offline_store.list()}
+
+
+@router.delete("/offline/regions/{region_id}")
+async def offline_delete(request: Request, region_id: str) -> dict[str, Any]:
+    r = guard(request)
+    if not r.offline_store.delete(region_id):
+        raise HTTPException(404, "unknown region")
+    return {"regions": r.offline_store.list()}

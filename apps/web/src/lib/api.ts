@@ -259,6 +259,26 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface OfflineRegion {
+  id: string;
+  name: string;
+  bbox: [number, number, number, number];
+  max_zoom: number;
+  tiles_total: number;
+  tiles_done: number;
+  tiles_failed: number;
+  bytes: number;
+  status: "queued" | "downloading" | "ready" | "error" | "cancelled";
+  created_at: string;
+  finished_at: string | null;
+}
+
+export interface OfflineRegionBody {
+  name: string;
+  bbox: [number, number, number, number];
+  max_zoom: number;
+}
+
 export interface ElevationProfileData {
   status: "ok";
   points: { distance_km: number; lat: number; lon: number; elevation_m: number | null; status: "ok" | "water" | "unavailable" }[];
@@ -1168,6 +1188,21 @@ export const api = {
       body: JSON.stringify({ path }),
     }),
   removePack: (id: string) => request<{ removed: boolean }>(`/api/v1/settings/packs/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  offlineRegions: (signal?: AbortSignal) => request<{ regions: OfflineRegion[] }>("/api/v1/settings/offline/regions", { signal }),
+  offlineEstimate: (body: OfflineRegionBody, signal?: AbortSignal) =>
+    request<{ tiles: number; approx_mb: number; limit: number }>("/api/v1/settings/offline/estimate", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+      signal,
+    }),
+  offlineCreate: (body: OfflineRegionBody) =>
+    request<{ region: OfflineRegion; regions: OfflineRegion[] }>("/api/v1/settings/offline/regions", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    }),
+  offlineDelete: (id: string) => request<{ regions: OfflineRegion[] }>(`/api/v1/settings/offline/regions/${encodeURIComponent(id)}`, { method: "DELETE" }),
   exportDiagnostics: () => request<{ path: string; bytes: number }>("/api/v1/settings/diagnostics", { method: "POST" }),
   knowledge: (id: string, at?: string, signal?: AbortSignal) =>
     request<KnowledgeSnapshot>(`/api/v1/incidents/${encodeURIComponent(id)}/knowledge${qs({ at })}`, { signal }),

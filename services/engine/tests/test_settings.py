@@ -215,3 +215,31 @@ def test_diagnostics_never_contain_keys(app_client: TestClient, tmp_path: Path) 
         blob = b"".join(zf.read(n) for n in names)
     assert "about.json" in names and not any("credentials" in n for n in names)
     assert KEY.encode() not in blob
+
+
+def test_offline_regions_are_guarded_and_validated(app_client: TestClient) -> None:
+    body = {"name": "Delhi", "bbox": [77.0, 28.5, 77.1, 28.6], "max_zoom": 9}
+    assert (
+        app_client.post("/api/v1/settings/offline/estimate", json=body, headers={"origin": "https://evil.example"}).status_code
+        == 403
+    )
+    est = app_client.post("/api/v1/settings/offline/estimate", json=body, headers=APP).json()
+    assert est["tiles"] > 0 and est["limit"] >= est["tiles"]
+    huge = {**body, "bbox": [0, 0, 20, 20]}
+    assert app_client.post("/api/v1/settings/offline/regions", json=huge, headers=APP).status_code == 400
+    assert app_client.post("/api/v1/settings/offline/regions", json={**body, "max_zoom": 22}, headers=APP).status_code == 422
+    assert app_client.delete("/api/v1/settings/offline/regions/../../x", headers=APP).status_code in (404, 405)
+    assert app_client.get("/api/v1/settings/offline/regions", headers=APP).json() == {"regions": []}
+
+
+def test_tile_endpoint_validates_and_prefers_saved_tiles(app_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    from atlas.offline import OfflineStore
+
+    async def fake_fetch(self: OfflineStore, name: str, z: int, x: int, y: int) -> bytes:
+        return b"upstream"
+
+    monkeypatch.setattr(OfflineStore, "fetch", fake_fetch)
+    assert app_client.get("/api/v1/tiles/evil/1/0/0").status_code == 404
+    assert app_client.get("/api/v1/tiles/s2/3/9/0").status_code == 404  # x out of range for z=3
+    r = app_client.get("/api/v1/tiles/s2/3/4/3")
+    assert r.status_code == 200 and r.content == b"upstream" and r.headers["content-type"] == "image/jpeg"

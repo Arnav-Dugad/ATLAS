@@ -547,6 +547,27 @@ async def elevation_profile(body: ProfileBody) -> dict[str, Any]:
     return await point.profile([(float(a), float(b)) for a, b in body.coordinates])
 
 
+@router.get("/tiles/{tileset}/{z}/{x}/{y}")
+async def tile(request: Request, tileset: str, z: int, x: int, y: int) -> Response:
+    """Base imagery and terrain tiles: from a saved offline region when there is one, else fetched
+    (and cached) from the original free service. The Windows app loads its globe through this."""
+    from atlas.offline import MIME, TILESETS
+
+    ts = TILESETS.get(tileset)
+    if ts is None or not (0 <= z <= ts.max_zoom) or not (0 <= x < 2**z) or not (0 <= y < 2**z):
+        raise HTTPException(404, "no such tile")
+    r = rt(request)
+    headers = {"Cache-Control": "public, max-age=86400"}
+    saved = r.offline_store.find(tileset, z, x, y)
+    if saved is not None:
+        return FileResponse(saved, media_type=MIME[ts.ext], headers=headers)
+    try:
+        data = await r.offline_store.fetch(tileset, z, x, y)
+    except FetchError as exc:
+        raise HTTPException(404 if exc.status in (400, 403, 404) else 503, "tile unavailable") from None
+    return Response(content=data, media_type=MIME[ts.ext], headers=headers)
+
+
 @router.get("/context/point")
 async def point_context(
     request: Request,

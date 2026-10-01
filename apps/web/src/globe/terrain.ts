@@ -7,8 +7,10 @@
  * bathymetry, and a sunken ocean floor would distort the imagery draped over it.
  */
 import { CustomHeightmapTerrainProvider, GeographicTilingScheme, Math as CMath } from "cesium";
+import { API_BASE, WINDOWS_APP } from "../lib/api";
 
 const TILE_URL = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium";
+const NATIVE_TILES = WINDOWS_APP && "__TAURI_INTERNALS__" in window;
 /** z13 ≈ 19 m/px at the equator: plenty for a planetary view, and kind to the tile host. */
 const MAX_Z = 13;
 const SAMPLES = 65;
@@ -40,7 +42,9 @@ let scratch: OffscreenCanvas | HTMLCanvasElement | null = null;
 
 async function decodeTile(z: number, x: number, y: number): Promise<Heights | null> {
   try {
-    const res = await fetch(`${TILE_URL}/${z}/${x}/${y}.png`, { mode: "cors", credentials: "omit" });
+    // Windows app: through the local engine, which serves saved offline areas first
+    const url = NATIVE_TILES ? `${API_BASE}/api/v1/tiles/terrain/${z}/${x}/${y}` : `${TILE_URL}/${z}/${x}/${y}.png`;
+    const res = await fetch(url, { mode: "cors", credentials: "omit" });
     if (!res.ok) return null;
     const bitmap = await createImageBitmap(await res.blob());
     scratch ??= makeCanvas();

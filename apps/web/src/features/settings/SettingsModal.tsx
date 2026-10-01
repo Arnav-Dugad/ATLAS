@@ -23,6 +23,7 @@ import {
   MonitorCog,
   Palette,
   Trash,
+  WifiOff,
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -52,12 +53,14 @@ import {
 import { useUi } from "../../lib/store";
 import { cx, Segmented, Toggle } from "../../ui/primitives";
 import { AppSection } from "./AppSection";
+import { OfflineSection } from "./OfflineSection";
 import s from "./SettingsModal.module.css";
 import { showUndo } from "../../lib/undo";
 
 const SECTIONS: { id: SettingsSection; label: string; icon: ReactNode }[] = [
   { id: "sources", label: "Data sources", icon: <KeyRound size={15} /> },
   { id: "packs", label: "Data packs", icon: <Database size={15} /> },
+  { id: "offline", label: "Offline areas", icon: <WifiOff size={15} /> },
   { id: "appearance", label: "Appearance", icon: <Palette size={15} /> },
   { id: "graphics", label: "Graphics", icon: <Cpu size={15} /> },
   { id: "app", label: "App", icon: <MonitorCog size={15} /> },
@@ -169,6 +172,7 @@ export function SettingsModal() {
             ) : null}
             {section === "sources" ? <SourcesSection data={q.data} /> : null}
             {section === "packs" ? <PacksSection data={q.data} /> : null}
+            {section === "offline" ? <OfflineSection /> : null}
             {section === "appearance" ? <AppearanceSection /> : null}
             {section === "graphics" ? <GraphicsSection /> : null}
             {section === "app" ? <AppSection data={q.data} /> : null}

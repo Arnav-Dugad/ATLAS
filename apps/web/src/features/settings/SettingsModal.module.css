@@ -605,3 +605,31 @@
   outline: 2px solid var(--c);
   outline-offset: 4px;
 }
+
+/* ---- offline regions ---- */
+.warnText {
+  color: #f2c14e;
+}
+.regionList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.regionRow {
+  display: grid;
+  gap: 6px;
+}
+.regionHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.regionHead strong {
+  color: #e8ecf2;
+  font-weight: 500;
+}
+.regionHead .muted {
+  margin-left: auto;
+}

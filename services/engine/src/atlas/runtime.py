@@ -277,6 +277,17 @@ class Runtime:
     async def _sweep(self) -> None:
         await asyncio.to_thread(self.pipeline.sweep)
 
+    @property
+    def offline_store(self) -> Any:
+        """Saved offline regions (Windows app), created on first use."""
+        from atlas.offline import OfflineStore
+
+        store = getattr(self, "_offline", None)
+        if store is None:
+            store = OfflineStore(self.settings.data_dir / "offline", self.http)
+            self._offline = store
+        return store
+
     async def _alerts(self) -> None:
         from atlas.engine.alerts import AlertService
 

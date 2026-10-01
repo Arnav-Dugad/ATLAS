@@ -3,7 +3,10 @@
  * Raster layers are *visualisations* (rendered colour maps), not calibrated values; the
  * legend text says so.
  */
+import { API_BASE, WINDOWS_APP } from "../lib/api";
 import type { LayerId } from "../lib/store";
+
+const NATIVE_TILES = WINDOWS_APP && "__TAURI_INTERNALS__" in window;
 
 export interface ImageryDef {
   id: LayerId | "base" | "base.fallback" | "nightLights";
@@ -25,12 +28,15 @@ const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
 const gibs = (layer: string, level: number, ext: "jpg" | "png" | "jpeg") => (date: string) =>
   `${GIBS}/${layer}/default/${date}/GoogleMapsCompatible_Level${level}/{z}/{y}/{x}.${ext}`;
 
+/** Windows app: base tiles come through the local engine, which serves saved offline areas first. */
+const viaEngine = (set: string) => `${API_BASE}/api/v1/tiles/${set}/{z}/{x}/{y}`;
+
 export const BASE: ImageryDef = {
   id: "base",
   title: "Sentinel-2 cloudless 2024",
   group: "Base",
   source: "eox-s2cloudless",
-  url: () => "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg",
+  url: () => (NATIVE_TILES ? viaEngine("s2") : "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg"),
   maximumLevel: 14,
   temporal: false,
   alpha: 1,
@@ -43,7 +49,7 @@ export const BASE_FALLBACK: ImageryDef = {
   group: "Base",
   source: "gibs",
   layer: "BlueMarble_ShadedRelief_Bathymetry",
-  url: gibs("BlueMarble_ShadedRelief_Bathymetry", 8, "jpeg"),
+  url: (date: string) => (NATIVE_TILES ? viaEngine("bluemarble") : gibs("BlueMarble_ShadedRelief_Bathymetry", 8, "jpeg")(date)),
   maximumLevel: 8,
   temporal: false,
   alpha: 1,
