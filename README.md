@@ -12,7 +12,9 @@ tracks how they change, and renders it all on a real-time 3D Earth.
 
 `₹0 required operating cost` · `no account` · `no API keys required` · `no telemetry`
 
-**[Open the public snapshot →](https://arnav-dugad.github.io/ATLAS/)** &nbsp;·&nbsp; rebuilt every 3 hours from open data · run it locally for the live stream
+**[Open the public snapshot →](https://arnav-dugad.github.io/ATLAS/)** &nbsp;·&nbsp; works on phones, installable as an app · rebuilt every 3 hours from open data
+<br/>
+<sub>Desktop app for Windows, macOS and Linux · or run it locally for the live stream and the local AI analyst · <a href="docs/DEPLOYMENT.md">all the ways to run ATLAS</a></sub>
 
 <img src="docs/assets/planet.webp" alt="ATLAS planetary view: live incidents, 116k satellite fire detections, earthquakes and cyclones on a real-time lit globe" width="100%" />
 
@@ -32,6 +34,14 @@ tracks how they change, and renders it all on a real-time 3D Earth.
 - **Ask in plain language, without AI.** `⌘K` → *"earthquakes above magnitude 6 in Japan during 2024"* is parsed deterministically into filters and answered from the live store or the USGS archive.
 - **Exposure.** People living within distance rings (GHSL 2025 1 km grid, optional pack) and exact per-ring counts of OpenStreetMap hospitals, fire stations, schools, airports, ports, power and water facilities and bridges, with the nearest named facilities on the globe. Descriptive, never "people affected".
 - **Satellite layers.** 13 NASA GIBS overlays: daily true colour, IMERG precipitation, sea-surface temperature, TROPOMI NO₂/SO₂, aerosols, land-surface temperature, MODIS flood, OPERA surface water, NDVI, population density, relief and labels.
+- **Before / after, from orbit.** Split the globe at any date pair (four NASA GIBS daily products) and drag the divider; for fires, floods and cyclones ATLAS also runs a **Sentinel-2 change analysis** — dNBR burn severity, MNDWI new water or ΔNDVI — with cloud masking, cross-tile mosaics, class areas and a swipe viewer.
+- **3D terrain** from open elevation tiles, with adjustable relief exaggeration.
+- **Knowledge graph.** Aftershock sequences (Gardner–Knopoff windows), possibly cyclone-related floods, quakes near volcanoes and neighbouring events — each link states its rule and evidence, and arcs connect them on the globe.
+- **Simulation Lab.** Place a hypothetical earthquake (or re-run a real one) and see median shaking bands from a published intensity equation and the residents inside each — stamped *SIMULATION — NOT A FORECAST*.
+- **Local AI analyst.** Ask questions of the live data with a model running on your own machine (Ollama). It can only call eight read-only tools, cites every incident it uses, and treats retrieved text as untrusted.
+- **Story mode, comparison, watchlists.** A guided tour of the planet right now; pin up to three incidents side by side; draw a watch area and get a browser notification when something new happens there — stored only on your device.
+- **More corroboration.** EMSC earthquakes confirm USGS independently, official NOAA tsunami-centre bulletins raise severity floors, NOAA SWPC space weather sits on the overview, and OpenAQ stations report measured air quality near an incident.
+- **Everywhere.** A dedicated phone layout with a draggable sheet, an installable web app, keyboard-first desktop use, and a native desktop app with the engine built in.
 - **A real registry.** Licence, attribution, cadence, latency, limits and live health for every source, plus local observability (job scheduler, latency percentiles, storage, logs).
 
 <table>
@@ -81,24 +91,36 @@ Useful commands:
 | `pnpm test` | Web + engine test suites |
 | `pnpm gen:api` | Regenerate TypeScript types from the engine's OpenAPI |
 
-Keyboard: `⌘/Ctrl K` palette · `/` search · `L` layers · `R` rotate · `H` home · `[` `]` time window · `j`/`k` navigate · `Alt+1–3` views · `Esc` back.
+Keyboard: `⌘/Ctrl K` palette · `/` search · `L` layers · `A` ask the analyst · `W` watchlist · `R` rotate · `H` home · `[` `]` time window · `j`/`k` navigate · `Alt+1–3` views · `Esc` back.
+
+**Optional:** [Ollama](https://ollama.com) with `ollama pull qwen2.5:7b` for the analyst ([AI.md](docs/AI.md)) ·
+`pnpm engine packs install population-ghsl` (~484 MB) for residents in exposure rings and
+scenarios · a free [OpenAQ key](https://explore.openaq.org/register) in `.env` for air quality.
+
+**Without a terminal:** use the [public snapshot](https://arnav-dugad.github.io/ATLAS/) or the
+desktop app — see [DEPLOYMENT.md](docs/DEPLOYMENT.md) for installers and for hosting your own
+mirror on Cloudflare Pages, Netlify or Vercel (the `site` branch is a ready-made static site).
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  A[USGS · GDACS · NHC · EONET · GVP · FIRMS] -->|hardened HTTP<br/>ETag · backoff · allow-list| B[Connectors]
+  A[USGS · EMSC · GDACS · NHC · EONET<br/>GVP · FIRMS · NOAA tsunami] -->|hardened HTTP<br/>ETag · backoff · allow-list| B[Connectors]
   B --> C[Ingest pipeline<br/>versioning · correlation · fusion · audit]
   B -->|CSV bulk load| F[Fire engine<br/>H3 clustering]
   C --> D[(DuckDB<br/>spatial + h3)]
   F --> D
   D --> E[FastAPI<br/>REST + SSE]
+  S[Sentinel-2 COGs · OpenAQ · SWPC<br/>Overpass · Open-Meteo] -->|on demand| E
   E --> W[React + CesiumJS]
-  G[NASA GIBS · EOxCloudless] --> W
+  L[Ollama, loopback only] <-->|read-only tools| E
+  G[NASA GIBS · EOxCloudless · Terrain Tiles] --> W
+  E -->|export-static, every 3 h| P[Public snapshot<br/>GitHub Pages · site branch]
 ```
 
-- **Engine** (`services/engine`): Python 3.11+, FastAPI, DuckDB (spatial, H3), Shapely, NumPy, PyArrow, httpx. One process, no broker.
-- **Web** (`apps/web`): Vite, React 19, TypeScript strict, CesiumJS (no Cesium ion), TanStack Query, zustand, Motion, d3-scale.
+- **Engine** (`services/engine`): Python 3.11+, FastAPI, DuckDB (spatial, H3), Shapely, NumPy, PyArrow, rasterio, httpx. One process, no broker.
+- **Web** (`apps/web`): Vite, React 19, TypeScript strict, CesiumJS (no Cesium ion), TanStack Query, zustand, Motion, d3-scale. PWA with a hand-written service worker.
+- **Desktop** (`apps/desktop`): Tauri 2 with the engine bundled as a PyInstaller sidecar.
 
 Details: [Architecture](docs/ARCHITECTURE.md) · [Data model](docs/DATA_MODEL.md) · [Methodology](docs/METHODOLOGY.md) · [Design system](docs/DESIGN_SYSTEM.md) · [Security](docs/SECURITY.md)
 
@@ -118,7 +140,15 @@ All verified live on 2026-10-01. Full research notes: [docs/DATA_SOURCES.md](doc
 | EOxCloudless | Sentinel-2 2024 cloudless basemap | Non-commercial with attribution |
 | Natural Earth | Boundaries & places (offline geocoding) | Public domain |
 | Open-Meteo | Weather context (model) | CC BY 4.0 · non-commercial tier |
-| ReliefWeb · OpenAQ | Adapters, disabled until a free key/appname is set | per provider |
+| EMSC-CSEM | Independent earthquake corroboration | CC BY 4.0 |
+| NOAA Tsunami Warning Centers | Official tsunami bulletins | Public domain |
+| NOAA SWPC | Space weather scales and outlook | Public domain |
+| Sentinel-2 L2A (Earth Search, AWS) | Change analysis (dNBR, MNDWI, ΔNDVI) | Copernicus open data |
+| Terrain Tiles (AWS Open Data) | 3D terrain | Mixed open, attribution list |
+| OpenStreetMap (Overpass) | Infrastructure exposure | ODbL |
+| GHSL GHS-POP R2023A | Population (optional pack) | CC BY 4.0 |
+| OpenAQ | Air quality near incidents (free key) | CC BY 4.0 platform · provider licences vary |
+| ReliefWeb | Adapter, disabled until an approved appname is set | per document |
 
 ATLAS shows the required attribution on the map, in incident source drawers, in exports and
 in the attribution dialog.
@@ -133,15 +163,16 @@ tracks are labelled as agency forecasts with uncertainty cones.
 ## Privacy
 
 No accounts, no analytics, no telemetry. Everything runs on your machine. Weather lookups
-send only an incident location rounded to ~5 km.
+send only an incident location rounded to ~5 km. The AI model runs locally and the engine
+only talks to it over loopback; watchlists and pins live in your browser.
 
 ## Status & roadmap
 
-Phase 1 (foundation, live ingestion, correlation, planetary view, incident intelligence) is
-complete. From Phase 2: population exposure (GHSL), on-demand OpenStreetMap infrastructure
-exposure, historical playback, Demo Mode replays and the free public snapshot on GitHub Pages.
-Next: before/after satellite comparison, local AI over typed tools, a simulation lab and a
-Tauri desktop app. See [ROADMAP.md](docs/ROADMAP.md).
+Phases 1–6 are in: live ingestion and correlation, exposure and history, satellite change
+analysis and terrain, the local AI analyst, the Simulation Lab, knowledge graph, comparison,
+story mode and watchlists, more corroborating sources, the phone layout, PWA and desktop app.
+Next: storm, wildfire and flood scenarios, offline region packs, more national sources and
+signed installers. See [ROADMAP.md](docs/ROADMAP.md).
 
 ## Contributing & licence
 

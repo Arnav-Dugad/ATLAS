@@ -191,6 +191,48 @@ default "before" date reaches back 6 days for fires and 5 for floods and cyclone
 detection can lag a start. 3D terrain samples the AWS Terrain Tiles (Terrarium) into the
 globe's geographic tiling and clamps heights at 0 m, so it is visual relief only.
 
+## Knowledge graph — `atlas-relations-v1`
+
+The **Links** tab and the arcs on the globe connect incidents by documented rules. Every edge
+names its rule and evidence (distance, time gap, magnitudes). These are spatial–temporal
+associations, not proof of cause, except for the aftershock convention:
+
+| Relation | Rule |
+|---|---|
+| Aftershock / foreshock | Gardner & Knopoff (1974) windows, as fitted by van Stiphout et al. (2012, CORSSA): L(M) = 10^(0.1238·M + 0.983) km; T(M) = 10^(0.032·M + 2.7389) d for M ≥ 6.5, else 10^(0.5409·M − 0.547) d. A smaller event inside the larger event's window is an aftershock (after) or foreshock (before). In a sequence, members link only to the mainshock. |
+| Possibly cyclone-related flood | Flood onset between the cyclone's start and 7 days after its last data, within 300 km of the track extent |
+| Earthquake near volcano | Within 30 km and 30 days |
+| Same-hazard neighbours | Wildfires ≤ 60 km / 5 d; floods ≤ 300 km / 14 d; other hazards ≤ 150 km / 10 d |
+
+## Simulation Lab
+
+Earthquake shaking scenarios use the Allen, Wald & Worden (2012) intensity prediction
+equation. Provenance **Simulation**, never mixed with observations. Method, coefficients and
+limits are documented in [SIMULATION.md](SIMULATION.md).
+
+## Air quality near an incident (OpenAQ)
+
+With a free OpenAQ key, ATLAS lists up to 5 monitoring stations within 25 km that reported in
+the last 24 hours (OpenAQ also lists long-dead stations), with the latest PM2.5, PM10, NO₂,
+O₃, SO₂ and CO values **as measured** (provenance **Observed**): station, provider, distance
+and time. Values are not averaged, interpolated or converted. WHO 2021 24-hour guidelines are
+shown for context, with the caveat that one hourly reading is indicative only. Low-cost sensor
+networks and reference monitors are both listed; the provider is shown for each.
+
+## Space weather (NOAA SWPC)
+
+The overview shows SWPC's current R (radio blackout), S (solar radiation storm) and G
+(geomagnetic storm) levels and SWPC's own three-day outlook, verbatim and attributed. A
+geomagnetic storm has no single location, so it is context, not an incident.
+
+## Watchlists
+
+A watch is a circle (centre, radius 25–1000 km), optional hazard filter and minimum severity,
+stored only in the browser. Matching runs on the open incidents the client already has
+(great-circle distance from the incident's position to the centre). Alerts fire once per incident and never
+for the backlog that existed when the watch was created, using the browser's Notification API
+if the person allows it. Nothing is sent to a server.
+
 ## Geocoding
 
 Point-in-polygon against Natural Earth 1:50m countries (STRtree), with a nearest-coastline
