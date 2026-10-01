@@ -35,6 +35,7 @@ import {
   Rectangle,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
+  SingleTileImageryProvider,
   SkyAtmosphere,
   SplitDirection,
   UrlTemplateImageryProvider,
@@ -121,6 +122,7 @@ export class AtlasGlobe {
   private compareLayers: ImageryLayer[] = [];
   private compareTag = "";
   private terrainOn = false;
+  private raster: { key: string; layer: ImageryLayer | null } = { key: "", layer: null };
   private incidentIndex = new Map<string, { billboard: Billboard; data: IncidentSummary }>();
   private pulseState: { billboard: Billboard; phase: number; color: Color; speed: number }[] = [];
   private selectedId: string | null = null;
@@ -399,6 +401,25 @@ export class AtlasGlobe {
       this.applyLighting();
     }
     if (c) this.setSplitPosition(c.position);
+    this.requestRender();
+  }
+
+  /** Drape one georeferenced image (e.g. a Sentinel-2 change map) over its bounding box. */
+  setRasterOverlay(o: { url: string; bbox: [number, number, number, number] } | null) {
+    const key = o ? `${o.url}|${o.bbox.join(",")}` : "";
+    if (key === this.raster.key) return;
+    if (this.raster.layer) this.widget.imageryLayers.remove(this.raster.layer, true);
+    this.raster = { key, layer: null };
+    if (!o) {
+      this.requestRender();
+      return;
+    }
+    const [w, s, e, n] = o.bbox;
+    const layer = ImageryLayer.fromProviderAsync(SingleTileImageryProvider.fromUrl(o.url, { rectangle: Rectangle.fromDegrees(w, s, e, n) }));
+    layer.alpha = 0.92;
+    layer.nightAlpha = 1;
+    this.widget.imageryLayers.add(layer);
+    this.raster = { key, layer };
     this.requestRender();
   }
 

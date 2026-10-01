@@ -25,7 +25,9 @@ observed status and payload shape are noted.
 | ReliefWeb API v2 | ⏸ adapter, disabled | **approved appname** | per-document | 30 min when enabled |
 | OpenAQ v3 | ⏸ registry only | **free API key** | CC BY 4.0 platform | — |
 | OpenStreetMap / Overpass | 🔜 Phase 2 | none | ODbL | per incident |
-| GHSL GHS-POP R2023A | 🔜 Population Pack | none | CC BY 4.0 | once (~484 MB) |
+| GHSL GHS-POP R2023A | ✅ Population Pack | none | CC BY 4.0 | once (~484 MB) |
+| Sentinel-2 L2A (Earth Search STAC + AWS COGs) | ✅ on demand | none | Copernicus open data | per analysis |
+| Terrain Tiles (Terrarium, AWS Open Data) | ✅ browser terrain | none | mixed open, attribution list | per view |
 
 ## Details
 
@@ -92,6 +94,21 @@ observed status and payload shape are noted.
 
 ### GHSL GHS-POP R2023A — optional Population Pack
 - `GHS_POP_E2025_GLOBE_R2023A_4326_30ss_V1_0.zip` — HTTP 200, 483,694,490 bytes, CC BY 4.0. Installed with `pnpm engine packs install population-ghsl`; extraction is guarded against archive bombs and path traversal.
+
+### Sentinel-2 L2A via Earth Search — Phase 3
+`GET https://earth-search.aws.element84.com/v1/search?collections=sentinel-2-l2a&bbox=…&datetime=…&sortby=-properties.datetime`
+returned GeoJSON items (verified 2026-10-01: 32 items for a 0.2° box over 55 days) with
+`assets.{nir,swir22,green,swir16,red,scl,visual}` pointing at cloud-optimised GeoTIFFs on
+`sentinel-cogs.s3.us-west-2.amazonaws.com`, and `raster:bands` scale 0.0001 / offset −0.1.
+A 700 × 700 overview window read with rasterio took ~3.6 s. No key, no account. Asset URLs
+are accepted only from that bucket (https). Attribution: "Contains modified Copernicus
+Sentinel data [year], processed by ATLAS".
+
+### Terrain Tiles (Terrarium) — Phase 3
+`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png` returned 200 with
+`Access-Control-Allow-Origin: *` (verified 2026-10-01). Height = R·256 + G + B/256 − 32768 m.
+The required per-source attribution list (tilezen/joerd `docs/attribution.md`) is shown in
+the attribution panel whenever terrain is on.
 
 ## Adding a source
 

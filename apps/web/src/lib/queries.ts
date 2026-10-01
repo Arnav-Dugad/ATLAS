@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { api, STATIC_MODE, type IncidentQuery } from "./api";
+import { api, STATIC_MODE, type IncidentQuery, type SpectralIndex } from "./api";
 import { useUi, WINDOW_HOURS } from "./store";
 
 export const qk = {
@@ -94,6 +94,17 @@ export function useInfrastructureExposure(id: string | null, enabled: boolean) {
     queryFn: ({ signal }) => api.infrastructure(id as string, signal),
     enabled: Boolean(id) && enabled && !STATIC_MODE,
     staleTime: 24 * 3600_000,
+    retry: 0,
+  });
+}
+
+/** Sentinel-2 change analysis: user-initiated locally (10–60 s), precomputed in the snapshot. */
+export function useSpectral(id: string | null, index: SpectralIndex | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["spectral", id ?? "none", index ?? "auto"],
+    queryFn: ({ signal }) => api.spectral(id as string, index, signal),
+    enabled: Boolean(id) && enabled,
+    staleTime: 6 * 3600_000,
     retry: 0,
   });
 }

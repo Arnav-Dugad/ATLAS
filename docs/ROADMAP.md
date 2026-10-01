@@ -22,10 +22,13 @@ ATLAS is built vertically: each phase is usable end to end before the next begin
 - Playback for fires (archive detections) and cyclone tracks over time
 - ✅ Free public demo: static snapshot on GitHub Pages, rebuilt every 3 h by Actions with rolling engine state and population exposure
 
-## Phase 3 — Satellite intelligence
-- Before/after comparison slider (GIBS dates; Sentinel-2 via Copernicus Data Space)
-- Derived indices (NDVI/NDWI/NBR) where scientifically defensible, with method notes
-- Terrain (Terrarium heightmaps) and storm-cone 3D extrusion
+## ✅ Phase 3 — Satellite intelligence
+- ✅ Before/after split comparison on the globe (four NASA GIBS daily products, any two dates)
+- ✅ Sentinel-2 change analysis per incident: dNBR burn severity, MNDWI new water, ΔNDVI —
+  scene search, cross-tile mosaics, SCL masking, class areas, swipe viewer, globe drape;
+  precomputed for major incidents in the public snapshot
+- ✅ 3D terrain from open elevation tiles with relief exaggeration
+- Storm-cone 3D extrusion
 
 ## Phase 4 — Local AI
 - Ollama/llama.cpp assistant over typed read-only tools with citations (see `AI.md`)

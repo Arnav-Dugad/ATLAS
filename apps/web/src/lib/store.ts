@@ -72,6 +72,14 @@ export const DEFAULT_LAYERS: Record<LayerId, boolean> = {
   terrain: false,
 };
 
+/** A derived raster draped on the globe (e.g. a Sentinel-2 change map). */
+export interface RasterOverlay {
+  incidentId: string;
+  url: string;
+  bbox: [number, number, number, number];
+  label: string;
+}
+
 /** Split-screen comparison of one satellite product on two dates (Phase 3). */
 export interface CompareState {
   product: string;
@@ -117,6 +125,7 @@ interface UiState {
   /** terrain vertical exaggeration factor */
   exaggeration: number;
   compare: CompareState | null;
+  rasterOverlay: RasterOverlay | null;
 
   setView: (v: View) => void;
   select: (id: string | null, opts?: { fly?: boolean }) => void;
@@ -149,6 +158,7 @@ interface UiState {
   setExaggeration: (x: number) => void;
   setCompare: (c: CompareState | null) => void;
   patchCompare: (patch: Partial<CompareState>) => void;
+  setRasterOverlay: (o: RasterOverlay | null) => void;
 }
 
 function yesterdayUtc(): string {
@@ -188,9 +198,16 @@ export const useUi = create<UiState>()(
       history: null,
       exaggeration: 1.5,
       compare: null,
+      rasterOverlay: null,
 
       setView: (view) => set({ view }),
-      select: (selectedId) => set((s) => ({ selectedId, autoRotate: selectedId ? false : s.autoRotate, workspace: selectedId ? s.workspace : false })),
+      select: (selectedId) =>
+        set((s) => ({
+          selectedId,
+          autoRotate: selectedId ? false : s.autoRotate,
+          workspace: selectedId ? s.workspace : false,
+          rasterOverlay: s.rasterOverlay && s.rasterOverlay.incidentId === selectedId ? s.rasterOverlay : null,
+        })),
       hover: (hoveredId) => set({ hoveredId }),
       toggleHazard: (h) =>
         set((s) => ({ hazards: s.hazards.includes(h) ? s.hazards.filter((x) => x !== h) : [...s.hazards, h] })),
@@ -220,6 +237,7 @@ export const useUi = create<UiState>()(
       setHistory: (history) => set({ history }),
       setExaggeration: (exaggeration) => set({ exaggeration }),
       setCompare: (compare) => set((s) => ({ compare, autoRotate: compare ? false : s.autoRotate })),
+      setRasterOverlay: (rasterOverlay) => set({ rasterOverlay }),
       patchCompare: (patch) => set((s) => (s.compare ? { compare: { ...s.compare, ...patch } } : {})),
     }),
     {

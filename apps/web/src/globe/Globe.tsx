@@ -31,6 +31,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const appView = useUi((s) => s.view);
   const exaggeration = useUi((s) => s.exaggeration);
   const compare = useUi((s) => s.compare);
+  const rasterOverlay = useUi((s) => s.rasterOverlay);
 
   // ---- mount ------------------------------------------------------------------------
   useEffect(() => {
@@ -78,6 +79,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   useEffect(() => globe?.setTime(playhead), [globe, playhead]);
   useEffect(() => globe?.highlight(hoveredId), [globe, hoveredId]);
   useEffect(() => globe?.setTerrain(layers.terrain, exaggeration), [globe, layers.terrain, exaggeration]);
+  useEffect(() => globe?.setRasterOverlay(rasterOverlay ? { url: rasterOverlay.url, bbox: rasterOverlay.bbox } : null), [globe, rasterOverlay]);
   const cmpProduct = compare?.product;
   const cmpBefore = compare?.before;
   const cmpAfter = compare?.after;

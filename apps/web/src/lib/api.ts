@@ -44,6 +44,60 @@ export interface ExposureUnavailable {
   action: "install-pack" | "retry" | null;
 }
 
+export type SpectralIndex = "nbr" | "mndwi" | "ndvi";
+
+export interface SpectralScene {
+  id: string;
+  items: string[];
+  datetime: string;
+  platform: string;
+  tiles: string[];
+  scene_cloud_cover: number | null;
+  window_valid_fraction: number;
+}
+
+export interface SpectralClass {
+  key: string;
+  label: string;
+  color: string;
+  area_km2: number;
+  share: number;
+}
+
+/** Sentinel-2 before/after change analysis around an incident (DERIVED). */
+export interface SpectralChange {
+  status: "ok";
+  kind: "spectral_change";
+  provenance: "derived";
+  incident_id: string;
+  index: { id: SpectralIndex; name: string; formula: string; citation: string };
+  available_indices: SpectralIndex[];
+  window: { bbox: [number, number, number, number]; resolution_m: number; width: number; height: number };
+  before: SpectralScene;
+  after: SpectralScene;
+  valid_fraction: number;
+  classes: SpectralClass[];
+  headline: { key: string; label: string; value: number; unit: string };
+  images: Record<"before.jpg" | "after.jpg" | "change.png", string>;
+  caveats: string[];
+  method: string;
+  attribution: string;
+  computed_at: string;
+}
+
+export interface SpectralUnavailable {
+  status: "unavailable";
+  kind: "spectral_change";
+  provenance: "unavailable";
+  reason: string;
+  action: "retry" | null;
+}
+
+/** Absolute URL for a file path returned by the API (works in live and snapshot mode). */
+export function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
+
 export interface PopulationExposure {
   status: "ok";
   kind: "population";
@@ -323,6 +377,16 @@ async function staticRequest<T>(path: string, signal?: AbortSignal): Promise<T> 
   }
   // Static hosts differ on missing files: a 404, or an SPA fallback page served as text/html.
   if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) {
+    if (p.endsWith("/imagery/change")) {
+      const unavailable: SpectralUnavailable = {
+        status: "unavailable",
+        kind: "spectral_change",
+        provenance: "unavailable",
+        reason: "This public snapshot precomputes Sentinel-2 change maps for a few major fires and floods. Run ATLAS locally to analyse any incident.",
+        action: null,
+      };
+      return unavailable as T;
+    }
     if (p.endsWith("/exposure/population")) {
       const unavailable: ExposureUnavailable = {
         status: "unavailable",
@@ -471,6 +535,8 @@ export const api = {
     request<PopulationExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/population`, { signal }),
   infrastructure: (id: string, signal?: AbortSignal) =>
     request<InfrastructureExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/infrastructure`, { signal }),
+  spectral: (id: string, index: SpectralIndex | null, signal?: AbortSignal) =>
+    request<SpectralChange | SpectralUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/imagery/change${qs({ index })}`, { signal }),
   reloadPacks: () => request<{ population: boolean }>("/api/v1/packs/reload", { method: "POST" }),
   knowledge: (id: string, at?: string, signal?: AbortSignal) =>
     request<KnowledgeSnapshot>(`/api/v1/incidents/${encodeURIComponent(id)}/knowledge${qs({ at })}`, { signal }),

@@ -141,6 +141,47 @@ airports, ports, water works) are listed by distance (capped at 800). Results ar
 24 h per ~100 m-rounded centre. Provenance **Derived**; OSM completeness varies strongly by
 country, so absence of a mapped facility is not absence of the facility.
 
+## Satellite change analysis (Phase 3) — `atlas-spectral-v1`
+
+On request (or precomputed for a few major incidents in the public snapshot) ATLAS compares
+two Sentinel-2 L2A passes around an incident. Provenance **Derived**.
+
+**Window.** The incident footprint plus 15 % margin, or a hazard-sized square (wildfire ±6 km,
+flood/cyclone ±15 km, volcano ±8 km, earthquake ±10 km), capped at 40 km. The grid is
+EPSG:4326 at ≥ 10 m and ≤ 768 px on the long side; each band is read from the COG overview
+whose resolution matches the grid, so only small windows are fetched.
+
+**Scenes.** Earth Search (STAC) is queried for the 45 days before onset and for onset → now.
+Items of one pass (same satellite, same day) are mosaicked across MGRS tiles; the latest
+processing baseline of each tile wins. Passes whose tile cloud cover is ≤ 20 % are tried
+first, then ≤ 50 %, then the rest; a pass is accepted when ≥ 80 % of the window is clear
+in the Scene Classification Layer (fallback: the clearest tried, if ≥ 35 %).
+
+**Masking.** Pixels are compared only where *both* dates are clear: SCL classes 4, 5, 7 (and
+2 "dark area / topographic shadow" for burn and water indices, because fresh burn scars and
+water are dark), plus 6 (water) for MNDWI. No masked pixel is filled or extrapolated; the
+valid share is reported. Reflectance = DN × scale + offset from the item metadata
+(baseline ≥ 04.00 offset −0.1).
+
+| Hazard | Index | Classes |
+|---|---|---|
+| Wildfire | dNBR = NBR_before − NBR_after, NBR = (B08 − B12)/(B08 + B12) — Key & Benson 2006 | USGS FIREMON ranges: < −0.25 enhanced regrowth (high), −0.25…−0.10 (low), −0.10…0.10 unburned, 0.10…0.27 low, 0.27…0.44 moderate-low, 0.44…0.66 moderate-high, ≥ 0.66 high severity |
+| Flood, cyclone | MNDWI = (B03 − B11)/(B03 + B11) — Xu 2006 | water where MNDWI > 0 → new water / water on both dates / receded |
+| Other | ΔNDVI = NDVI_after − NDVI_before | ≤ −0.2 loss, ≥ +0.2 gain (heuristic threshold, labelled as such) |
+
+Areas use the latitude-corrected area of each pixel row. Headline: burned area (dNBR ≥ 0.10),
+new surface water, or vegetation loss. Caveats shown with every result: no field
+validation (CBI), smoke and thin cloud the SCL misses, fires still active in the after scene,
+optical blindness to flooded vegetation and urban flooding (radar would help), and season,
+harvest, tides and phenology between dates.
+
+## Before / after imagery and terrain
+
+The split comparison shows NASA GIBS daily composites as delivered (no enhancement); the
+default "before" date reaches back 6 days for fires and 5 for floods and cyclones, because
+detection can lag a start. 3D terrain samples the AWS Terrain Tiles (Terrarium) into the
+globe's geographic tiling and clamps heights at 0 m, so it is visual relief only.
+
 ## Geocoding
 
 Point-in-polygon against Natural Earth 1:50m countries (STRtree), with a nearest-coastline

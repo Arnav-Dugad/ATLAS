@@ -12,12 +12,13 @@ import { useUi } from "../../lib/store";
 import { ConfidenceMeter, cx, Dot, ErrorState, HazardGlyph, Label, ProvenanceBadge, SeverityMeter, Skeleton } from "../../ui/primitives";
 import { Chronology } from "./Chronology";
 import { ExposureTab } from "./ExposureTab";
+import { SatelliteTab } from "./SatelliteTab";
 import { SourceDrawer } from "./SourceDrawer";
 import { WeatherCard } from "./WeatherCard";
 import { TrackChart } from "./TrackChart";
 import s from "./IncidentPanel.module.css";
 
-type Tab = "brief" | "exposure" | "timeline" | "sources" | "context";
+type Tab = "brief" | "exposure" | "satellite" | "timeline" | "sources" | "context";
 
 export function IncidentPanel({ id }: { id: string }) {
   const q = useIncident(id);
@@ -109,6 +110,7 @@ export function IncidentPanel({ id }: { id: string }) {
           [
             ["brief", "Intelligence"],
             ["exposure", "Exposure"],
+            ["satellite", "Satellite"],
             ["timeline", `Chronology · ${d.changes.length}`],
             ["sources", `Sources · ${d.citations.filter((c) => c.source_id !== "natural-earth").length}`],
             ["context", "Context"],
@@ -126,6 +128,7 @@ export function IncidentPanel({ id }: { id: string }) {
           <motion.div key={tab} initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.14 }}>
             {tab === "brief" ? <BriefTab d={d} /> : null}
             {tab === "exposure" ? <ExposureTab d={d} /> : null}
+            {tab === "satellite" ? <SatelliteTab d={d} /> : null}
             {tab === "timeline" ? <Chronology d={d} /> : null}
             {tab === "sources" ? <SourceDrawer d={d} /> : null}
             {tab === "context" ? <ContextTab d={d} /> : null}
