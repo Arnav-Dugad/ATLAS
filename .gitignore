@@ -22,7 +22,7 @@ data/runtime/
 *.duckdb.wal
 
 # Local AI models and large datasets
-models/
+/models/
 *.gguf
 *.tif
 *.tiff
