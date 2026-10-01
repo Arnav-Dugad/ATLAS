@@ -326,6 +326,18 @@ async def burn_scar_gallery(request: Request) -> dict[str, Any]:
     return {"items": items, "automatic": r.settings.auto_burn_scars and not r.settings.offline, "provenance": "derived"}
 
 
+@router.get("/incidents/{incident_id}/rivers")
+async def incident_rivers(request: Request, incident_id: str) -> dict[str, Any]:
+    """Modelled river discharge (GloFAS) near the incident, and US stream gauges when in the US."""
+    from atlas.engine import rivers
+
+    r = rt(request)
+    _hazard, lat, lon = _incident_point(r, incident_id)
+    with r.db.read() as cur:
+        iso3 = cur.execute("SELECT country_iso3 FROM incidents WHERE id = ?", [incident_id]).fetchone()[0]
+    return await rivers.rivers(r.http, lat, lon, utcnow().date(), iso3 in ("USA", "PRI"))
+
+
 @router.get("/incidents/{incident_id}/fire-growth")
 async def incident_fire_growth(request: Request, incident_id: str) -> dict[str, Any]:
     """How fast a fire's detected footprint grew over the last 48 h and which way it spread (derived)."""

@@ -27,6 +27,7 @@ const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default:
 const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
 const QuakeIntel = lazy(() => import("./QuakeIntel").then((m) => ({ default: m.QuakeIntel })));
 const FireGrowthCard = lazy(() => import("./HazardIntel").then((m) => ({ default: m.FireGrowthCard })));
+const RiversCard = lazy(() => import("./RiversCard").then((m) => ({ default: m.RiversCard })));
 const OfficialAlerts = lazy(() => import("./OfficialAlerts").then((m) => ({ default: m.OfficialAlerts })));
 const CompoundCard = lazy(() => import("./CompoundCard").then((m) => ({ default: m.CompoundCard })));
 const CycloneIntel = lazy(() => import("./HazardIntel").then((m) => ({ default: m.CycloneIntel })));
@@ -221,6 +222,11 @@ function BriefTab({ d }: { d: IncidentDetail }) {
       {d.hazard === "tropical_cyclone" ? (
         <Suspense fallback={<Skeleton height={140} />}>
           <CycloneIntel d={d} />
+        </Suspense>
+      ) : null}
+      {d.hazard === "flood" || d.hazard === "tropical_cyclone" ? (
+        <Suspense fallback={<Skeleton height={140} />}>
+          <RiversCard d={d} />
         </Suspense>
       ) : null}
 

@@ -258,6 +258,31 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface GaugeReading {
+  value: number;
+  unit: string | null;
+  time: string | null;
+  approval: string | null;
+}
+
+export interface Rivers {
+  status: "ok";
+  errors: Record<string, string>;
+  attribution: string;
+  glofas: {
+    cell: { lat: number; lon: number; distance_km: number };
+    today: { date: string; discharge: number };
+    percentile_2y: number | null;
+    max_2y: number | null;
+    history: { date: string; discharge: number | null }[];
+    forecast: { date: string; median: number | null; min: number | null; max: number | null }[];
+    forecast_peak: { date: string; median: number | null } | null;
+    unit: string;
+    method: string;
+  } | null;
+  gauges?: { id: string; name: string; lat: number; lon: number; distance_km: number; stage?: GaugeReading; discharge?: GaugeReading }[];
+}
+
 export interface AgencyEvent {
   id: string;
   time: string;
@@ -704,6 +729,7 @@ const LOCAL_ONLY: RegExp[] = [
   /\/compound$/,
   /\/alerts$/,
   /\/agencies$/,
+  /\/rivers$/,
   /\/alerts\/layer$/,
   /\/exposure\/zones$/,
 ];
@@ -963,6 +989,7 @@ export const api = {
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
   zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
+  rivers: (id: string, signal?: AbortSignal) => request<Rivers>(`/api/v1/incidents/${encodeURIComponent(id)}/rivers`, { signal }),
   agencies: (id: string, signal?: AbortSignal) => request<Agencies>(`/api/v1/incidents/${encodeURIComponent(id)}/agencies`, { signal }),
   alertsHere: (id: string, signal?: AbortSignal) => request<AlertsHere>(`/api/v1/incidents/${encodeURIComponent(id)}/alerts`, { signal }),
   alertLayer: (signal?: AbortSignal) => request<AlertLayer>("/api/v1/alerts/layer", { signal }),
