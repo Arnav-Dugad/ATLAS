@@ -1,7 +1,7 @@
 {
   "name": "@atlas/desktop",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "ATLAS desktop app (Tauri) — the web interface with the engine bundled as a sidecar",
   "scripts": {
     "tauri": "tauri",
