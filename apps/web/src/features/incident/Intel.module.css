@@ -750,3 +750,47 @@
 .gauges .dim {
   grid-column: 1 / -1;
 }
+
+.seaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mini {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  background: rgba(150, 168, 194, 0.05);
+}
+
+.mini figcaption {
+  display: grid;
+  font-size: var(--fs-2xs);
+}
+
+.miniName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-xs);
+  color: var(--text-1);
+}
+
+.mini svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 4px;
+}
+
+.miniLine {
+  fill: none;
+  stroke: #7fd1ff;
+  stroke-width: 1.2;
+}
+
+.miniEvent {
+  stroke: var(--warn);
+  stroke-dasharray: 2 2;
+}

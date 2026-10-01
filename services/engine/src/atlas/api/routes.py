@@ -246,6 +246,18 @@ async def incident_agencies(request: Request, incident_id: str) -> dict[str, Any
     return await agencies.for_quake(r.http, row[0], lat, lon, row[1])
 
 
+@router.get("/incidents/{incident_id}/sea-level")
+async def incident_sea_level(request: Request, incident_id: str) -> dict[str, Any]:
+    """Raw sea level at the nearest IOC tide gauges and DART buoys around an undersea earthquake."""
+    from atlas.engine import sealevel
+
+    r = rt(request)
+    _hazard, lat, lon = _incident_point(r, incident_id)
+    with r.db.read() as cur:
+        row = cur.execute("SELECT started_at FROM incidents WHERE id = ?", [incident_id]).fetchone()
+    return await sealevel.near_event(r.http, row[0], lat, lon)
+
+
 @router.get("/incidents/{incident_id}/seismic-context")
 async def incident_seismic_context(request: Request, incident_id: str) -> dict[str, Any]:
     """Largest earthquakes nearby since 1900, and this week's activity against the 10-year rate."""

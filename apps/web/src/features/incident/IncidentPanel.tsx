@@ -18,6 +18,7 @@ import { ExposureTab } from "./ExposureTab";
 import { SourceDrawer } from "./SourceDrawer";
 import { AirQualityCard } from "./AirQualityCard";
 import { WeatherCard } from "./WeatherCard";
+import { shouldShowSeaLevel } from "./seaLevelRule";
 import { TrackChart } from "./TrackChart";
 import s from "./IncidentPanel.module.css";
 import { useUnits } from "../../lib/settings";
@@ -27,6 +28,7 @@ const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default:
 const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
 const QuakeIntel = lazy(() => import("./QuakeIntel").then((m) => ({ default: m.QuakeIntel })));
 const FireGrowthCard = lazy(() => import("./HazardIntel").then((m) => ({ default: m.FireGrowthCard })));
+const SeaLevelCard = lazy(() => import("./SeaLevelCard").then((m) => ({ default: m.SeaLevelCard })));
 const RiversCard = lazy(() => import("./RiversCard").then((m) => ({ default: m.RiversCard })));
 const OfficialAlerts = lazy(() => import("./OfficialAlerts").then((m) => ({ default: m.OfficialAlerts })));
 const CompoundCard = lazy(() => import("./CompoundCard").then((m) => ({ default: m.CompoundCard })));
@@ -222,6 +224,11 @@ function BriefTab({ d }: { d: IncidentDetail }) {
       {d.hazard === "tropical_cyclone" ? (
         <Suspense fallback={<Skeleton height={140} />}>
           <CycloneIntel d={d} />
+        </Suspense>
+      ) : null}
+      {shouldShowSeaLevel(d) ? (
+        <Suspense fallback={<Skeleton height={140} />}>
+          <SeaLevelCard d={d} />
         </Suspense>
       ) : null}
       {d.hazard === "flood" || d.hazard === "tropical_cyclone" ? (
