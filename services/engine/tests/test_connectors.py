@@ -60,7 +60,9 @@ class TestGdacs:
         assert eq.magnitude is not None and eq.magnitude_unit == "M"
         assert eq.alert_level in {"green", "orange", "red"}
         tc = next(o for o in out.observations if o.hazard is Hazard.TROPICAL_CYCLONE)
-        assert isinstance(tc.metrics["max_wind_kt"], float)
+        # GDACS publishes the lifetime peak, which must never masquerade as current intensity
+        assert isinstance(tc.metrics["peak_wind_kt"], float)
+        assert "max_wind_kt" not in tc.metrics
 
     def test_tc_geometry_track_and_cone(self, ctx: ConnectorContext) -> None:
         conn = GdacsConnector(ctx)

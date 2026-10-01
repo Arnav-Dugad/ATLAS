@@ -71,6 +71,13 @@ class TestSeverity:
         sev = assess_severity(Hazard.EARTHQUAKE, [orange])
         assert sev.level == 4 and "PAGER" in sev.basis
 
+    def test_gdacs_peak_wind_is_not_current_intensity(self) -> None:
+        peak = Observation(source="gdacs", external_id="TC:1", hazard=Hazard.TROPICAL_CYCLONE, title="POLO-26", lat=30, lon=-108,
+                           event_time=NOW - timedelta(days=9), metrics={"peak_wind_kt": 155.0})  # fmt: skip
+        current = storm("eonet", "E1", "Polo", 30, -108, NOW, wind=30)
+        sev = assess_severity(Hazard.TROPICAL_CYCLONE, [peak, current])
+        assert sev.level == 1 and "Latest max sustained wind 30 kt" in sev.basis
+
     def test_cyclone_wind_bands(self) -> None:
         assert assess_severity(Hazard.TROPICAL_CYCLONE, [storm("nhc", "x", "A", 0, 0, NOW, wind=30)]).level == 1
         assert assess_severity(Hazard.TROPICAL_CYCLONE, [storm("nhc", "x", "A", 0, 0, NOW, wind=140)]).level == 5

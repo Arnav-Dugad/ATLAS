@@ -99,8 +99,9 @@ class GdacsConnector(DataConnector):
             metrics["depth_km"] = float(depth.group(1)) if depth else None
         elif hazard is Hazard.TROPICAL_CYCLONE and severity_unit == "km/h":
             kmh = _f(severity_value)
-            metrics["max_wind_kmh"] = round(kmh, 1) if kmh is not None else None
-            metrics["max_wind_kt"] = round(kmh / KMH_PER_KT, 1) if kmh is not None else None
+            # GDACS reports the *lifetime peak* wind of the storm, not its current intensity.
+            metrics["peak_wind_kmh"] = round(kmh, 1) if kmh is not None else None
+            metrics["peak_wind_kt"] = round(kmh / KMH_PER_KT, 1) if kmh is not None else None
         elif hazard is Hazard.WILDFIRE and severity_unit == "ha":
             metrics["burned_area_ha"] = _f(severity_value)
         elif hazard is Hazard.DROUGHT and severity_unit == "km2":

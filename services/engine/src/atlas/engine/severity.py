@@ -33,6 +33,19 @@ FRP_BANDS = [(2_500, 2), (10_000, 3), (25_000, 4), (75_000, 5)]  # MW summed ove
 AREA_HA_BANDS = [(1_000, 2), (10_000, 3), (50_000, 4), (200_000, 5)]
 
 
+def current_wind(observations: Sequence[Observation]) -> tuple[float, str] | None:
+    """Most authoritative *current* sustained wind (NHC advisory, else EONET's latest fix)."""
+    authority = {"nhc": 0, "eonet": 1}
+    winds = [
+        (float(w), o.source)
+        for o in observations
+        if o.source in authority and isinstance((w := o.metrics.get("max_wind_kt")), (int, float))
+    ]
+    if not winds:
+        return None
+    return sorted(winds, key=lambda t: authority[t[1]])[0]
+
+
 def assess(hazard: Hazard, observations: Sequence[Observation]) -> Severity:
     level = 0
     basis: list[str] = []
@@ -64,12 +77,16 @@ def assess(hazard: Hazard, observations: Sequence[Observation]) -> Severity:
                 bump(3, "Tsunami flag set by USGS → ≥3")
 
     elif hazard is Hazard.TROPICAL_CYCLONE:
-        winds = [(float(w), o.source) for o in observations if isinstance((w := o.metrics.get("max_wind_kt")), (int, float))]
-        if winds:
-            authority = {"nhc": 0, "gdacs": 1, "eonet": 2}
-            wind, src = sorted(winds, key=lambda t: authority.get(t[1], 9))[0]
+        current = current_wind(observations)
+        if current:
+            wind, src = current
             lvl = _band(wind, TC_BANDS)
-            bump(lvl, f"Max sustained wind {wind:.0f} kt ({src.upper()}) → {lvl}")
+            bump(lvl, f"Latest max sustained wind {wind:.0f} kt ({src.upper()}) → {lvl}")
+        else:
+            peaks = [float(w) for o in observations if isinstance((w := o.metrics.get("peak_wind_kt")), (int, float))]
+            if peaks:
+                lvl = max(1, _band(max(peaks), TC_BANDS) - 1)
+                bump(lvl, f"No current intensity; GDACS lifetime peak {max(peaks):.0f} kt → {lvl} (one level below peak band)")
 
     elif hazard is Hazard.WILDFIRE:
         frp = sum(

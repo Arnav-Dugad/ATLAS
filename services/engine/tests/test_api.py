@@ -36,7 +36,7 @@ def test_list_and_detail(client: TestClient) -> None:
     body = res.json()
     assert body["total"] == 1
     item = body["items"][0]
-    assert item["severity"]["level"] == 3 and item["severity"]["method"] == "atlas-severity-v1"
+    assert item["severity"]["level"] == 3 and item["severity"]["method"].startswith("atlas-severity-v1")
     assert item["started_at"].endswith("Z")
     assert {m["provenance"] for m in item["headline"]} <= {"real", "derived", "model", "simulation", "unavailable"}
 

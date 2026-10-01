@@ -383,12 +383,12 @@ class QueryService:
             a = agg.get(sid)
             last_attempt, last_ok, last_err, data_time, p50, n24, e24, b24, last_status = a if a else (None,) * 9
             if sid not in self.rt.connectors:
-                status = (
-                    "reference"
-                    if meta.category in ("reference", "imagery", "population", "infrastructure", "context")
-                    else "idle"
-                )
-                enabled = True if status == "reference" else enabled
+                # Reference datasets and on-demand services (no polling connector).
+                if meta.auth.required:
+                    status, enabled = "disabled", False
+                    reason = reason or f"Requires a free key (set {meta.auth.optional_env})"
+                else:
+                    status, enabled = "reference", True
             elif not enabled:
                 status = "disabled"
             elif last_status is None:

@@ -114,7 +114,14 @@ def incident_diffs(old: IncidentRecord | None, new: IncidentRecord, at: datetime
         return [Change(incident_id=new.id, at=at, kind="created", summary=f"Incident opened from {', '.join(_src(s) for s in new.sources)} · severity {sev}",
                        significance=3 if new.severity_level >= 4 else 2 if new.severity_level >= 3 else 1)]  # fmt: skip
     out: list[Change] = []
-    if new.severity_level != old.severity_level:
+    old_method, new_method = old.severity.get("method"), new.severity.get("method")
+    if old_method != new_method:
+        # ATLAS's own methodology changed: not a real-world change, so never report it as one.
+        out.append(Change(incident_id=new.id, at=at, kind="reassessed", field="severity",
+                          old_value=f"{old_method}:{old.severity_level}", new_value=f"{new_method}:{new.severity_level}",
+                          summary=f"Reassessed under {new_method}: {old.severity.get('label')} → {new.severity.get('label')} (methodology update, not a new observation)",
+                          significance=1))  # fmt: skip
+    elif new.severity_level != old.severity_level:
         up = new.severity_level > old.severity_level
         out.append(Change(incident_id=new.id, at=at, kind="severity_changed", field="severity",
                           old_value=str(old.severity_level), new_value=str(new.severity_level),

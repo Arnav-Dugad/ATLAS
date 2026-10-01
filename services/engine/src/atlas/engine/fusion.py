@@ -14,6 +14,7 @@ from typing import Any
 from atlas.engine import confidence as confidence_engine
 from atlas.engine import severity as severity_engine
 from atlas.engine.geocode import Geocoder
+from atlas.engine.severity import current_wind
 from atlas.models import (
     HAZARD_LABEL,
     Hazard,
@@ -87,8 +88,12 @@ def _is_live(row: ObsRow, ctx: FusionContext) -> bool:
     if snap is None:
         return False
     max_age = LIVE_DATA_MAX_AGE.get(row.obs.hazard)
-    if max_age is not None and ctx.now - (row.obs.source_updated_at or row.obs.event_time) > max_age:
-        return False
+    if max_age is not None:
+        # For moving systems judge freshness by the newest *fix* (end_time = last track time for
+        # GDACS), not by a feed's modification timestamp, which can change without new data.
+        last_fix = row.obs.end_time or row.obs.source_updated_at or row.obs.event_time
+        if ctx.now - last_fix > max_age:
+            return False
     return row.last_seen_at >= snap - timedelta(minutes=2)
 
 
@@ -169,6 +174,8 @@ def _status(hazard: Hazard, rows: Sequence[ObsRow], ctx: FusionContext, started:
         return IncidentStatus.MONITORING if age <= MONITOR_WINDOW[hazard] else IncidentStatus.CLOSED
     if live:
         return IncidentStatus.ACTIVE
+    if hazard in LIVE_DATA_MAX_AGE:
+        last_obs = max((r.obs.end_time or r.obs.source_updated_at or r.obs.event_time) for r in rows)
     age = now - last_obs
     if age <= ACTIVE_WINDOW.get(hazard, timedelta(days=2)) and not any(
         (r.obs.status or "").lower() in CLOSED_STATES for r in rows if r.obs.source in ctx.snapshots
@@ -238,15 +245,19 @@ def headline_metrics(hazard: Hazard, obs: Sequence[Observation]) -> list[Metric]
         n = by_src.get("nhc")
         g = by_src.get("gdacs")
         e = by_src.get("eonet")
-        p = n or g or e
-        if p:
-            wind = p.metrics.get("max_wind_kt")
-            add("wind", "Max sustained wind", wind, "kt", Provenance.REAL, p.source, at=p.source_updated_at)
-            if isinstance(wind, (int, float)):
-                from atlas.connectors.nhc import saffir_simpson
+        current = current_wind(obs)
+        if current:
+            wind, src = current
+            fix = by_src[src]
+            add("wind", "Max sustained wind", wind, "kt", Provenance.REAL, src, at=fix.source_updated_at,
+                note="Latest advisory/fix intensity (1-minute sustained)")  # fmt: skip
+            from atlas.connectors.nhc import saffir_simpson
 
-                add("category", "Saffir–Simpson", saffir_simpson(float(wind)), None, Provenance.DERIVED, p.source,
-                    method="Saffir–Simpson wind scale from max sustained wind")  # fmt: skip
+            add("category", "Saffir–Simpson", saffir_simpson(wind), None, Provenance.DERIVED, src,
+                method="Saffir–Simpson wind scale from the latest max sustained wind")  # fmt: skip
+        if g and isinstance(g.metrics.get("peak_wind_kt"), (int, float)):
+            add("peak_wind", "Lifetime peak wind", g.metrics.get("peak_wind_kt"), "kt", Provenance.REAL, "gdacs",
+                note="Maximum wind over the storm's lifetime as reported by GDACS — not current intensity")  # fmt: skip
         if n:
             add("pressure", "Min central pressure", n.metrics.get("min_pressure_mb"), "mb", Provenance.REAL, "nhc")
             if n.metrics.get("movement_speed_mph") is not None:

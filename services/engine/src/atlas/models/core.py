@@ -164,7 +164,7 @@ class Severity(BaseModel):
     level: int = Field(ge=0, le=5)  # 0 = unknown
     label: str
     basis: str
-    method: str = "atlas-severity-v1"
+    method: str = "atlas-severity-v1.1"
     provenance: Provenance = Provenance.DERIVED
 
 
@@ -180,10 +180,7 @@ class Confidence(BaseModel):
     label: Literal["low", "moderate", "high", "very high"]
     components: list[ConfidenceComponent]
     method: str = "atlas-confidence-heuristic-v1"
-    note: str = (
-        "Heuristic summary of source count, agreement, review status and recency. "
-        "It is not a calibrated probability."
-    )
+    note: str = "Heuristic summary of source count, agreement, review status and recency. It is not a calibrated probability."
 
 
 class PlaceRef(BaseModel):

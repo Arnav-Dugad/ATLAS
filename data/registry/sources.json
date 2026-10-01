@@ -226,6 +226,35 @@
       "limitations": ["Visualisations are rendered images, not calibrated science data values."]
     },
     {
+      "id": "eox-s2cloudless",
+      "name": "EOxCloudless — Sentinel-2 cloudless mosaic (2024)",
+      "provider": "EOX IT Services GmbH (contains modified Copernicus Sentinel data)",
+      "category": "imagery",
+      "hazards": [],
+      "homepage": "https://cloudless.eox.at/",
+      "docs_url": "https://cloudless.eox.at/documentation/license",
+      "hosts": ["tiles.maps.eox.at"],
+      "license": {
+        "name": "Free for non-commercial use with attribution (EOX licence terms)",
+        "url": "https://cloudless.eox.at/documentation/license",
+        "commercial_use": false,
+        "notes": "Commercial deployments require a licence from EOX. ATLAS loads these tiles in the browser only; nothing is redistributed."
+      },
+      "attribution": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2024)",
+      "update_interval": "Annual mosaic",
+      "expected_latency": "n/a",
+      "coverage": { "geographic": "Global land", "temporal": "2024 composite" },
+      "resolution": "10 m (Sentinel-2)",
+      "historical_depth": "Annual mosaics since 2016",
+      "rate_limits": "Public WMTS; tiles requested only for the visible viewport",
+      "auth": { "required": false },
+      "cache_strategy": "Browser HTTP cache",
+      "reliability": { "rating": "A", "rationale": "Widely used cloud-free basemap from Copernicus Sentinel-2" },
+      "parser_version": "wmts/1",
+      "default_enabled": true,
+      "limitations": ["A cloud-free composite of many dates: it shows typical surface appearance, not current conditions."]
+    },
+    {
       "id": "natural-earth",
       "name": "Natural Earth — Admin-0 countries & populated places",
       "provider": "Natural Earth (NACIS)",
