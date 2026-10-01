@@ -298,3 +298,161 @@
     animation: none;
   }
 }
+
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statRow > div {
+  display: grid;
+  gap: 2px;
+}
+
+.mid {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.9;
+}
+
+.cap {
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.histogram {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 54px;
+  padding: 0 1px;
+  border-bottom: 1px solid var(--line-1);
+}
+
+.hbar {
+  flex: 1;
+  min-width: 0;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #ffb46b, #ff6a3d);
+  transform-origin: bottom;
+  animation: rise 520ms var(--ease-out) both;
+}
+
+.hbar:hover {
+  filter: brightness(1.25);
+}
+
+@keyframes rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.sparkRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sparkRow .sub {
+  margin: 0;
+}
+
+.riRow {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 2px 10px;
+  font-size: var(--fs-sm);
+}
+
+.riRow > .dim {
+  grid-column: 2;
+  font-size: var(--fs-xs);
+}
+
+.riLabel {
+  color: var(--text-3);
+}
+
+.riVal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.zoneList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.zone {
+  display: grid;
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 2px solid var(--hz, var(--accent));
+}
+
+.zoneHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--fs-sm);
+}
+
+.zoneLabel {
+  color: var(--text-1);
+  font-weight: 500;
+}
+
+.zoneVal {
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.places {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.placeChip {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(150, 168, 194, 0.08);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.placeChip:hover {
+  color: var(--text-1);
+  background: rgba(150, 168, 194, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hbar {
+    animation: none;
+  }
+}

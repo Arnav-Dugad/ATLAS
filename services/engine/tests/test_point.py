@@ -46,3 +46,51 @@ def test_polygon_query_uses_lat_lon_order():
     q, order = build_polygon_query([(77.1, 28.5), (77.3, 28.5), (77.3, 28.7), (77.1, 28.5)])
     assert 'poly:"28.50000 77.10000 28.50000 77.30000' in q
     assert order and "out count" in q
+
+
+def _grid(tmp_path):
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_origin
+
+    from atlas.engine.exposure import PopulationGrid
+
+    path = tmp_path / "pop.tif"
+    data = np.ones((200, 200), dtype="float32")  # 0.1° cells over 0–20°E, 0–20°N, one person each
+    with rasterio.open(path, "w", driver="GTiff", width=200, height=200, count=1, dtype="float32",
+                       crs="EPSG:4326", transform=from_origin(0, 20, 0.1, 0.1), nodata=-200) as ds:  # fmt: skip
+        ds.write(data, 1)
+    return PopulationGrid(path)
+
+
+def test_tiled_population_matches_cell_count(tmp_path):
+    from shapely.geometry import box
+
+    grid = _grid(tmp_path)
+    try:
+        # 12° × 12° spans several 5° tiles; 120 × 120 cell centres inside, none counted twice
+        assert grid.geometry(box(2, 2, 14, 14), tile_deg=5.0) == 120 * 120
+        assert grid.geometry(box(2, 2, 14, 14), tile_deg=3.0) == 120 * 120
+    finally:
+        grid.close()
+
+
+def test_zone_exposure_reports_each_published_zone(tmp_path):
+    from atlas.engine.exposure import zone_exposure
+
+    grid = _grid(tmp_path)
+    cone = {"type": "Polygon", "coordinates": [[[1, 1], [11, 1], [11, 11], [1, 11], [1, 1]]]}
+    wind = {"type": "Polygon", "coordinates": [[[4, 4], [6, 4], [6, 6], [4, 6], [4, 4]]]}
+    geometry = {"features": [
+        {"properties": {"role": "forecast_cone"}, "geometry": cone},
+        {"properties": {"role": "wind_120kmh"}, "geometry": wind},
+        {"properties": {"role": "affected_area"}, "geometry": wind},
+    ]}  # fmt: skip
+    try:
+        out = zone_exposure(grid, None, geometry)
+    finally:
+        grid.close()
+    assert [z["role"] for z in out["zones"]] == ["forecast_cone", "wind_120kmh"]
+    assert out["zones"][0]["residents"] == 100 * 100
+    assert out["zones"][1]["residents"] == 20 * 20
+    assert zone_exposure(None, None, {"features": []})["status"] == "unavailable"

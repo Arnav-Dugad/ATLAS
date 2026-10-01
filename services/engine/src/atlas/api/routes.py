@@ -247,6 +247,26 @@ async def incident_seismic_context(request: Request, incident_id: str) -> dict[s
     return out
 
 
+@router.get("/incidents/{incident_id}/exposure/zones")
+async def incident_zone_exposure(request: Request, incident_id: str) -> dict[str, Any]:
+    """Residents and places inside a cyclone's forecast cone and wind zones (GHSL, Natural Earth)."""
+    r = rt(request)
+    detail = svc(request).get_incident(incident_id)
+    if detail is None:
+        raise HTTPException(404, "incident not found")
+    return await asyncio.to_thread(exposure.zone_exposure, r.population, r.geocoder, detail.geometry)
+
+
+@router.get("/incidents/{incident_id}/fire-growth")
+async def incident_fire_growth(request: Request, incident_id: str) -> dict[str, Any]:
+    """How fast a fire's detected footprint grew over the last 48 h and which way it spread (derived)."""
+    from atlas.engine.growth import fire_growth
+
+    r = rt(request)
+    _incident_point(r, incident_id)
+    return await asyncio.to_thread(fire_growth, r.db, incident_id)
+
+
 class AskTurn(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(max_length=4000)

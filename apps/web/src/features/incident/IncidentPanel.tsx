@@ -26,6 +26,8 @@ import { showUndo } from "../../lib/undo";
 const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default: m.SatelliteTab })));
 const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
 const QuakeIntel = lazy(() => import("./QuakeIntel").then((m) => ({ default: m.QuakeIntel })));
+const FireGrowthCard = lazy(() => import("./HazardIntel").then((m) => ({ default: m.FireGrowthCard })));
+const CycloneIntel = lazy(() => import("./HazardIntel").then((m) => ({ default: m.CycloneIntel })));
 
 type Tab = "brief" | "exposure" | "satellite" | "links" | "timeline" | "sources" | "context";
 
@@ -204,6 +206,17 @@ function BriefTab({ d }: { d: IncidentDetail }) {
           <Label>Track & intensity</Label>
           <TrackChart track={d.track as unknown as TrackPointLike[]} />
         </section>
+      ) : null}
+
+      {d.hazard === "wildfire" && d.sources.includes("firms") ? (
+        <Suspense fallback={<Skeleton height={140} />}>
+          <FireGrowthCard d={d} />
+        </Suspense>
+      ) : null}
+      {d.hazard === "tropical_cyclone" ? (
+        <Suspense fallback={<Skeleton height={140} />}>
+          <CycloneIntel d={d} />
+        </Suspense>
       ) : null}
 
       <section className={s.official}>

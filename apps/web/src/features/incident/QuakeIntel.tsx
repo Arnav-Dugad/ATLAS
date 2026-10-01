@@ -14,7 +14,7 @@ import { haversineKm } from "../../lib/measure";
 import { useUnits } from "../../lib/settings";
 import { useUi } from "../../lib/store";
 import { cx, Dot, Label, ProvenanceBadge, Skeleton } from "../../ui/primitives";
-import s from "./QuakeIntel.module.css";
+import s from "./Intel.module.css";
 
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 const MMI = [

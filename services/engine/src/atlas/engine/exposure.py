@@ -108,17 +108,33 @@ class PopulationGrid:
 
     def polygon(self, coords: list[tuple[float, float]]) -> float:
         """Residents in GHSL cells whose centres fall inside the (lon, lat) polygon."""
-        import shapely
         from shapely.geometry import Polygon
 
-        poly = Polygon(coords)
-        west, south, east, north = poly.bounds
-        data, lats, lons = self._read(west, south, east, north)
-        if data.size == 0:
-            return 0.0
-        lat_g, lon_g = np.meshgrid(lats, lons, indexing="ij")
-        inside = shapely.contains_xy(poly, lon_g, lat_g)
-        return float(data[inside].sum())
+        return self.geometry(Polygon(coords))
+
+    def geometry(self, geom: Any, tile_deg: float = 5.0) -> float:
+        """Residents with cell centres inside any shapely (Multi)Polygon, read in tiles so a
+        cyclone cone tens of degrees across never loads more than one tile into memory."""
+        import shapely
+        from shapely.geometry import box
+
+        shapely.prepare(geom)
+        west, south, east, north = geom.bounds
+        total = 0.0
+        for w in np.arange(west, east, tile_deg):
+            for s_ in np.arange(south, north, tile_deg):
+                tile = box(w, s_, min(w + tile_deg, east), min(s_ + tile_deg, north))
+                if not geom.intersects(tile):
+                    continue
+                data, lats, lons = self._read(*tile.bounds)
+                if data.size == 0:
+                    continue
+                lat_g, lon_g = np.meshgrid(lats, lons, indexing="ij")
+                # Cells straddling a tile edge belong to the tile that holds their centre.
+                own = (lon_g >= w) & (lon_g < w + tile_deg) & (lat_g >= s_) & (lat_g < s_ + tile_deg)
+                inside = shapely.contains_xy(geom, lon_g, lat_g) & own
+                total += float(data[inside].sum())
+        return total
 
     def rings(self, lat: float, lon: float, rings_km: list[float]) -> list[float]:
         west, south, east, north = bbox_around(lat, lon, max(rings_km))
@@ -399,6 +415,75 @@ async def polygon_exposure(http: HttpClient, grid: PopulationGrid | None, coords
         "note": "Mapped facilities only; OpenStreetMap completeness varies by country.",
     }
     return out
+
+
+ZONE_ROLES = {
+    "forecast_cone": "Forecast cone",
+    "wind_60kmh": "Wind swath ≥ 60 km/h",
+    "wind_90kmh": "Wind swath ≥ 90 km/h",
+    "wind_120kmh": "Wind swath ≥ 120 km/h",
+}
+
+
+def zone_exposure(grid: PopulationGrid | None, geocoder: Any, geometry: dict[str, Any] | None) -> dict[str, Any]:
+    """Residents and the largest populated places inside a cyclone's forecast cone and GDACS
+    wind zones (polygons as published; ATLAS draws no zone of its own)."""
+    from shapely.geometry import shape
+    from shapely.ops import unary_union
+
+    parts: dict[str, list[Any]] = {}
+    for f in (geometry or {}).get("features") or []:
+        role = (f.get("properties") or {}).get("role")
+        if role in ZONE_ROLES:
+            try:
+                g = shape(f["geometry"])
+            except (KeyError, TypeError, ValueError, AttributeError):
+                continue
+            if g.is_valid and not g.is_empty and g.geom_type in ("Polygon", "MultiPolygon"):
+                parts.setdefault(role, []).append(g)
+    if not parts:
+        return _unavailable("zones", "No forecast cone or wind-zone polygons are published for this storm.")
+    zones = []
+    for role, label in ZONE_ROLES.items():
+        if role not in parts:
+            continue
+        geom = unary_union(parts[role])
+        residents = round(grid.geometry(geom)) if grid is not None else None
+        places = []
+        if geocoder is not None and getattr(geocoder, "place_meta", None):
+            import shapely
+
+            inside = shapely.contains_xy(geom, geocoder._lon_deg, geocoder._lat_deg)
+            idx = np.nonzero(inside)[0]
+            idx = idx[np.argsort(-geocoder._ppop[idx])][:8]
+            for i in idx:
+                m = geocoder.place_meta[int(i)]
+                places.append({"name": m["name"], "country": m.get("country"), "population": m.get("population"),
+                               "lat": float(geocoder._lat_deg[i]), "lon": float(geocoder._lon_deg[i])})  # fmt: skip
+        zones.append({"role": role, "label": label, "residents": residents, "places": places,
+                      "area_km2": round(_geom_area_km2(geom))})  # fmt: skip
+    return {
+        "status": "ok",
+        "kind": "zones",
+        "provenance": "model",
+        "zones": zones,
+        "population_note": None if grid is not None else "Install the Population Pack for residents per zone.",
+        "method": "GHSL 2025 residents with 30″ cell centres inside each published polygon; places from Natural Earth (largest first).",
+        "limitations": (
+            "The cone shows where the centre may track, not the extent of impacts; hazards occur outside it. "
+            "GDACS wind swaths cover the whole track, past and forecast, from modelled wind radii."
+        ),
+    }
+
+
+def _geom_area_km2(geom: Any) -> float:
+    polys = list(geom.geoms) if geom.geom_type == "MultiPolygon" else [geom]
+    total = 0.0
+    for p in polys:
+        total += polygon_area_km2(list(p.exterior.coords))
+        for hole in p.interiors:
+            total -= polygon_area_km2(list(hole.coords))
+    return total
 
 
 def _unavailable(kind: str, reason: str, action: str | None = None) -> dict[str, Any]:

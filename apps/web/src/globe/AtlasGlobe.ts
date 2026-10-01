@@ -157,6 +157,7 @@ export class AtlasGlobe {
   private watchDraft = new PolylineCollection();
   private shakeLines = new PolylineCollection();
   private shakeLabels = new LabelCollection();
+  private arrows = new PolylineCollection();
   private measureLines = new PolylineCollection();
   private measurePoints = new PointPrimitiveCollection();
   private measureLabels = new LabelCollection();
@@ -265,6 +266,7 @@ export class AtlasGlobe {
       this.watchDraft,
       this.shakeLines,
       this.shakeLabels,
+      this.arrows,
       this.measureLines,
       this.measurePoints,
       this.measureLabels,
@@ -754,6 +756,24 @@ export class AtlasGlobe {
         material: Material.fromType("PolylineDash", { color: white.withAlpha(0.9), gapColor: Color.TRANSPARENT, dashLength: 8 }),
       });
       label(Cartesian3.fromRadians(...destinationRad(u.lat, u.lon, u.km, 90), 900), `± ${dist(u.km, u.km < 10 ? 1 : 0)}`, white);
+    }
+    this.requestRender();
+  }
+
+  /** A spread-direction arrow (e.g. a fire front moving from one centroid to another). */
+  setArrow(a: { from: [number, number]; to: [number, number]; color: string } | null) {
+    this.arrows.removeAll();
+    if (a) {
+      const [lon1, lat1] = a.from;
+      const [lon2, lat2] = a.to;
+      // extend past the newer centroid so the head sits beyond the fire, not on top of it
+      const tip = intermediate(lat1, lon1, lat2, lon2, 1.8);
+      const tail = intermediate(lat1, lon1, lat2, lon2, -0.2);
+      this.arrows.add({
+        positions: [Cartesian3.fromDegrees(tail[0], tail[1], 1200), Cartesian3.fromDegrees(tip[0], tip[1], 1200)],
+        width: 14,
+        material: Material.fromType("PolylineArrow", { color: Color.fromCssColorString(a.color).withAlpha(0.95) }),
+      });
     }
     this.requestRender();
   }

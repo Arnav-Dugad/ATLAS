@@ -232,6 +232,29 @@ export interface SeismicContext {
     | Unavailable;
 }
 
+export interface FireGrowth {
+  status: "ok";
+  provenance: Provenance;
+  footprint_km2: number;
+  new_last_24h_km2: number;
+  new_last_12h_km2: number;
+  series: { start: string; new_km2: number; cumulative_km2: number; detections: number }[];
+  spread: { bearing_deg: number; compass: string; shift_km: number; from: [number, number]; to: [number, number]; meaningful: boolean } | null;
+  history: { at: string; footprint_km2: number; detections: number }[];
+  computed_at: string;
+  method: string;
+  limitations: string;
+}
+
+export interface ZoneExposure {
+  status: "ok";
+  provenance: Provenance;
+  zones: { role: string; label: string; residents: number | null; area_km2: number; places: { name: string; country: string | null; population: number | null; lat: number; lon: number }[] }[];
+  population_note: string | null;
+  method: string;
+  limitations: string;
+}
+
 export interface PolygonExposure {
   status: "ok";
   area_km2: number;
@@ -580,6 +603,8 @@ const LOCAL_ONLY: RegExp[] = [
   /\/context\/point$/,
   /\/usgs$/,
   /\/seismic-context$/,
+  /\/fire-growth$/,
+  /\/exposure\/zones$/,
 ];
 
 export function isLocalOnly(err: unknown): boolean {
@@ -835,6 +860,8 @@ export const api = {
     request<PointContext>(`/api/v1/context/point${qs({ lat: lat.toFixed(5), lon: lon.toFixed(5) })}`, { signal }),
   usgsProducts: (id: string, signal?: AbortSignal) => request<UsgsProducts | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/usgs`, { signal }),
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
+  fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
+  zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
   polygonExposure: (points: { lat: number; lon: number }[], signal?: AbortSignal) =>
     request<PolygonExposure>("/api/v1/exposure/polygon", {
       method: "POST",
