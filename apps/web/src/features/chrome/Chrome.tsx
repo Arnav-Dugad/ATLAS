@@ -57,7 +57,7 @@ export function Attribution() {
     <>
       <div className={s.attr}>
         <span className={s.attrText}>
-          Imagery: {imagery.join(" · ")} — Data: USGS · GDACS · NOAA NHC · NASA EONET · NASA FIRMS · Smithsonian GVP · Natural Earth — CesiumJS
+          Imagery: {imagery.join(" · ")} — Data: USGS · EMSC · GDACS · NOAA NHC · NOAA Tsunami Centers · NASA EONET · NASA FIRMS · Smithsonian GVP · Natural Earth — CesiumJS
         </span>
         <button type="button" className={s.attrBtn} onClick={() => setOpen(true)} aria-label="Full attribution and licences">
           <Info size={12} />

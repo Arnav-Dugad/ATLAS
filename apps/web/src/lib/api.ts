@@ -132,6 +132,17 @@ export const RELATION_META: Record<RelationType, { label: string; color: string 
   nearby: { label: "Nearby, same hazard", color: "#9aa8bd" },
 };
 
+export interface SpaceWeather {
+  status: "ok";
+  source: "swpc";
+  attribution: string;
+  observed_at: string | null;
+  current: Record<"R" | "S" | "G", { scale: number | null; text: string | null; meaning: string }>;
+  outlook: { date: string; g_scale: number | null; r1_r2_probability: number | null; r3_plus_probability: number | null; s1_plus_probability: number | null }[];
+  note: string;
+  retrieved_at: string;
+}
+
 /** Absolute URL for a file path returned by the API (works in live and snapshot mode). */
 export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
@@ -574,6 +585,7 @@ export const api = {
     request<PopulationExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/population`, { signal }),
   infrastructure: (id: string, signal?: AbortSignal) =>
     request<InfrastructureExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/infrastructure`, { signal }),
+  spaceWeather: (signal?: AbortSignal) => request<SpaceWeather>("/api/v1/context/space-weather", { signal }),
   graph: (id: string, depth: 1 | 2, signal?: AbortSignal) =>
     request<IncidentGraph>(`/api/v1/incidents/${encodeURIComponent(id)}/graph${STATIC_MODE ? "" : qs({ depth })}`, { signal }),
   spectral: (id: string, index: SpectralIndex | null, signal?: AbortSignal) =>

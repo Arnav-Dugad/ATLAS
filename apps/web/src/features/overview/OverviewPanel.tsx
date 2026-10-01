@@ -1,6 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { ArrowUpRight, Play } from "lucide-react";
-import { STATIC_MODE, type IncidentSummary, type Overview } from "../../lib/api";
+import { api, STATIC_MODE, type IncidentSummary, type Overview } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
 import { compact, decimal, int, relTime, utcFull } from "../../lib/format";
 import { hazardMeta, severityColor, SEVERITY_LABELS, sourceLabel } from "../../lib/hazards";
@@ -123,6 +124,8 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
         </ul>
       </section>
 
+      <SpaceWeatherCard />
+
       <HistoricalReplays />
 
       <section className={s.section}>
@@ -138,6 +141,42 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
         </div>
       </section>
     </div>
+  );
+}
+
+const G_COLOR = ["#7d8ba0", "#9cc9ff", "#f2b84b", "#ff9100", "#ff4d4d", "#c80000"];
+
+function SpaceWeatherCard() {
+  const q = useQuery({ queryKey: ["space-weather"], queryFn: ({ signal }) => api.spaceWeather(signal), staleTime: 600_000, refetchInterval: 600_000, retry: 0 });
+  const d = q.data;
+  if (!d) return null;
+  return (
+    <section className={s.section}>
+      <Label right="NOAA SWPC">Space weather</Label>
+      <div className={s.space}>
+        {(["R", "S", "G"] as const).map((k) => {
+          const lvl = d.current[k].scale ?? 0;
+          return (
+            <div key={k} className={s.spaceCell} title={d.current[k].meaning}>
+              <span className={s.spaceScale} style={{ color: G_COLOR[Math.min(5, lvl)] }}>
+                {k}
+                {lvl}
+              </span>
+              <span className={s.spaceLabel}>{d.current[k].meaning}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className={s.outlook}>
+        {d.outlook.map((day) => (
+          <span key={day.date} className={s.outlookDay} title={`R1–R2 ${day.r1_r2_probability ?? "–"}% · R3+ ${day.r3_plus_probability ?? "–"}% · S1+ ${day.s1_plus_probability ?? "–"}%`}>
+            {day.date.slice(5)} <strong style={{ color: G_COLOR[Math.min(5, day.g_scale ?? 0)] }}>G{day.g_scale ?? "–"}</strong>
+            <span className={s.dimSmall}>R1+ {day.r1_r2_probability ?? "–"}%</span>
+          </span>
+        ))}
+      </div>
+      <div className={s.spaceNote}>Observed now; outlook is SWPC&apos;s forecast, quoted as issued.</div>
+    </section>
   );
 }
 

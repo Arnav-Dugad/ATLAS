@@ -108,6 +108,11 @@ export const SOURCE_LABELS: Record<string, string> = {
   "osm-overpass": "OpenStreetMap",
   "ghsl-pop": "GHSL",
   openaq: "OpenAQ",
+  emsc: "EMSC",
+  tsunami: "NOAA Tsunami Centers",
+  swpc: "NOAA SWPC",
+  "earth-search": "Sentinel-2",
+  "terrain-tiles": "Terrain Tiles",
 };
 
 export function sourceLabel(id: string): string {
