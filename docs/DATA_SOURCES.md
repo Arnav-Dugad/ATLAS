@@ -87,7 +87,7 @@ observed status and payload shape are noted.
 
 ### ReliefWeb API v2 — disabled by default
 - **Verified behaviour**: `v1` returns HTTP 410 (decommissioned); `v2` without an approved appname returns HTTP 403 `"You are not using an approved appname"`.
-- **To enable**: request an appname at https://apidoc.reliefweb.int/parameters#appname and set `ATLAS_RELIEFWEB_APPNAME`. The adapter normalises `/v2/disasters` and links via GLIDE numbers.
+- **To enable**: request an appname at https://apidoc.reliefweb.int/parameters#appname (since 1 November 2025 appnames must be pre-approved; the page links a short form, appnames combine your name or organisation, the purpose and random characters, and ReliefWeb replies by email — verified 2026-10-01). Then set `ATLAS_RELIEFWEB_APPNAME`, or paste it in the Windows app under Settings → Data sources. The adapter normalises `/v2/disasters` and links via GLIDE numbers.
 
 ### OpenAQ v3 — air quality near an incident
 `GET https://api.openaq.org/v3/locations?coordinates=lat,lon&radius=25000` and

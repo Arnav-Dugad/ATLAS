@@ -123,11 +123,29 @@ when the window closes.
   themselves. Closing the window stops the engine (it also stops itself if the app crashes).
 - **Unsigned:** Windows SmartScreen → *More info → Run anyway*; macOS → right-click the app →
   *Open* the first time (or `xattr -dr com.apple.quarantine /Applications/ATLAS.app`).
-- **Data folder:** `%LOCALAPPDATA%\ATLAS` (Windows), `~/Library/Application Support/ATLAS`
-  (macOS), `~/.local/share/ATLAS` (Linux). The Core Pack (~11 MB) installs on first launch.
-- **Optional extras:** the assistant works as soon as [Ollama](https://ollama.com) is running.
-  The Population Pack has no in-app installer yet; from a local checkout run
-  `ATLAS_DATA_DIR=<data folder> pnpm engine packs install population-ghsl`, then restart the app.
+- **Data folder:** `%LOCALAPPDATA%\org.atlas.planetary` (Windows, next to the app's WebView2
+  profile; 0.1.0 used the install folder `%LOCALAPPDATA%\ATLAS` and its data moves over
+  automatically), `~/Library/Application Support/ATLAS` (macOS), `~/.local/share/ATLAS` (Linux).
+  The Core Pack (~11 MB) installs on first launch.
+- **Assistant:** works as soon as [Ollama](https://ollama.com) is running.
+
+### Windows app: Settings (`Ctrl+,` or the gear in the top bar)
+
+The Windows build has a Settings window; the website and the macOS/Linux builds are unchanged.
+
+| Section | What it does |
+|---|---|
+| Data sources | Paste an **OpenAQ API key** or a **ReliefWeb appname** with the sign-up steps alongside; each is checked against the service when saved and applies at once (no restart). Keys are encrypted for the Windows user with DPAPI in `credentials.json`; only the last four characters are ever shown. |
+| Data packs | Install the **Population Pack** (~484 MB) with progress, **import a copy you already downloaded** (it finds `…\data\runtime\packs\population-ghsl` in ATLAS checkouts under Desktop, Documents, Downloads and similar folders, or takes a path), or remove it. |
+| Appearance | **Solid** panels (default: opaque, higher-contrast, no backdrop blur) or **Glass**; high contrast; reduced motion; idle rotation. |
+| Graphics | **Automatic** (default: High on a dedicated GPU, Battery saver on integrated graphics), Battery saver, Balanced or High; shows the GPU in use. |
+| About & storage | Engine version, data folder (copy), privacy notes. |
+
+The Windows app also opens maximised and passes `--force_high_performance_gpu` to WebView2
+(`tauri.windows.conf.json`), so laptops with two GPUs draw the globe on the dedicated one. On
+the development laptop (Intel UHD + RTX 4060, 1536×824 at 125 %) the globe went from ~15 fps
+(Intel, glass, High) to a steady 60 fps (RTX), and Battery saver holds 60 fps page refresh
+on the Intel GPU alone.
 - **Build locally:** Rust (stable), Node 22 + pnpm, Python 3.12. See the workflow
   [`desktop.yml`](../.github/workflows/desktop.yml) for the exact steps (sidecar → web build
   with `VITE_ATLAS_API=http://127.0.0.1:8787` → `pnpm --filter @atlas/desktop tauri build`).

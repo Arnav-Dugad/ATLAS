@@ -16,7 +16,8 @@ ATLAS treats every upstream byte as untrusted and runs locally with no telemetry
 | Malformed upstream data | Pydantic validation, coordinate/time/depth sanity checks; rejected records are counted per sync run and visible in the registry. |
 | Stack traces leaking to clients | Global exception handler returns structured errors only. |
 | Browser hardening | CSP meta tag (self + imagery hosts), API sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Cross-Origin-Resource-Policy`, CSP `frame-ancestors 'none'`, `Permissions-Policy`. |
-| Secrets | Only optional keys, read from environment / `.env` (gitignored). Stored as `SecretStr`; never logged or sent to the client. |
+| Secrets | Only optional keys, read from environment / `.env` (gitignored). Stored as `SecretStr`; never logged or sent to the client. In the Windows app, keys entered in Settings are encrypted with DPAPI for the current Windows user (`credentials.json` in the data folder); the API returns only "set" and the last four characters. |
+| A web page driving the local Settings API | Settings endpoints exist only in the Windows app, require the Host to be the loopback engine (no DNS rebinding) and any browser `Origin` to be the app's own; state changes need JSON bodies, so browsers must preflight them and CORS refuses other origins. Pack imports copy only the pack's own file types (`.tif`, `.geojson`, `.json`) from a folder holding a matching ATLAS manifest. |
 | Prompt injection (future local AI) | The assistant will only call typed read-only tools against the ATLAS store; retrieved text is data, never instructions, and there is no shell/file tool. See `AI.md`. |
 
 ## Network surface

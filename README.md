@@ -100,6 +100,8 @@ scenarios · a free [OpenAQ key](https://explore.openaq.org/register) in `.env` 
 **Without a terminal:** use the [public snapshot](https://arnav-dugad.github.io/ATLAS/) or the
 desktop app — see [DEPLOYMENT.md](docs/DEPLOYMENT.md) for installers and for hosting your own
 mirror on Cloudflare Pages, Netlify or Vercel (the `site` branch is a ready-made static site).
+The Windows app has a Settings window (`Ctrl+,`) for the OpenAQ key, the ReliefWeb appname,
+data packs, panel style and graphics quality — no terminal or `.env` needed.
 
 ## Architecture
 
