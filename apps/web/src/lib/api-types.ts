@@ -163,6 +163,170 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ai Status
+         * @description Whether a local model is available (Ollama on this machine), and which.
+         */
+        get: operations["ai_status_api_v1_ai_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ai Ask
+         * @description Stream an answer from the local model, which may call ATLAS's read-only tools.
+         *     Events: status, tool_call, tool_result, token, reset, citations, done, error.
+         */
+        post: operations["ai_ask_api_v1_ai_ask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/{incident_id}/air-quality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Incident Air Quality
+         * @description Latest readings from monitoring stations within 25 km (OpenAQ; needs a free API key).
+         */
+        get: operations["incident_air_quality_api_v1_incidents__incident_id__air_quality_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/context/space-weather": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Space Weather
+         * @description NOAA SWPC scales now (R/S/G) and SWPC's three-day outlook, quoted as issued.
+         */
+        get: operations["space_weather_api_v1_context_space_weather_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/{incident_id}/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Incident Graph
+         * @description Knowledge graph around an incident: documented, rule-based relations (aftershock windows,
+         *     cyclone → flood, earthquakes near volcanoes, same-hazard neighbours).
+         */
+        get: operations["incident_graph_api_v1_incidents__incident_id__graph_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulate/earthquake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Simulate Earthquake
+         * @description Earthquake shaking scenario (SIMULATION — NOT A FORECAST): median MMI bands from a published
+         *     intensity prediction equation and modelled residents inside each band.
+         */
+        get: operations["simulate_earthquake_api_v1_simulate_earthquake_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/{incident_id}/imagery/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Incident Spectral Change
+         * @description Sentinel-2 before/after change (dNBR, MNDWI or ΔNDVI) around the incident. DERIVED; 10–60 s
+         *     on first request (reads only small windows of the public COGs), then cached for 12 h.
+         */
+        get: operations["incident_spectral_change_api_v1_incidents__incident_id__imagery_change_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imagery/files/{incident_id}/{index}/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Spectral File
+         * @description Images produced by the change analysis (validated names only; never arbitrary paths).
+         */
+        get: operations["spectral_file_api_v1_imagery_files__incident_id___index___name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/packs/reload": {
         parameters: {
             query?: never;
@@ -428,6 +592,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AskBody */
+        AskBody: {
+            /** Question */
+            question: string;
+            /** History */
+            history?: components["schemas"]["AskTurn"][];
+            /** Model */
+            model?: string | null;
+        };
+        /** AskTurn */
+        AskTurn: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** Content */
+            content: string;
+        };
         /** ChangeOut */
         ChangeOut: {
             /** Id */
@@ -841,7 +1024,7 @@ export interface components {
             basis: string;
             /**
              * Method
-             * @default atlas-severity-v1.1
+             * @default atlas-severity-v1.2
              */
             method: string;
             /** @default derived */
@@ -1208,6 +1391,255 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ai_status_api_v1_ai_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    ai_ask_api_v1_ai_ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    incident_air_quality_api_v1_incidents__incident_id__air_quality_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    space_weather_api_v1_context_space_weather_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    incident_graph_api_v1_incidents__incident_id__graph_get: {
+        parameters: {
+            query?: {
+                depth?: number;
+            };
+            header?: never;
+            path: {
+                incident_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simulate_earthquake_api_v1_simulate_earthquake_get: {
+        parameters: {
+            query: {
+                lat: number;
+                lon: number;
+                magnitude: number;
+                depth_km?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    incident_spectral_change_api_v1_incidents__incident_id__imagery_change_get: {
+        parameters: {
+            query?: {
+                index?: string | null;
+            };
+            header?: never;
+            path: {
+                incident_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    spectral_file_api_v1_imagery_files__incident_id___index___name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                index: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
