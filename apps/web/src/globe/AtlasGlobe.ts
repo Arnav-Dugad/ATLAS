@@ -130,6 +130,7 @@ export class AtlasGlobe {
   private simLabels = new LabelCollection();
   private simPoints = new PointPrimitiveCollection();
   private pickMode = false;
+  private links = new PolylineCollection();
   private incidentIndex = new Map<string, { billboard: Billboard; data: IncidentSummary }>();
   private pulseState: { billboard: Billboard; phase: number; color: Color; speed: number }[] = [];
   private selectedId: string | null = null;
@@ -218,6 +219,7 @@ export class AtlasGlobe {
       this.simLines,
       this.simPoints,
       this.simLabels,
+      this.links,
       this.facilityMarkers,
       this.ripples,
       this.pulses,
@@ -514,6 +516,30 @@ export class AtlasGlobe {
       horizontalOrigin: HorizontalOrigin.CENTER,
       verticalOrigin: VerticalOrigin.TOP,
     });
+    this.requestRender();
+  }
+
+  /** Glowing great-circle arcs from an incident to the incidents related to it. */
+  setLinks(from: { lat: number; lon: number } | null, to: { lat: number; lon: number; color: string }[]) {
+    this.links.removeAll();
+    if (from) {
+      for (const t of to) {
+        const km = haversine(from.lat, from.lon, t.lat, t.lon);
+        if (km < 1) continue;
+        const lift = Math.min(600_000, km * 220); // metres of arc height, proportional to distance
+        const positions: Cartesian3[] = [];
+        for (let i = 0; i <= 48; i++) {
+          const f = i / 48;
+          const [lon, lat] = intermediate(from.lat, from.lon, t.lat, t.lon, f);
+          positions.push(Cartesian3.fromDegrees(lon, lat, 1500 + Math.sin(Math.PI * f) * lift));
+        }
+        this.links.add({
+          positions,
+          width: 7,
+          material: Material.fromType("PolylineGlow", { color: Color.fromCssColorString(t.color).withAlpha(0.95), glowPower: 0.22, taperPower: 1 }),
+        });
+      }
+    }
     this.requestRender();
   }
 
@@ -1213,3 +1239,26 @@ function polygonHierarchies(geom: GeoJSON.Geometry | null | undefined): PolygonH
 }
 
 export type { PointPrimitive, Polyline };
+
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const p1 = CMath.toRadians(lat1);
+  const p2 = CMath.toRadians(lat2);
+  const a = Math.sin((p2 - p1) / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(CMath.toRadians(lon2 - lon1) / 2) ** 2;
+  return (2 * R_EARTH * Math.asin(Math.min(1, Math.sqrt(a)))) / 1000;
+}
+
+/** Point a fraction f of the way along the great circle between two positions ([lon, lat] degrees). */
+function intermediate(lat1: number, lon1: number, lat2: number, lon2: number, f: number): [number, number] {
+  const p1 = CMath.toRadians(lat1);
+  const l1 = CMath.toRadians(lon1);
+  const p2 = CMath.toRadians(lat2);
+  const l2 = CMath.toRadians(lon2);
+  const d = 2 * Math.asin(Math.sqrt(Math.sin((p2 - p1) / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin((l2 - l1) / 2) ** 2));
+  if (d === 0) return [lon1, lat1];
+  const a = Math.sin((1 - f) * d) / Math.sin(d);
+  const b = Math.sin(f * d) / Math.sin(d);
+  const x = a * Math.cos(p1) * Math.cos(l1) + b * Math.cos(p2) * Math.cos(l2);
+  const y = a * Math.cos(p1) * Math.sin(l1) + b * Math.cos(p2) * Math.sin(l2);
+  const z = a * Math.sin(p1) + b * Math.sin(p2);
+  return [CMath.toDegrees(Math.atan2(y, x)), CMath.toDegrees(Math.atan2(z, Math.sqrt(x * x + y * y)))];
+}

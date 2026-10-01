@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Check, ChevronRight, Columns2, Copy, Crosshair, FlaskConical, Download, ExternalLink, FileJson, Info, Map as MapIcon, ShieldAlert, X } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
-import type { IncidentDetail, Metric } from "../../lib/api";
+import { RELATION_META, type IncidentDetail, type Metric, type RelationType } from "../../lib/api";
 import { compareIncident } from "../../lib/compare";
 import { openSimulation } from "../../lib/simulate";
 import { exportBrief, exportGeoJson, exportJson } from "../../lib/export";
@@ -13,13 +13,14 @@ import { useUi } from "../../lib/store";
 import { ConfidenceMeter, cx, Dot, ErrorState, HazardGlyph, Label, ProvenanceBadge, SeverityMeter, Skeleton } from "../../ui/primitives";
 import { Chronology } from "./Chronology";
 import { ExposureTab } from "./ExposureTab";
+import { LinksTab } from "./LinksTab";
 import { SatelliteTab } from "./SatelliteTab";
 import { SourceDrawer } from "./SourceDrawer";
 import { WeatherCard } from "./WeatherCard";
 import { TrackChart } from "./TrackChart";
 import s from "./IncidentPanel.module.css";
 
-type Tab = "brief" | "exposure" | "satellite" | "timeline" | "sources" | "context";
+type Tab = "brief" | "exposure" | "satellite" | "links" | "timeline" | "sources" | "context";
 
 export function IncidentPanel({ id }: { id: string }) {
   const q = useIncident(id);
@@ -117,6 +118,7 @@ export function IncidentPanel({ id }: { id: string }) {
             ["brief", "Intelligence"],
             ["exposure", "Exposure"],
             ["satellite", "Satellite"],
+            ["links", d.related.length ? `Links · ${d.related.length}` : "Links"],
             ["timeline", `Chronology · ${d.changes.length}`],
             ["sources", `Sources · ${d.citations.filter((c) => c.source_id !== "natural-earth").length}`],
             ["context", "Context"],
@@ -135,6 +137,7 @@ export function IncidentPanel({ id }: { id: string }) {
             {tab === "brief" ? <BriefTab d={d} /> : null}
             {tab === "exposure" ? <ExposureTab d={d} /> : null}
             {tab === "satellite" ? <SatelliteTab d={d} /> : null}
+            {tab === "links" ? <LinksTab d={d} /> : null}
             {tab === "timeline" ? <Chronology d={d} /> : null}
             {tab === "sources" ? <SourceDrawer d={d} /> : null}
             {tab === "context" ? <ContextTab d={d} /> : null}
@@ -192,7 +195,7 @@ function BriefTab({ d }: { d: IncidentDetail }) {
                   <HazardGlyph hazard={r.hazard} size={13} />
                   <span className={s.relatedTitle}>{r.title}</span>
                   <span className={s.relatedMeta}>
-                    {r.relation !== "nearby" ? <span className={s.relTag}>{r.relation}</span> : null}
+                    {r.relation !== "nearby" ? <span className={s.relTag}>{RELATION_META[r.relation as RelationType]?.label ?? r.relation}</span> : null}
                     <span className="num">{Math.round(r.distance_km)} km</span>
                   </span>
                 </button>

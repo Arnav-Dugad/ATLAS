@@ -93,6 +93,45 @@ export interface SpectralUnavailable {
   action: "retry" | null;
 }
 
+export type RelationType = "aftershock" | "foreshock" | "cyclone_flood" | "volcano_earthquake" | "nearby";
+
+export interface GraphNode {
+  id: string;
+  title: string;
+  hazard: string;
+  severity_level: number;
+  status: string;
+  lat: number;
+  lon: number;
+  started_at: string;
+  magnitude: number | null;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  type: RelationType;
+  label: string;
+  evidence: string;
+}
+
+/** Documented, rule-based relations around an incident (knowledge graph). */
+export interface IncidentGraph {
+  centre: string;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  method: string;
+  note: string;
+}
+
+export const RELATION_META: Record<RelationType, { label: string; color: string }> = {
+  aftershock: { label: "Aftershock", color: "#f2b84b" },
+  foreshock: { label: "Foreshock", color: "#c9a6ff" },
+  cyclone_flood: { label: "Cyclone → flood", color: "#5fb4ff" },
+  volcano_earthquake: { label: "Quake near volcano", color: "#ff6b6b" },
+  nearby: { label: "Nearby, same hazard", color: "#9aa8bd" },
+};
+
 /** Absolute URL for a file path returned by the API (works in live and snapshot mode). */
 export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
@@ -535,6 +574,8 @@ export const api = {
     request<PopulationExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/population`, { signal }),
   infrastructure: (id: string, signal?: AbortSignal) =>
     request<InfrastructureExposure | ExposureUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/infrastructure`, { signal }),
+  graph: (id: string, depth: 1 | 2, signal?: AbortSignal) =>
+    request<IncidentGraph>(`/api/v1/incidents/${encodeURIComponent(id)}/graph${STATIC_MODE ? "" : qs({ depth })}`, { signal }),
   spectral: (id: string, index: SpectralIndex | null, signal?: AbortSignal) =>
     request<SpectralChange | SpectralUnavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/imagery/change${qs({ index })}`, { signal }),
   reloadPacks: () => request<{ population: boolean }>("/api/v1/packs/reload", { method: "POST" }),

@@ -1,0 +1,130 @@
+.wrap {
+  display: grid;
+  gap: 12px;
+}
+.titleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.depth {
+  display: inline-flex;
+  gap: 2px;
+}
+.depthBtn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.depthOn {
+  color: var(--text-1);
+  background: rgba(150, 168, 194, 0.12);
+}
+
+.graph {
+  width: 100%;
+  height: auto;
+  border-radius: var(--r-md);
+  background:
+    radial-gradient(60% 55% at 50% 50%, rgba(156, 201, 255, 0.07), transparent 70%),
+    var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+}
+.node {
+  cursor: pointer;
+  outline: none;
+}
+.node:focus-visible circle {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+.row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  padding: 8px 6px;
+  margin: 0 -6px;
+  border-radius: var(--r-sm);
+  text-align: left;
+  transition: background var(--dur-1) var(--ease-out);
+}
+.row:hover,
+.rowLit {
+  background: rgba(150, 168, 194, 0.07);
+}
+.rowGlyph {
+  padding-top: 2px;
+}
+.rowText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.rowLabel {
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.rowTitle {
+  font-size: var(--fs-sm);
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rowEvidence {
+  font-size: var(--fs-2xs);
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+.empty {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-2);
+  background: rgba(150, 168, 194, 0.05);
+}
+.empty p {
+  margin: 0 0 6px;
+}
+.dim {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.note {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
