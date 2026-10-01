@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronRight, Columns2, Copy, Crosshair, FlaskConical, Download, ExternalLink, FileJson, Info, Map as MapIcon, ShieldAlert, X } from "lucide-react";
+import { Check, ChevronRight, Columns2, Copy, Crosshair, Eye, FlaskConical, Download, ExternalLink, FileJson, Info, Map as MapIcon, ShieldAlert, X } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { RELATION_META, type IncidentDetail, type Metric, type RelationType } from "../../lib/api";
 import { compareIncident } from "../../lib/compare";
 import { openSimulation } from "../../lib/simulate";
+import { useWatch } from "../../lib/watch";
 import { exportBrief, exportGeoJson, exportJson } from "../../lib/export";
 import { focusIncident } from "../../lib/focus";
 import { coord, metricValue, observedAgo, relTime, titleCase, utcFull, utcShort } from "../../lib/format";
@@ -79,6 +80,11 @@ export function IncidentPanel({ id }: { id: string }) {
           {d.hazard === "earthquake" ? (
             <button type="button" className={s.action} onClick={() => openSimulation(d)} title="What-if shaking scenario from this earthquake (simulation, not a forecast)">
               <FlaskConical size={13} /> Scenario
+            </button>
+          ) : null}
+          {d.lat != null && d.lon != null ? (
+            <button type="button" className={s.action} onClick={() => useWatch.getState().setDraft({ lat: d.lat as number, lon: d.lon as number })} title="Watch the area around this incident">
+              <Eye size={13} /> Watch area
             </button>
           ) : null}
           <ExportMenu d={d} />

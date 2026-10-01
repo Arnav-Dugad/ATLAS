@@ -5,6 +5,7 @@ import { compact, coord, decimal, observedAgo, relTime, utcShort } from "../lib/
 import { hazardMeta } from "../lib/hazards";
 import { qk, useCountries, useEarthquakeLayer, useFireClusters, useFireGrid, useIncident } from "../lib/queries";
 import { useUi } from "../lib/store";
+import { matches, useWatch } from "../lib/watch";
 import { AtlasGlobe, DETAIL_HEIGHT, type HoverInfo, type ViewInfo } from "./AtlasGlobe";
 import { compareProduct } from "./imagery";
 import styles from "./Globe.module.css";
@@ -33,6 +34,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const compare = useUi((s) => s.compare);
   const rasterOverlay = useUi((s) => s.rasterOverlay);
   const groundPick = useUi((s) => s.groundPick);
+  const watches = useWatch((s) => s.watches);
 
   // ---- mount ------------------------------------------------------------------------
   useEffect(() => {
@@ -50,6 +52,11 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
         },
         onGround: (lat, lon) => {
           const ui = useUi.getState();
+          if (ui.groundPick === "watch") {
+            useWatch.getState().setDraft({ lat, lon });
+            ui.setGroundPick(null);
+            return true;
+          }
           if (ui.groundPick === "simulation") {
             if (ui.simulation) ui.patchSimulation({ lat, lon, subject: null });
             else ui.setSimulation({ lat, lon, magnitude: 6.5, depth_km: 10, subject: null });
@@ -91,6 +98,10 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   useEffect(() => globe?.highlight(hoveredId), [globe, hoveredId]);
   useEffect(() => globe?.setTerrain(layers.terrain, exaggeration), [globe, layers.terrain, exaggeration]);
   useEffect(() => globe?.setPickMode(groundPick !== null), [globe, groundPick]);
+  useEffect(
+    () => globe?.setWatches(watches.map((w) => ({ lat: w.lat, lon: w.lon, radius_km: w.radius_km, name: w.name, active: matches(w, incidents).length > 0 }))),
+    [globe, watches, incidents],
+  );
   useEffect(() => globe?.setRasterOverlay(rasterOverlay ? { url: rasterOverlay.url, bbox: rasterOverlay.bbox } : null), [globe, rasterOverlay]);
   const cmpProduct = compare?.product;
   const cmpBefore = compare?.before;

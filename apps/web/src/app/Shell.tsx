@@ -10,6 +10,9 @@ import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/
 import { CommandPalette } from "../features/command/CommandPalette";
 import { CompareTool } from "../features/compare/CompareTool";
 import { SimulationLab } from "../features/simulation/SimulationLab";
+import { WatchPanel } from "../features/watch/WatchPanel";
+import { useWatchAlerts } from "../lib/useWatchAlerts";
+import { useWatch } from "../lib/watch";
 import { IncidentFeed } from "../features/feed/IncidentFeed";
 import { IncidentPanel } from "../features/incident/IncidentPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
@@ -38,6 +41,7 @@ export function Shell() {
   const incidents = useMemo(() => feed.data?.items ?? [], [feed.data]);
   const phone = useMediaQuery(PHONE_QUERY);
   const webgl = useMemo(() => supportsWebGL(), []);
+  useWatchAlerts(incidents);
 
   useEffect(() => connectLive(client), [client]);
 
@@ -91,6 +95,9 @@ export function Shell() {
       } else if (e.key.toLowerCase() === "a" && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         ui.openAssistant();
+      } else if (e.key.toLowerCase() === "w" && !e.ctrlKey && !e.metaKey) {
+        const w = useWatch.getState();
+        w.setPanelOpen(!w.panelOpen);
       } else if (e.key.toLowerCase() === "l") {
         ui.setLayersOpen(!ui.layersOpen);
       } else if (e.key.toLowerCase() === "r") {
@@ -178,6 +185,7 @@ export function Shell() {
       <MapControls />
       <Attribution />
       <LayerPanel />
+      <WatchPanel incidents={incidents} />
       <LiveTicker incidents={incidents} />
 
       <AnimatePresence>

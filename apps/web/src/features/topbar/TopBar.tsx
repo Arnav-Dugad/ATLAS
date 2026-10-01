@@ -1,10 +1,12 @@
-import { Activity, Command, Database, Globe2, Layers, Search, Sparkles } from "lucide-react";
+import { Activity, Command, Database, Eye, Globe2, Layers, Search, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { fetchSnapshotInfo, STATIC_MODE } from "../../lib/api";
 import { relTime } from "../../lib/format";
 import { useLive } from "../../lib/live";
+import { useIncidentFeed } from "../../lib/queries";
 import { useUi, type View } from "../../lib/store";
+import { matches, useWatch } from "../../lib/watch";
 import { cx, Dot, Kbd } from "../../ui/primitives";
 import s from "./TopBar.module.css";
 
@@ -32,6 +34,11 @@ export function TopBar() {
   const assistantOpen = useUi((st) => st.assistantOpen);
   const openAssistant = useUi((st) => st.openAssistant);
   const closeAssistant = useUi((st) => st.closeAssistant);
+  const watches = useWatch((st) => st.watches);
+  const watchOpen = useWatch((st) => st.panelOpen);
+  const setWatchOpen = useWatch((st) => st.setPanelOpen);
+  const feed = useIncidentFeed();
+  const watchHits = watches.reduce((n, w) => n + matches(w, feed.data?.items ?? []).length, 0);
   const live = useLive((st) => st.status);
   const lastEventAt = useLive((st) => st.lastEventAt);
   const now = useUtcClock();
@@ -107,6 +114,19 @@ export function TopBar() {
           title="Ask the local ATLAS Analyst (A)"
         >
           <Sparkles size={14} aria-hidden /> Ask
+        </button>
+        <button
+          type="button"
+          className={cx(s.chip, watchOpen && s.chipOn)}
+          onClick={() => {
+            setWatchOpen(!watchOpen);
+            if (!watchOpen) setLayersOpen(false);
+          }}
+          aria-pressed={watchOpen}
+          title="Watchlist (W)"
+        >
+          <Eye size={14} aria-hidden /> Watch
+          {watchHits ? <span className={s.badge}>{watchHits}</span> : null}
         </button>
         <button
           type="button"

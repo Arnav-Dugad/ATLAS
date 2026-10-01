@@ -10,6 +10,7 @@ import {
   CornerDownLeft,
   Database,
   Download,
+  Eye,
   FlaskConical,
   Globe2,
   History,
@@ -27,6 +28,7 @@ import { OVERLAYS } from "../../globe/imagery";
 import { api, STATIC_MODE, type IncidentSummary, type SearchResponse } from "../../lib/api";
 import { compareIncident, compareView } from "../../lib/compare";
 import { openSimulation } from "../../lib/simulate";
+import { useWatch } from "../../lib/watch";
 import { exportBrief } from "../../lib/export";
 import { focusIncident, focusPoint } from "../../lib/focus";
 import { compact, observedAgo, utcDate } from "../../lib/format";
@@ -139,6 +141,17 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
           const inc = incidents.find((i) => i.id === ui.selectedId);
           if (inc) compareIncident(inc);
           else compareView();
+        }),
+      },
+      {
+        id: "watch",
+        section: "View",
+        label: "Watchlist: watch an area for new incidents",
+        icon: <Eye size={15} />,
+        keywords: "alert notify area region subscribe monitor",
+        run: done(() => {
+          useWatch.getState().setPanelOpen(true);
+          ui.setGroundPick("watch");
         }),
       },
       {

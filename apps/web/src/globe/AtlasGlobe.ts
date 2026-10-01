@@ -131,6 +131,9 @@ export class AtlasGlobe {
   private simPoints = new PointPrimitiveCollection();
   private pickMode = false;
   private links = new PolylineCollection();
+  private watchLines = new PolylineCollection();
+  private watchLabels = new LabelCollection();
+  private watchDraft = new PolylineCollection();
   private incidentIndex = new Map<string, { billboard: Billboard; data: IncidentSummary }>();
   private pulseState: { billboard: Billboard; phase: number; color: Color; speed: number }[] = [];
   private selectedId: string | null = null;
@@ -220,6 +223,9 @@ export class AtlasGlobe {
       this.simPoints,
       this.simLabels,
       this.links,
+      this.watchLines,
+      this.watchLabels,
+      this.watchDraft,
       this.facilityMarkers,
       this.ripples,
       this.pulses,
@@ -516,6 +522,46 @@ export class AtlasGlobe {
       horizontalOrigin: HorizontalOrigin.CENTER,
       verticalOrigin: VerticalOrigin.TOP,
     });
+    this.requestRender();
+  }
+
+  /** Watched areas: dashed circles with their names. */
+  setWatches(list: { lat: number; lon: number; radius_km: number; name: string; active: boolean }[]) {
+    this.watchLines.removeAll();
+    this.watchLabels.removeAll();
+    for (const w of list) {
+      const colour = Color.fromCssColorString(w.active ? "#9cc9ff" : "#7d8ba0");
+      this.watchLines.add({
+        positions: circle(w.lat, w.lon, w.radius_km, 160),
+        width: 1.6,
+        material: Material.fromType("PolylineDash", { color: colour.withAlpha(0.9), gapColor: Color.TRANSPARENT, dashLength: 14 }),
+      });
+      this.watchLabels.add({
+        position: Cartesian3.fromRadians(...destinationRad(w.lat, w.lon, w.radius_km), 900),
+        text: "◉ " + w.name,
+        font: "500 11px 'IBM Plex Sans Variable', sans-serif",
+        fillColor: colour,
+        outlineColor: Color.fromCssColorString("#04060a").withAlpha(0.9),
+        outlineWidth: 3,
+        style: LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset: new Cartesian2(0, -6),
+        horizontalOrigin: HorizontalOrigin.CENTER,
+        verticalOrigin: VerticalOrigin.BOTTOM,
+      });
+    }
+    this.requestRender();
+  }
+
+  /** The area being drafted in the watchlist form. */
+  setWatchDraft(d: { lat: number; lon: number; radius_km: number } | null) {
+    this.watchDraft.removeAll();
+    if (d) {
+      this.watchDraft.add({
+        positions: circle(d.lat, d.lon, d.radius_km, 160),
+        width: 2.2,
+        material: Material.fromType("PolylineGlow", { color: Color.fromCssColorString("#9cc9ff"), glowPower: 0.25, taperPower: 1 }),
+      });
+    }
     this.requestRender();
   }
 

@@ -4,6 +4,7 @@ import { briefMarkdown } from "./export";
 import { compact, coord, metricValue, relTime, utcFull, utcShort } from "./format";
 import { fuzzy } from "./fuzzy";
 import { HAZARDS, hazardMeta, severityColor } from "./hazards";
+import { distanceKm, matches, type Watch } from "./watch";
 
 describe("fuzzy", () => {
   it("prefers prefix and word-start matches", () => {
@@ -106,5 +107,22 @@ describe("filterIncidents (snapshot mode)", () => {
     const out = filterIncidents(list, new URLSearchParams({ sort: "recent", limit: "2" }));
     expect(out.items.map((i) => i.id)).toEqual(["a", "c"]);
     expect(out.total).toBe(4);
+  });
+});
+
+describe("watch matching", () => {
+  const inc = (id: string, hazard: string, lat: number, lon: number, level: number, status = "active") =>
+    ({ id, hazard, lat, lon, status, severity: { level }, title: id }) as unknown as IncidentSummary;
+  const w: Watch = { id: "w", name: "Lisbon", lat: 38.72, lon: -9.14, radius_km: 200, hazards: [], minSeverity: 0, notify: false, createdAt: 0 };
+
+  it("measures great-circle distance", () => {
+    expect(distanceKm(38.72, -9.14, 40.42, -3.7)).toBeCloseTo(503, -1); // Lisbon → Madrid
+  });
+
+  it("keeps open incidents inside the radius that pass the filters, nearest first", () => {
+    const list = [inc("near", "wildfire", 38.8, -9.0, 2), inc("closer", "earthquake", 38.73, -9.15, 3), inc("far", "wildfire", 40.4, -3.7, 4), inc("closed", "wildfire", 38.7, -9.1, 4, "closed")];
+    expect(matches(w, list).map((i) => i.id)).toEqual(["closer", "near"]);
+    expect(matches({ ...w, hazards: ["wildfire"] }, list).map((i) => i.id)).toEqual(["near"]);
+    expect(matches({ ...w, minSeverity: 3 }, list).map((i) => i.id)).toEqual(["closer"]);
   });
 });
