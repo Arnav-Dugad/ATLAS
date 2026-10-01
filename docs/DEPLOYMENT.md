@@ -112,9 +112,15 @@ self-contained sidecar (PyInstaller), so nothing else needs installing. The engi
 the app on `127.0.0.1:8787`, keeps its data in the user's application-data folder, and stops
 when the window closes.
 
-- **Get it:** push a `v*` tag to build a draft GitHub Release with the installers
-  (`.msi`/`.exe`, `.dmg`, `.AppImage`/`.deb`), or run the *Desktop app* workflow by hand and
-  download the artifacts from the run.
+- **Get it:** download the installer for your system from
+  [Releases](https://github.com/Arnav-Dugad/ATLAS/releases) — Windows `.msi` or `-setup.exe`,
+  macOS (Apple silicon) `.dmg`, Linux `.AppImage` or `.deb`.
+- **Publish a new version:** push a `v*` tag; the *Desktop app* workflow builds all three
+  platforms and attaches the installers to a **draft** release, which goes public only when a
+  maintainer presses *Publish*. Running the workflow by hand gives the same installers as run
+  artifacts.
+- **Behaviour:** the window may open a few seconds before the engine; panels fill in by
+  themselves. Closing the window stops the engine (it also stops itself if the app crashes).
 - **Unsigned:** Windows SmartScreen → *More info → Run anyway*; macOS → right-click the app →
   *Open* the first time (or `xattr -dr com.apple.quarantine /Applications/ATLAS.app`).
 - **Data folder:** `%LOCALAPPDATA%\ATLAS` (Windows), `~/Library/Application Support/ATLAS`
