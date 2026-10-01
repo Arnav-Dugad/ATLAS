@@ -4,14 +4,14 @@ import { lazy, Suspense, useEffect, useMemo } from "react";
 import { globeRef } from "../globe/ref";
 import { connectLive } from "../lib/live";
 import { useIncidentFeed } from "../lib/queries";
-import { useUi, type TimeWindow } from "../lib/store";
+import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
 import { IncidentFeed } from "../features/feed/IncidentFeed";
 import { IncidentPanel } from "../features/incident/IncidentPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
 import { OverviewPanel } from "../features/overview/OverviewPanel";
-import { Timeline } from "../features/timeline/Timeline";
+import { PlaybackBanner, Timeline } from "../features/timeline/Timeline";
 import { TopBar } from "../features/topbar/TopBar";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
 import s from "./Shell.module.css";
@@ -87,6 +87,13 @@ export function Shell() {
         globeRef.current?.zoom(0.6);
       } else if (e.key === "-" || e.key === "_") {
         globeRef.current?.zoom(1.7);
+      } else if (e.key === " " && !(target?.closest("[role=listbox],button"))) {
+        e.preventDefault();
+        if (ui.playing) ui.setPlaying(false);
+        else {
+          if (ui.playhead == null) ui.setPlayhead(Date.now() - WINDOW_HOURS[ui.window] * 3600_000);
+          ui.setPlaying(true);
+        }
       } else if (e.key === "[" || e.key === "]") {
         const i = WINDOWS.indexOf(ui.window);
         const n = Math.max(0, Math.min(WINDOWS.length - 1, i + (e.key === "]" ? 1 : -1)));
@@ -137,6 +144,7 @@ export function Shell() {
         <Timeline incidents={incidents} />
       </footer>
 
+      <PlaybackBanner />
       <MapControls />
       <Attribution />
       <LayerPanel />

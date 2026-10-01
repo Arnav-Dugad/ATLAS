@@ -21,6 +21,7 @@ import {
   GroundPrimitive,
   HorizontalOrigin,
   ImageryLayer,
+  JulianDate,
   LabelCollection,
   LabelStyle,
   Material,
@@ -98,6 +99,11 @@ export class AtlasGlobe {
   private focusLines = new PolylineCollection();
   private ringLabels = new LabelCollection();
   private facilityMarkers = new BillboardCollection();
+  private ripples = new BillboardCollection();
+  private rippleState: { billboard: Billboard; born: number; color: Color; size: number }[] = [];
+  private timeCursor: number | null = null;
+  private quakePointTimes: number[] = [];
+  private quakePointMags: number[] = [];
   facilityData: Facility[] = [];
   private focusFill: GroundPrimitive | null = null;
   private trackFill: GroundPrimitive | null = null;
@@ -188,6 +194,7 @@ export class AtlasGlobe {
       this.focusLines,
       this.ringLabels,
       this.facilityMarkers,
+      this.ripples,
       this.pulses,
       this.incidents,
       this.reticle,
@@ -270,6 +277,22 @@ export class AtlasGlobe {
         p.billboard.scale = 0.25 + eased * 0.85;
         p.billboard.color = p.color.withAlpha((1 - t) * 0.75);
       }
+      animate = true;
+    }
+    if (this.rippleState.length) {
+      const keep: typeof this.rippleState = [];
+      for (const r of this.rippleState) {
+        const age = (now - r.born) / 1000;
+        if (age > 1.8 || this.reducedMotion) {
+          this.ripples.remove(r.billboard);
+          continue;
+        }
+        const k = age / 1.8;
+        r.billboard.scale = r.size * (0.2 + (1 - (1 - k) ** 3) * 1.1);
+        r.billboard.color = r.color.withAlpha((1 - k) * 0.9);
+        keep.push(r);
+      }
+      this.rippleState = keep;
       animate = true;
     }
     if (this.selectedId) {
@@ -404,6 +427,7 @@ export class AtlasGlobe {
       }
     }
     this.refreshSelection();
+    if (this.timeCursor != null) this.applyTime(null);
     this.requestRender();
   }
 
@@ -470,6 +494,8 @@ export class AtlasGlobe {
   setEarthquakes(data: Columnar | null) {
     this.quakeData = data;
     this.quakes.removeAll();
+    this.quakePointTimes = [];
+    this.quakePointMags = [];
     if (!data) return this.requestRender();
     const { lat, lon, mag, t } = data.columns as Record<string, number[]>;
     const now = Date.now();
@@ -494,8 +520,66 @@ export class AtlasGlobe {
         scaleByDistance: new NearFarScalar(1e5, 1.6, 2.5e7, 0.75),
         id: { kind: "quake", index: i } satisfies PickTarget,
       });
+      this.quakePointTimes.push(t?.[i] ?? now);
+      this.quakePointMags.push(m);
     }
+    if (this.timeCursor != null) this.applyTime(null);
     this.requestRender();
+  }
+
+  // -- historical playback ---------------------------------------------------------------
+  /** Move the planet to a past instant (null = live): sun position, quakes and incidents follow. */
+  setTime(ms: number | null) {
+    const prev = this.timeCursor;
+    this.timeCursor = ms;
+    const clock = this.widget.clock;
+    if (ms == null) {
+      clock.currentTime = JulianDate.now();
+      clock.shouldAnimate = true;
+    } else {
+      clock.currentTime = JulianDate.fromDate(new Date(ms));
+      clock.shouldAnimate = false;
+    }
+    this.applyTime(prev);
+  }
+
+  private applyTime(prev: number | null) {
+    const cursor = this.timeCursor;
+    const ref = cursor ?? Date.now();
+    for (let i = 0; i < this.quakes.length; i += 1) {
+      const p = this.quakes.get(i);
+      const t = this.quakePointTimes[i] ?? 0;
+      const visible = cursor == null || t <= cursor;
+      p.show = visible;
+      if (!visible) continue;
+      if (cursor != null) p.color = quakeColor((ref - t) / 3600_000);
+      if (prev != null && cursor != null && t > prev && t <= cursor && cursor - prev < 24 * 3600_000) {
+        this.spawnRipple(p.position, this.quakePointMags[i] ?? 3);
+      }
+    }
+    for (const { billboard, data } of this.incidentIndex.values()) {
+      billboard.show = cursor == null || Date.parse(data.started_at) <= cursor;
+    }
+    const live = cursor == null;
+    this.pulses.show = live && this.incidents.show && !this.reducedMotion;
+    // Fire layers describe the latest 48 h; showing them at a past instant would mislead.
+    this.fires.show = live && this.layerFlags.fires && !(this.camera.positionCartographic.height < DETAIL_HEIGHT && this.fireDetail.length > 0);
+    this.fireDetail.show = live && this.layerFlags.fires && this.camera.positionCartographic.height < DETAIL_HEIGHT && this.fireDetail.length > 0;
+    this.clusterLines.show = live && this.layerFlags.fireClusters;
+    this.requestRender();
+  }
+
+  private spawnRipple(position: Cartesian3, mag: number) {
+    if (this.reducedMotion || this.rippleState.length > 60) return;
+    const color = Color.fromCssColorString(mag >= 6 ? "#ff8a5c" : "#f2b84b");
+    const billboard = this.ripples.add({
+      position,
+      image: ringSprite(),
+      scale: 0.2,
+      color,
+      scaleByDistance: new NearFarScalar(1.5e6, 1.2, 2.4e7, 0.7),
+    });
+    this.rippleState.push({ billboard, born: performance.now(), color, size: 0.5 + Math.max(0, mag - 2.5) * 0.28 });
   }
 
   // -- fires ---------------------------------------------------------------------------
@@ -581,9 +665,10 @@ export class AtlasGlobe {
   private updateDetailVisibility() {
     const h = this.camera.positionCartographic.height;
     const detail = h < DETAIL_HEIGHT && this.fireDetail.length > 0;
-    this.fires.show = this.layerFlags.fires && !detail;
-    this.fireDetail.show = this.layerFlags.fires && detail;
-    this.clusterLines.show = this.layerFlags.fireClusters && h < 6_000_000;
+    const live = this.timeCursor == null;
+    this.fires.show = live && this.layerFlags.fires && !detail;
+    this.fireDetail.show = live && this.layerFlags.fires && detail;
+    this.clusterLines.show = live && this.layerFlags.fireClusters && h < 6_000_000;
   }
 
   // -- borders -------------------------------------------------------------------------
@@ -847,6 +932,12 @@ function destinationRad(lat: number, lon: number, km: number, bearingDeg = 0): [
   const p2 = Math.asin(Math.sin(p1) * Math.cos(d) + Math.cos(p1) * Math.sin(d) * Math.cos(b));
   const l2 = l1 + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(p1), Math.cos(d) - Math.sin(p1) * Math.sin(p2));
   return [l2, p2];
+}
+
+function quakeColor(ageHours: number): Color {
+  if (ageHours < 1) return Color.fromCssColorString("#fff4d6");
+  if (ageHours < 24) return Color.fromCssColorString("#f2b84b").withAlpha(0.95);
+  return Color.fromCssColorString("#c98b2e").withAlpha(Math.max(0.35, 0.85 - ageHours / 400));
 }
 
 function liftTo(p: Cartesian3, height: number): Cartesian3 {

@@ -89,6 +89,11 @@ interface UiState {
   fly: FlyRequest | null;
   workspace: boolean;
   facilities: Facility[];
+  /** Historical playback cursor (ms since epoch); null = live. */
+  playhead: number | null;
+  playing: boolean;
+  /** simulated hours per real second */
+  speed: number;
 
   setView: (v: View) => void;
   select: (id: string | null, opts?: { fly?: boolean }) => void;
@@ -113,6 +118,10 @@ interface UiState {
   flyTo: (req: Omit<FlyRequest, "id">) => void;
   setWorkspace: (on: boolean) => void;
   setFacilities: (f: Facility[]) => void;
+  setPlayhead: (t: number | null) => void;
+  setPlaying: (on: boolean) => void;
+  setSpeed: (hoursPerSecond: number) => void;
+  goLive: () => void;
 }
 
 function yesterdayUtc(): string {
@@ -146,6 +155,9 @@ export const useUi = create<UiState>()(
       fly: null,
       workspace: false,
       facilities: [],
+      playhead: null,
+      playing: false,
+      speed: 6,
 
       setView: (view) => set({ view }),
       select: (selectedId) => set((s) => ({ selectedId, autoRotate: selectedId ? false : s.autoRotate, workspace: selectedId ? s.workspace : false })),
@@ -171,6 +183,10 @@ export const useUi = create<UiState>()(
       flyTo: (req) => set({ fly: { ...req, id: ++flySeq }, autoRotate: false }),
       setWorkspace: (workspace) => set({ workspace }),
       setFacilities: (facilities) => set({ facilities }),
+      setPlayhead: (playhead) => set({ playhead, autoRotate: false }),
+      setPlaying: (playing) => set({ playing }),
+      setSpeed: (speed) => set({ speed }),
+      goLive: () => set({ playhead: null, playing: false }),
     }),
     {
       name: "atlas.ui.v1",
@@ -183,6 +199,7 @@ export const useUi = create<UiState>()(
         hazards: s.hazards,
         status: s.status,
         sort: s.sort,
+        speed: s.speed,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<UiState>;

@@ -6,3 +6,6 @@ import type { AtlasGlobe } from "./AtlasGlobe";
  * into the initial bundle — the globe chunk stays lazily loaded.
  */
 export const globeRef: { current: AtlasGlobe | null } = { current: null };
+
+// Development-only handle for debugging and end-to-end tests.
+if (import.meta.env.DEV) (window as unknown as { __atlasGlobe: typeof globeRef }).__atlasGlobe = globeRef;

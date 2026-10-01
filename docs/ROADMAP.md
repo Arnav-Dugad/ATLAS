@@ -18,7 +18,8 @@ ATLAS is built vertically: each phase is usable end to end before the next begin
 - ✅ GHSL population exposure: ring table per incident + "Population within" headline metric; population filters in natural-language queries
 - ✅ OpenStreetMap infrastructure exposure via Overpass (11 categories, exact per-ring counts, nearest named facilities, globe markers), cached 24 h
 - Population by intensity band (ShakeMap MMI contours) where USGS publishes them
-- Historical time machine for all layers: playback controls (1× … 1 month/sec)
+- ✅ Historical playback: transport (1 h/s, 6 h/s, 1 d/s), scrubbing, sun-synced lighting, earthquake arrival ripples, incident onsets; current-state layers hidden during replay
+- Playback for fires (archive detections) and cyclone tracks over time
 - Static public demo snapshots (GitHub Pages)
 
 ## Phase 3 — Satellite intelligence
