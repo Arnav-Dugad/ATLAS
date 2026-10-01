@@ -257,6 +257,21 @@ async def incident_zone_exposure(request: Request, incident_id: str) -> dict[str
     return await asyncio.to_thread(exposure.zone_exposure, r.population, r.geocoder, detail.geometry)
 
 
+@router.get("/incidents/{incident_id}/compound")
+async def incident_compound(request: Request, incident_id: str) -> dict[str, Any]:
+    """Heat against local climatology, fire weather, air quality and other hazards nearby, together."""
+    from atlas.engine import airquality, compound
+
+    r = rt(request)
+    hazard, lat, lon = _incident_point(r, incident_id)
+    key = r.settings.openaq_api_key.get_secret_value() if r.settings.openaq_api_key else None
+    try:
+        air = await airquality.nearby(r.http, key, lat, lon) if key else None
+    except FetchError:
+        air = None
+    return await compound.conditions(r.http, r.db, incident_id, hazard.value, lat, lon, air)
+
+
 @router.get("/gallery/burn-scars")
 async def burn_scar_gallery(request: Request) -> dict[str, Any]:
     """Every Sentinel-2 burn-scar map on disk (computed on request or automatically), largest first."""

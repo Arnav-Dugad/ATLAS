@@ -258,6 +258,21 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface Compound {
+  status: "ok";
+  compound: boolean;
+  active: string[];
+  attribution: string;
+  parts: {
+    heat?: { active: boolean; heatwave: boolean; p90_c: number; sample_days: number; longest_run: number; days: { date: string; max_c: number | null; hot: boolean }[]; method: string };
+    fire_weather?: { active: boolean; hours: number; first: string | null; min_rh: number | null; max_wind_kmh: number | null; method: string };
+    air?: { active: boolean; pm25: number; station: string | null; distance_km: number | null; observed_at: string | null; method: string };
+    air_note?: string;
+    nearby?: { active: boolean; items: { id: string; hazard: string; title: string; distance_km: number; severity: number }[]; method: string };
+    weather_error?: string;
+  };
+}
+
 export interface BurnScar {
   incident_id: string;
   title: string;
@@ -623,6 +638,7 @@ const LOCAL_ONLY: RegExp[] = [
   /\/seismic-context$/,
   /\/fire-growth$/,
   /\/gallery\/burn-scars$/,
+  /\/compound$/,
   /\/exposure\/zones$/,
 ];
 
@@ -881,6 +897,7 @@ export const api = {
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
   zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
+  compound: (id: string, signal?: AbortSignal) => request<Compound>(`/api/v1/incidents/${encodeURIComponent(id)}/compound`, { signal }),
   burnScars: (signal?: AbortSignal) => request<{ items: BurnScar[]; automatic: boolean }>("/api/v1/gallery/burn-scars", { signal }),
   polygonExposure: (points: { lat: number; lon: number }[], signal?: AbortSignal) =>
     request<PolygonExposure>("/api/v1/exposure/polygon", {

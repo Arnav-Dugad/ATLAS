@@ -27,6 +27,7 @@ const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default:
 const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
 const QuakeIntel = lazy(() => import("./QuakeIntel").then((m) => ({ default: m.QuakeIntel })));
 const FireGrowthCard = lazy(() => import("./HazardIntel").then((m) => ({ default: m.FireGrowthCard })));
+const CompoundCard = lazy(() => import("./CompoundCard").then((m) => ({ default: m.CompoundCard })));
 const CycloneIntel = lazy(() => import("./HazardIntel").then((m) => ({ default: m.CycloneIntel })));
 
 type Tab = "brief" | "exposure" | "satellite" | "links" | "timeline" | "sources" | "context";
@@ -274,6 +275,9 @@ function BriefTab({ d }: { d: IncidentDetail }) {
 function ContextTab({ d }: { d: IncidentDetail }) {
   return (
     <div className={s.stack}>
+      <Suspense fallback={<Skeleton height={120} />}>
+        <CompoundCard d={d} />
+      </Suspense>
       <WeatherCard id={d.id} />
       <AirQualityCard id={d.id} />
       <section>

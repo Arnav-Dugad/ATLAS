@@ -10,6 +10,7 @@ import { useOverview } from "../../lib/queries";
 import { useUi } from "../../lib/store";
 import { AnimatedNumber } from "../../ui/AnimatedNumber";
 import { Dot, ErrorState, HazardGlyph, Label, SeverityMeter, Skeleton, AsOf } from "../../ui/primitives";
+import { compoundGroups } from "../../lib/compound";
 import { SinceLastVisit } from "./SinceLastVisit";
 import s from "./OverviewPanel.module.css";
 
@@ -39,6 +40,7 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
     );
   }
 
+  const compound = compoundGroups(incidents);
   const top = [...incidents].filter((i) => i.status === "active").sort((a, b) => b.severity.level - a.severity.level || Date.parse(b.last_observation_at) - Date.parse(a.last_observation_at)).slice(0, 5);
 
   return (
@@ -97,6 +99,30 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
                   <HazardGlyph hazard={inc.hazard} size={15} />
                   <span className={s.topTitle}>{inc.title}</span>
                   <SeverityMeter level={inc.severity.level} size="sm" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {compound.length ? (
+        <section className={s.section}>
+          <Label right={<span title="Active incidents of two or more hazard types within 300 km of one another (derived)">{compound.length}</span>}>Compound events</Label>
+          <ul className={s.topList}>
+            {compound.slice(0, 4).map((g) => (
+              <li key={g.lead.id}>
+                <button type="button" className={s.topItem} onClick={() => focusIncident(g.lead)}>
+                  <span className={s.glyphStack}>
+                    {g.hazards.slice(0, 3).map((h) => (
+                      <HazardGlyph key={h} hazard={h} size={13} />
+                    ))}
+                  </span>
+                  <span className={s.topTitle}>
+                    {g.hazards.map((h) => hazardMeta(h).label).join(" + ")}
+                    <span className={s.dimText}> · near {g.lead.place?.name ?? g.lead.title}</span>
+                  </span>
+                  <SeverityMeter level={g.maxSeverity} size="sm" />
                 </button>
               </li>
             ))}

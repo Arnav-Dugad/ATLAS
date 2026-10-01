@@ -399,3 +399,13 @@
   font-size: 10px;
   color: var(--text-3);
 }
+
+.glyphStack {
+  display: inline-flex;
+  flex: none;
+  gap: 1px;
+}
+
+.dimText {
+  color: var(--text-3);
+}

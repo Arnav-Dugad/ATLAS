@@ -456,3 +456,103 @@
     animation: none;
   }
 }
+
+.compoundTag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: #1a1206;
+  background: var(--warn);
+}
+
+.cond {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--r-sm);
+  background: rgba(150, 168, 194, 0.04);
+}
+
+.condOn {
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
+  box-shadow: inset 2px 0 0 var(--warn);
+}
+
+.condIcon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--text-2);
+  background: rgba(150, 168, 194, 0.08);
+}
+
+.condOn .condIcon {
+  color: var(--warn);
+}
+
+.condBody {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.condHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.condHead > :last-child {
+  margin-left: auto;
+}
+
+.condText {
+  display: grid;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+.heatStrip {
+  display: flex;
+  gap: 3px;
+}
+
+.heatDay {
+  flex: 1;
+  padding: 2px 0;
+  border-radius: 3px;
+  text-align: center;
+  font-size: var(--fs-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  background: rgba(150, 168, 194, 0.08);
+}
+
+.heatHot {
+  color: #1a0d06;
+  background: linear-gradient(180deg, #ffb46b, #ff6a3d);
+}
+
+.details {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.details summary {
+  cursor: pointer;
+}
+
+.details ul {
+  margin: 6px 0;
+  padding-left: 16px;
+}
