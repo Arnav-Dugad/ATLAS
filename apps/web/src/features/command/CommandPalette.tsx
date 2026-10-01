@@ -5,6 +5,7 @@ import {
   Activity,
   ArrowRight,
   Clock,
+  Columns2,
   Contrast,
   CornerDownLeft,
   Database,
@@ -13,6 +14,7 @@ import {
   History,
   Layers,
   MapPin,
+  Mountain,
   RefreshCw,
   RotateCw,
   Search,
@@ -22,6 +24,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
 import { api, STATIC_MODE, type IncidentSummary, type SearchResponse } from "../../lib/api";
+import { compareIncident, compareView } from "../../lib/compare";
 import { exportBrief } from "../../lib/export";
 import { focusIncident, focusPoint } from "../../lib/focus";
 import { compact, observedAgo, utcDate } from "../../lib/format";
@@ -88,6 +91,16 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
     input.current?.focus();
   }, []);
 
+  // The public snapshot has no search endpoint: search every exported incident (30 days, all
+  // statuses), not just the ones in the current feed window.
+  const everything = useQuery({
+    queryKey: ["incidents", "palette-all"],
+    queryFn: ({ signal }) => api.incidents({ status: "active,monitoring,closed", limit: 5000 }, signal),
+    enabled: STATIC_MODE,
+    staleTime: 300_000,
+  });
+  const searchable = STATIC_MODE && everything.data ? everything.data.items : incidents;
+
   const search = useQuery<SearchResponse>({
     queryKey: ["search", dq],
     queryFn: ({ signal }) => api.search(dq, signal),
@@ -106,6 +119,26 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
       { id: "v-sources", section: "Navigate", label: "Open Data Source Registry", icon: <Database size={15} />, hint: "Alt 2", keywords: "sources licences attribution provenance", run: done(() => ui.setView("sources")) },
       { id: "v-health", section: "Navigate", label: "Open Data Health & Observability", icon: <Activity size={15} />, hint: "Alt 3", keywords: "status metrics logs storage", run: done(() => ui.setView("health")) },
       { id: "spin", section: "View", label: ui.autoRotate ? "Stop planet rotation" : "Start planet rotation", icon: <RotateCw size={15} />, keywords: "spin rotate idle", run: done(() => ui.setAutoRotate(!ui.autoRotate)) },
+      {
+        id: "terrain",
+        section: "View",
+        label: ui.layers.terrain ? "Turn off 3D terrain" : "Turn on 3D terrain",
+        icon: <Mountain size={15} />,
+        keywords: "relief elevation dem mountains 3d topography",
+        run: done(() => ui.toggleLayer("terrain")),
+      },
+      {
+        id: "compare",
+        section: "View",
+        label: "Compare satellite imagery: before / after",
+        icon: <Columns2 size={15} />,
+        keywords: "swipe split date change satellite damage burn flood",
+        run: done(() => {
+          const inc = incidents.find((i) => i.id === ui.selectedId);
+          if (inc) compareIncident(inc);
+          else compareView();
+        }),
+      },
       { id: "motion", section: "Accessibility", label: ui.reducedMotion ? "Enable motion" : "Reduce motion", icon: <Accessibility size={15} />, keywords: "animation a11y", run: done(() => ui.setReducedMotion(!ui.reducedMotion)) },
       { id: "contrast", section: "Accessibility", label: ui.highContrast ? "Standard contrast" : "High contrast", icon: <Contrast size={15} />, keywords: "a11y readability", run: done(() => ui.setHighContrast(!ui.highContrast)) },
       { id: "intro", section: "Help", label: "Replay the introduction", icon: <Sparkles size={15} />, keywords: "onboarding tour help", run: done(() => ui.resetIntro()) },
@@ -156,7 +189,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
       });
     }
     return out;
-  }, [ui, onClose, catalog.data]);
+  }, [ui, onClose, catalog.data, incidents]);
 
   const items = useMemo<Item[]>(() => {
     const query = q.trim();
@@ -166,7 +199,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
       if (m) res.push({ ...c, score: m.score + (query ? 0 : 0), indices: fuzzy(query, c.label)?.indices ?? [] });
     }
     if (query) {
-      for (const inc of incidents) {
+      for (const inc of searchable) {
         const m = fuzzy(query, inc.title) ?? fuzzy(query, `${inc.country_name ?? ""} ${inc.hazard_label} ${inc.id}`);
         if (m && m.score > 6) {
           res.push({
@@ -233,7 +266,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
     const sectionOrder = ["Ask", "Incidents", "Places", "Navigate", "Historical replays", "Filter", "Time", "Layers", "Incident", "Data", "View", "Sources", "Accessibility", "Help"];
     res.sort((a, b) => (query ? b.score - a.score : sectionOrder.indexOf(a.section) - sectionOrder.indexOf(b.section)));
     return res.slice(0, query ? 40 : 18);
-  }, [commands, incidents, q, dq, search.data, onClose]);
+  }, [commands, searchable, q, dq, search.data, onClose]);
 
   const structured = search.data?.query === dq ? search.data.structured : null;
   const showStructured = Boolean(structured?.parsed.structured) && dq.split(/\s+/).length >= 2;
