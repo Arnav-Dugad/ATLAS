@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+**/.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Build output
+dist/
+build/
+apps/web/public/cesium/
+*.tsbuildinfo
+coverage/
+.vite/
+playwright-report/
+test-results/
+
+# ATLAS runtime data (databases, caches, packs) — never committed
+data/runtime/
+*.duckdb
+*.duckdb.wal
+
+# Local AI models and large datasets
+models/
+*.gguf
+*.tif
+*.tiff
+*.zip
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Tooling
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.DS_Store
+Thumbs.db
+*.log
+
+# Agent tooling state
+.agentrelay/
+.codex/

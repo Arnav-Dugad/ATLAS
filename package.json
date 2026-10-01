@@ -1,0 +1,23 @@
+{
+  "name": "atlas",
+  "private": true,
+  "description": "ATLAS — open planetary disaster intelligence. Local-first, open data, zero required operating cost.",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "pnpm --filter @atlas/web dev",
+    "dev:engine": "node scripts/engine.mjs serve",
+    "build": "pnpm --filter @atlas/web build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test && node scripts/engine.mjs test",
+    "test:web": "pnpm --filter @atlas/web test",
+    "test:engine": "node scripts/engine.mjs test",
+    "gen:api": "node scripts/gen-api.mjs"
+  }
+}
