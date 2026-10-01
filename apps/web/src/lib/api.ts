@@ -433,6 +433,14 @@ export interface SpaceWeather {
   outlook: { date: string; g_scale: number | null; r1_r2_probability: number | null; r3_plus_probability: number | null; s1_plus_probability: number | null }[];
   note: string;
   retrieved_at: string;
+  flares?: {
+    count: number;
+    m_class: number;
+    x_class: number;
+    strongest: { class: string; peak: string | null } | null;
+    recent_major: { class: string; peak: string | null }[];
+    note: string;
+  } | null;
 }
 
 /** Absolute URL for a file path returned by the API (works in live and snapshot mode). */

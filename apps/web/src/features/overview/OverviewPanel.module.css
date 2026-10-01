@@ -428,3 +428,14 @@
   color: var(--text-1);
   background: rgba(150, 168, 194, 0.16);
 }
+
+.flares {
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.flares strong {
+  color: var(--text-1);
+}

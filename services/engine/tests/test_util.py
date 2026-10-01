@@ -124,3 +124,11 @@ def test_merged_track_times_are_explicit_utc() -> None:
     o = Observation(source="eonet", external_id="E1", hazard=Hazard.TROPICAL_CYCLONE, title="Polo", lat=20.0, lon=-110.0,
                     event_time=t, track=[TrackPoint(time=t, lat=20.0, lon=-110.0, wind_kt=55)])  # fmt: skip
     assert _merge_track([o])[0]["time"] == "2026-09-21T12:00:00.000Z"
+
+
+def test_flare_classes_rank_by_letter_then_number() -> None:
+    from atlas.engine.spaceweather import flare_rank, parse_flares
+
+    assert flare_rank("X1.0") > flare_rank("M9.9") > flare_rank("C2.0") > flare_rank("B7.8")
+    out = parse_flares([{"max_class": "C2.0", "max_time": "a"}, {"max_class": "M1.4", "max_time": "b"}, {"max_class": None}])
+    assert out["strongest"] == {"class": "M1.4", "peak": "b"} and out["m_class"] == 1 and out["count"] == 2

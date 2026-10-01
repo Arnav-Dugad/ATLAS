@@ -208,6 +208,12 @@ function SpaceWeatherCard() {
           </span>
         ))}
       </div>
+      {d.flares?.strongest ? (
+        <div className={s.flares} title={d.flares.note}>
+          Flares · 7 days: strongest <strong>{d.flares.strongest.class}</strong>
+          {d.flares.strongest.peak ? ` (${relTime(d.flares.strongest.peak)})` : ""} · {d.flares.x_class} X-class · {d.flares.m_class} M-class
+        </div>
+      ) : null}
       <div className={s.spaceNote}>Observed now; outlook is SWPC&apos;s forecast, quoted as issued.</div>
     </section>
   );
