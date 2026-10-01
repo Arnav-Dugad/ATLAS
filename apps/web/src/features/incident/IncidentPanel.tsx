@@ -27,6 +27,7 @@ const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default:
 const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
 const QuakeIntel = lazy(() => import("./QuakeIntel").then((m) => ({ default: m.QuakeIntel })));
 const FireGrowthCard = lazy(() => import("./HazardIntel").then((m) => ({ default: m.FireGrowthCard })));
+const OfficialAlerts = lazy(() => import("./OfficialAlerts").then((m) => ({ default: m.OfficialAlerts })));
 const CompoundCard = lazy(() => import("./CompoundCard").then((m) => ({ default: m.CompoundCard })));
 const CycloneIntel = lazy(() => import("./HazardIntel").then((m) => ({ default: m.CycloneIntel })));
 
@@ -189,6 +190,9 @@ export function IncidentPanel({ id }: { id: string }) {
 function BriefTab({ d }: { d: IncidentDetail }) {
   return (
     <div className={s.stack}>
+      <Suspense fallback={null}>
+        <OfficialAlerts d={d} />
+      </Suspense>
       <section>
         <Label right={<span className={s.legendHint}>hover a badge for provenance</span>}>Key observations</Label>
         <div className={s.metrics}>

@@ -258,6 +258,40 @@ export interface ZoneExposure {
   limitations: string;
 }
 
+export interface OfficialAlert {
+  id: string | null;
+  source: string;
+  event: string | null;
+  headline: string | null;
+  severity: "Extreme" | "Severe" | "Moderate" | "Minor" | "Unknown";
+  severity_rank: number;
+  urgency?: string | null;
+  certainty?: string | null;
+  issuer: string | null;
+  effective?: string | null;
+  expires: string | null;
+  area: string | null;
+  instruction?: string | null;
+  url?: string | null;
+  raw?: string | null;
+  category?: string | null;
+}
+
+export interface AlertsHere {
+  status: "ok";
+  here: OfficialAlert[];
+  country: string | null;
+  country_warnings: OfficialAlert[] | null;
+  errors: Record<string, string>;
+  note: string;
+}
+
+export interface AlertLayer {
+  type: "FeatureCollection";
+  features: { type: "Feature"; geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon; properties: OfficialAlert }[];
+  errors: Record<string, string>;
+}
+
 export interface Compound {
   status: "ok";
   compound: boolean;
@@ -639,6 +673,8 @@ const LOCAL_ONLY: RegExp[] = [
   /\/fire-growth$/,
   /\/gallery\/burn-scars$/,
   /\/compound$/,
+  /\/alerts$/,
+  /\/alerts\/layer$/,
   /\/exposure\/zones$/,
 ];
 
@@ -897,6 +933,8 @@ export const api = {
   seismicContext: (id: string, signal?: AbortSignal) => request<SeismicContext>(`/api/v1/incidents/${encodeURIComponent(id)}/seismic-context`, { signal }),
   fireGrowth: (id: string, signal?: AbortSignal) => request<FireGrowth | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/fire-growth`, { signal }),
   zoneExposure: (id: string, signal?: AbortSignal) => request<ZoneExposure | Unavailable>(`/api/v1/incidents/${encodeURIComponent(id)}/exposure/zones`, { signal }),
+  alertsHere: (id: string, signal?: AbortSignal) => request<AlertsHere>(`/api/v1/incidents/${encodeURIComponent(id)}/alerts`, { signal }),
+  alertLayer: (signal?: AbortSignal) => request<AlertLayer>("/api/v1/alerts/layer", { signal }),
   compound: (id: string, signal?: AbortSignal) => request<Compound>(`/api/v1/incidents/${encodeURIComponent(id)}/compound`, { signal }),
   burnScars: (signal?: AbortSignal) => request<{ items: BurnScar[]; automatic: boolean }>("/api/v1/gallery/burn-scars", { signal }),
   polygonExposure: (points: { lat: number; lon: number }[], signal?: AbortSignal) =>

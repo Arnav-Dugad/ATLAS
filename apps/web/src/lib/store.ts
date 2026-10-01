@@ -54,6 +54,7 @@ export type LayerId =
   | "waves"
   | "terminator"
   | "aurora"
+  | "alerts"
   | "satellites"
   | "embers"
   | "minimap";
@@ -62,6 +63,7 @@ export const DEFAULT_LAYERS: Record<LayerId, boolean> = {
   waves: true,
   terminator: true,
   aurora: true,
+  alerts: true,
   satellites: false,
   embers: true,
   minimap: true,

@@ -272,6 +272,32 @@ async def incident_compound(request: Request, incident_id: str) -> dict[str, Any
     return await compound.conditions(r.http, r.db, incident_id, hazard.value, lat, lon, air)
 
 
+def _alerts(r: Runtime) -> Any:
+    from atlas.engine.alerts import AlertService
+
+    svc_ = getattr(r, "alerts", None)
+    if svc_ is None:
+        svc_ = AlertService(r.http)
+        r.alerts = svc_  # type: ignore[attr-defined]
+    return svc_
+
+
+@router.get("/alerts/layer")
+async def alerts_layer(request: Request) -> dict[str, Any]:
+    """Official alerts with polygons (NWS, NDMA SACHET, volcanic ash SIGMETs) as GeoJSON, as issued."""
+    return await _alerts(rt(request)).layer()  # type: ignore[no-any-return]
+
+
+@router.get("/incidents/{incident_id}/alerts")
+async def incident_alerts(request: Request, incident_id: str) -> dict[str, Any]:
+    """Official alerts in force at the incident's position, plus MeteoAlarm warnings for its country."""
+    r = rt(request)
+    _incident_point(r, incident_id)
+    with r.db.read() as cur:
+        row = cur.execute("SELECT lat, lon, country_name FROM incidents WHERE id = ?", [incident_id]).fetchone()
+    return await _alerts(r).at(float(row[0]), float(row[1]), row[2])  # type: ignore[no-any-return]
+
+
 @router.get("/gallery/burn-scars")
 async def burn_scar_gallery(request: Request) -> dict[str, Any]:
     """Every Sentinel-2 burn-scar map on disk (computed on request or automatically), largest first."""

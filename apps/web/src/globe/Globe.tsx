@@ -62,6 +62,14 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
     refetchInterval: 600_000,
     retry: 1,
   });
+  const alertLayer = useQuery({
+    queryKey: ["alert-layer"],
+    queryFn: ({ signal }) => api.alertLayer(signal),
+    enabled: layers.alerts && !STATIC_MODE,
+    staleTime: 5 * 60_000,
+    refetchInterval: 10 * 60_000,
+    retry: 1,
+  });
   const satellites = useQuery({
     queryKey: ["satellites"],
     queryFn: ({ signal }) => api.satellites(signal),
@@ -134,6 +142,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
     () => globe?.setEffects({ waves: layers.waves, terminator: layers.terminator, aurora: layers.aurora, satellites: layers.satellites, embers: layers.embers }),
     [globe, layers.waves, layers.terminator, layers.aurora, layers.satellites, layers.embers],
   );
+  useEffect(() => globe?.setAlerts(layers.alerts ? (alertLayer.data?.features ?? null) : null), [globe, layers.alerts, alertLayer.data]);
   useEffect(() => globe?.setAurora(layers.aurora ? (aurora.data?.points ?? null) : null), [globe, layers.aurora, aurora.data]);
   useEffect(() => {
     const data = satellites.data;
@@ -402,6 +411,21 @@ function HoverCard({ info, globe, incidents }: { info: HoverInfo; globe: AtlasGl
         </div>
         <div className={styles.hoverTitle}>{f.name ?? "Unnamed facility"}</div>
         <div className={styles.hoverMeta}>{f.distance_km.toFixed(1)} km from the incident position</div>
+      </>
+    );
+  } else if (t.kind === "alert") {
+    const a = globe.alertData[t.index]?.properties;
+    if (!a) return null;
+    body = (
+      <>
+        <div className={styles.hoverKicker} style={{ color: a.category === "aviation" ? "#b39ddb" : "var(--warn)" }}>
+          Official alert · {a.severity === "Unknown" ? a.source === "awc-sigmet" ? "aviation" : "severity n/a" : a.severity} · {a.issuer ?? a.source}
+        </div>
+        <div className={styles.hoverTitle}>{a.event}</div>
+        <div className={styles.hoverMeta}>
+          {a.headline ?? a.area}
+          {a.expires ? ` · until ${utcShort(a.expires)}` : ""}
+        </div>
       </>
     );
   } else if (t.kind === "cluster") {

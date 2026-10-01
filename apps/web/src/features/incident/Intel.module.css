@@ -556,3 +556,93 @@
   margin: 6px 0;
   padding-left: 16px;
 }
+
+.alertsCard {
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--warn) 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 30%, transparent);
+}
+
+.alertsHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--warn);
+}
+
+.alertsHead > :last-child {
+  margin-left: auto;
+}
+
+.alertRow {
+  display: grid;
+  gap: 2px;
+  padding: 6px 0 6px 10px;
+  border-left: 2px solid var(--sev);
+}
+
+.alertTop {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  text-align: left;
+}
+
+.alertEvent {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.alertMeta {
+  flex: none;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+
+.alertSub {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.alertBody {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  color: var(--text-1);
+}
+
+.alertBody p {
+  margin: 0;
+}
+
+.alertBody a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--accent);
+}
+
+.alertInstr {
+  color: var(--text-2);
+}
+
+.alertRaw {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.25);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  white-space: pre-wrap;
+  color: var(--text-2);
+}

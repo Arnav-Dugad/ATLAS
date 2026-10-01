@@ -18,6 +18,7 @@ const VECTOR: { id: LayerId; label: string; desc: string }[] = [
   { id: "fires", label: "Active fire detections", desc: "NASA FIRMS VIIRS + MODIS · aggregated when zoomed out" },
   { id: "fireClusters", label: "Fire clusters", desc: "ATLAS-derived outlines of connected detections" },
   { id: "cyclones", label: "Cyclone tracks & cones", desc: "Observed track (solid), agency forecast (dashed)" },
+  { id: "alerts", label: "Official alerts", desc: "As issued: US NWS warnings, India's NDMA SACHET alerts, volcanic-ash SIGMETs (local engine)" },
 ];
 const PLANET: { id: LayerId; label: string; desc: string }[] = [
   { id: "lighting", label: "Day / night lighting", desc: "Real-time sun position" },

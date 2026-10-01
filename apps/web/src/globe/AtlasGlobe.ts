@@ -50,7 +50,7 @@ import {
   type PointPrimitive,
   type Polyline,
 } from "cesium";
-import type { Columnar, Facility, FireClusterFeature, IncidentDetail, IncidentSummary } from "../lib/api";
+import type { AlertLayer, Columnar, Facility, FireClusterFeature, IncidentDetail, IncidentSummary } from "../lib/api";
 import { EXPOSURE_RINGS_KM, FACILITY_META, hazardMeta, severityColor, type FacilityKey, type HazardId } from "../lib/hazards";
 import { convert, dist, int } from "../lib/format";
 import { gpuInfo } from "../lib/media";
@@ -66,7 +66,8 @@ export type PickTarget =
   | { kind: "quake"; index: number }
   | { kind: "fire"; index: number; source: "grid" | "detail" }
   | { kind: "cluster"; id: string }
-  | { kind: "facility"; index: number };
+  | { kind: "facility"; index: number }
+  | { kind: "alert"; index: number };
 
 export interface HoverInfo {
   target: PickTarget;
@@ -158,6 +159,9 @@ export class AtlasGlobe {
   private shakeLines = new PolylineCollection();
   private shakeLabels = new LabelCollection();
   private arrows = new PolylineCollection();
+  private alertLines = new PolylineCollection();
+  private alertFill: GroundPrimitive | null = null;
+  alertData: AlertLayer["features"] = [];
   private measureLines = new PolylineCollection();
   private measurePoints = new PointPrimitiveCollection();
   private measureLabels = new LabelCollection();
@@ -267,6 +271,7 @@ export class AtlasGlobe {
       this.shakeLines,
       this.shakeLabels,
       this.arrows,
+      this.alertLines,
       this.measureLines,
       this.measurePoints,
       this.measureLabels,
@@ -757,6 +762,41 @@ export class AtlasGlobe {
       });
       label(Cartesian3.fromRadians(...destinationRad(u.lat, u.lon, u.km, 90), 900), `± ${dist(u.km, u.km < 10 ? 1 : 0)}`, white);
     }
+    this.requestRender();
+  }
+
+  /** Official alert polygons as issued, coloured by CAP severity (aviation ash in violet). */
+  setAlerts(features: AlertLayer["features"] | null) {
+    if (this.alertFill) {
+      this.widget.scene.primitives.remove(this.alertFill);
+      this.alertFill = null;
+    }
+    this.alertLines.removeAll();
+    this.alertData = features ?? [];
+    if (!features?.length) {
+      this.requestRender();
+      return;
+    }
+    const instances: GeometryInstance[] = [];
+    features.forEach((f, index) => {
+      const colour = Color.fromCssColorString(alertColor(f.properties));
+      for (const h of polygonHierarchies(f.geometry)) {
+        instances.push(
+          new GeometryInstance({
+            geometry: new PolygonGeometry({ polygonHierarchy: h }),
+            id: { kind: "alert", index },
+            attributes: { color: ColorGeometryInstanceAttribute.fromColor(colour.withAlpha(0.16)) },
+          }),
+        );
+        this.alertLines.add({ positions: [...h.positions, h.positions[0]!], width: 1.4, material: Material.fromType("Color", { color: colour.withAlpha(0.85) }) });
+      }
+    });
+    this.alertFill = new GroundPrimitive({
+      geometryInstances: instances,
+      appearance: new PerInstanceColorAppearance({ flat: true, translucent: true }),
+      asynchronous: true,
+    });
+    this.widget.scene.primitives.add(this.alertFill);
     this.requestRender();
   }
 
@@ -1702,6 +1742,11 @@ function polygonHierarchies(geom: GeoJSON.Geometry | null | undefined): PolygonH
 }
 
 export type { PointPrimitive, Polyline };
+
+function alertColor(p: { severity: string; category?: string | null }): string {
+  if (p.category === "aviation") return "#b39ddb";
+  return { Extreme: "#ff3d71", Severe: "#ff8a3d", Moderate: "#f2c14e", Minor: "#7fd1ff" }[p.severity] ?? "#9aa7b8";
+}
 
 /** Great-circle edge a → b, densified so it hugs the globe (skipping a's own vertex when chaining). */
 function geodesic(a: LatLon, b: LatLon, skipFirst: boolean): Cartesian3[] {

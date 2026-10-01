@@ -200,6 +200,9 @@ class Runtime:
                 delay += 1.5  # stagger first runs: be a good citizen on startup
         self.scheduler.add("system.sweep", "system", timedelta(minutes=10), self._sweep, start_delay=90)
         self.scheduler.add("system.checkpoint", "system", timedelta(hours=1), self._checkpoint, run_on_start=False)
+        if not self.settings.offline:
+            # keeps the official-alerts cache warm (SACHET needs two small files per alert)
+            self.scheduler.add("system.alerts", "system", timedelta(minutes=10), self._alerts, start_delay=60)
         if self.settings.auto_burn_scars and not self.settings.offline:
             self.scheduler.add("system.burn-scars", "system", timedelta(hours=6), self._burn_scars, start_delay=600)
         self.scheduler.start()
@@ -271,6 +274,15 @@ class Runtime:
 
     async def _sweep(self) -> None:
         await asyncio.to_thread(self.pipeline.sweep)
+
+    async def _alerts(self) -> None:
+        from atlas.engine.alerts import AlertService
+
+        svc = getattr(self, "alerts", None)
+        if svc is None:
+            svc = AlertService(self.http)
+            self.alerts = svc
+        await svc.mapped()
 
     async def _burn_scars(self) -> None:
         from atlas.engine import gallery
