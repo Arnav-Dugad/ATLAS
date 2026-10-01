@@ -12,6 +12,7 @@ import { useUi } from "../../lib/store";
 import { cx, EmptyState, ErrorState, HazardGlyph, Segmented, SeverityMeter, SkeletonRows } from "../../ui/primitives";
 import s from "./IncidentFeed.module.css";
 import { useUnits } from "../../lib/settings";
+import { t } from "../../lib/i18n";
 
 interface Props {
   incidents: IncidentSummary[];
@@ -57,7 +58,7 @@ export function IncidentFeed({ incidents, loading, error, onRetry }: Props) {
         <div className={s.titleRow}>
           <h2 className={s.title}>
             <Radio size={14} className={s.titleIcon} aria-hidden />
-            Incident stream
+            {t("Incident stream")}
           </h2>
           <span className={s.count} aria-live="polite">
             <span className="num">{visible.length}</span>
@@ -71,9 +72,9 @@ export function IncidentFeed({ incidents, loading, error, onRetry }: Props) {
             value={status}
             onChange={setStatus}
             options={[
-              { value: "active", label: "Active", title: "Currently active incidents" },
-              { value: "open", label: "Open", title: "Active and monitoring" },
-              { value: "all", label: "All", title: "Including closed" },
+              { value: "active", label: t("Active"), title: "Currently active incidents" },
+              { value: "open", label: t("Open"), title: "Active and monitoring" },
+              { value: "all", label: t("All"), title: "Including closed" },
             ]}
           />
           <Segmented
@@ -82,8 +83,8 @@ export function IncidentFeed({ incidents, loading, error, onRetry }: Props) {
             value={sort}
             onChange={setSort}
             options={[
-              { value: "severity", label: "Severity" },
-              { value: "recent", label: "Latest" },
+              { value: "severity", label: t("Severity") },
+              { value: "recent", label: t("Latest") },
             ]}
           />
         </div>
@@ -119,7 +120,7 @@ export function IncidentFeed({ incidents, loading, error, onRetry }: Props) {
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Filter by name, country or ID"
+            placeholder={t("Filter by name, country or ID")}
             aria-label="Filter incidents"
             spellCheck={false}
           />

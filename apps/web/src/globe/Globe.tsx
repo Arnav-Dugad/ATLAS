@@ -10,6 +10,7 @@ import { qk, useCountries, useEarthquakeLayer, useFireClusters, useFireGrid, use
 import { QUALITY, resolveQuality, useSettings } from "../lib/settings";
 import { useUi } from "../lib/store";
 import { matches, useWatch } from "../lib/watch";
+import { INDIA_VIEW } from "../lib/india";
 import { useMeasure } from "../lib/measure";
 import { WhatsHere } from "./WhatsHere";
 import { AtlasGlobe, DETAIL_HEIGHT, type HoverInfo, type ViewInfo } from "./AtlasGlobe";
@@ -126,6 +127,11 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
     }
     globeRef.current = instance;
     setGlobe(instance);
+    if (useSettings.getState().startView === "india") {
+      // regional start: stop the idle spin and settle over India
+      useUi.getState().setAutoRotate(false);
+      useUi.getState().flyTo(INDIA_VIEW);
+    }
     return () => {
       globeRef.current = null;
       instance.destroy();

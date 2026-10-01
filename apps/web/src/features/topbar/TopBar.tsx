@@ -11,6 +11,7 @@ import { NotificationBell } from "../notifications/NotificationCenter";
 import { matches, useWatch } from "../../lib/watch";
 import { cx, Dot, Kbd } from "../../ui/primitives";
 import s from "./TopBar.module.css";
+import { t } from "../../lib/i18n";
 
 function useUtcClock() {
   const [now, setNow] = useState(() => new Date());
@@ -91,11 +92,11 @@ export function TopBar() {
               className={cx(s.navBtn, view === v.id && s.navOn)}
               onClick={() => setView(v.id)}
               aria-current={view === v.id ? "page" : undefined}
-              title={`${v.label} (Alt+${v.key})`}
-              aria-label={v.label}
+              title={`${t(v.label)} (Alt+${v.key})`}
+              aria-label={t(v.label)}
             >
               <v.icon size={14} strokeWidth={1.8} aria-hidden />
-              <span className={s.navLabel}>{v.label}</span>
+              <span className={s.navLabel}>{t(v.label)}</span>
             </button>
           ))}
         </nav>
@@ -103,7 +104,7 @@ export function TopBar() {
 
       <button type="button" className={s.search} onClick={() => openPalette()} aria-label="Search and commands">
         <Search size={14} aria-hidden />
-        <span className={s.searchText}>{STATIC_MODE ? "Search incidents, layers and commands" : "Search places, incidents, or try “M6+ in Japan since 2020”"}</span>
+        <span className={s.searchText}>{STATIC_MODE ? t("Search incidents, layers and commands") : t("Search places, incidents, or try “M6+ in Japan since 2020”")}</span>
         <span className={s.searchKeys}>
           <Kbd>{WINDOWS_APP ? "Ctrl" : <Command size={10} aria-hidden />}</Kbd>
           <Kbd>K</Kbd>
@@ -118,7 +119,7 @@ export function TopBar() {
           aria-pressed={assistantOpen}
           title="Ask the local ATLAS Analyst (A)"
         >
-          <Sparkles size={14} aria-hidden /> Ask
+          <Sparkles size={14} aria-hidden /> {t("Ask")}
         </button>
         <button
           type="button"
@@ -130,7 +131,7 @@ export function TopBar() {
           aria-pressed={watchOpen}
           title="Watchlist (W)"
         >
-          <Eye size={14} aria-hidden /> Watch
+          <Eye size={14} aria-hidden /> {t("Watch")}
           {watchHits ? <span className={s.badge}>{watchHits}</span> : null}
         </button>
         <button
@@ -140,7 +141,7 @@ export function TopBar() {
           aria-pressed={layersOpen}
           title="Layers (L)"
         >
-          <Layers size={14} aria-hidden /> Layers
+          <Layers size={14} aria-hidden /> {t("Layers")}
         </button>
         <NotificationBell />
         {WINDOWS_APP ? (
@@ -156,7 +157,7 @@ export function TopBar() {
         ) : null}
         <div className={s.live} title={liveTitle}>
           <Dot color={liveColor} pulse={live === "live"} />
-          <span className={s.liveText}>{liveText}</span>
+          <span className={s.liveText}>{t(liveText)}</span>
         </div>
         <div className={s.clock} aria-label={`Coordinated Universal Time ${hh}:${mm}`}>
           <span className={s.clockTime}>

@@ -71,7 +71,7 @@
   --prov-unavailable: #6f7a8a;
 
   /* ---- Type ---- */
-  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Nirmala UI", "Noto Sans Devanagari", "Mangal", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --fs-2xs: 10.5px;
   --fs-xs: 11.5px;

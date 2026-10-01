@@ -12,8 +12,11 @@ import { AnimatedNumber } from "../../ui/AnimatedNumber";
 import { Dot, ErrorState, HazardGlyph, Label, SeverityMeter, Skeleton, AsOf } from "../../ui/primitives";
 import { compoundGroups } from "../../lib/compound";
 import { useSitrep } from "../../lib/sitrepStore";
+import { useSettings } from "../../lib/settings";
+import { IndiaCard } from "./IndiaCard";
 import { SinceLastVisit } from "./SinceLastVisit";
 import s from "./OverviewPanel.module.css";
+import { t } from "../../lib/i18n";
 
 const STATUS_COLOR: Record<string, string> = {
   healthy: "var(--ok)",
@@ -27,6 +30,7 @@ const STATUS_COLOR: Record<string, string> = {
 export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
   const q = useOverview();
   const setView = useUi((st) => st.setView);
+  const startView = useSettings((st) => st.startView);
   const data = q.data;
 
   if (q.error && !data) {
@@ -47,55 +51,56 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
   return (
     <div className={s.wrap}>
       <header className={s.head}>
-        <div className="label">Planetary state</div>
+        <div className="label">{t("Planetary state")}</div>
         <div className={s.stamp}>{data ? utcFull(data.generated_at) : "—"}</div>
         <button type="button" className={s.reportBtn} onClick={() => useSitrep.getState().setOpen(true)} title="Situation report: every sentence cited">
-          <FileText size={12} /> Report
+          <FileText size={12} /> {t("Report")}
         </button>
       </header>
 
       <SinceLastVisit incidents={incidents} />
+      {startView === "india" ? <IndiaCard incidents={incidents} /> : null}
 
       <button type="button" className={s.storyBtn} onClick={() => useUi.getState().setStory({ index: 0, playing: true })} disabled={!data}>
         <span className={s.storyIcon}>
           <Play size={12} />
         </span>
         <span className={s.storyText}>
-          <span className={s.storyTitle}>Play the planet story</span>
-          <span className={s.storySub}>A one-minute guided tour of what is happening now</span>
+          <span className={s.storyTitle}>{t("Play the planet story")}</span>
+          <span className={s.storySub}>{t("A one-minute guided tour of what is happening now")}</span>
         </span>
       </button>
 
       <div className={s.hero}>
         <div className={s.heroMain}>
           <div className={s.heroNum}>{data ? <AnimatedNumber value={data.incidents_active} /> : <Skeleton width={84} height={44} />}</div>
-          <div className={s.heroLabel}>active incidents</div>
+          <div className={s.heroLabel}>{t("active incidents")}</div>
         </div>
         <div className={s.heroSide}>
-          <Stat label="Monitoring" value={data?.incidents_monitoring} />
-          <Stat label="Observations" value={data?.observations_total} compactValue />
+          <Stat label={t("Monitoring")} value={data?.incidents_monitoring} />
+          <Stat label={t("Observations")} value={data?.observations_total} compactValue />
         </div>
       </div>
 
       {data ? <SeverityStrip hist={data.severity_histogram} /> : null}
 
       <section className={s.section}>
-        <Label right={data ? <AsOf at={data.generated_at} label="Overview computed" /> : undefined}>Signals · last 24 h</Label>
+        <Label right={data ? <AsOf at={data.generated_at} label="Overview computed" /> : undefined}>{t("Signals · last 24 h")}</Label>
         <div className={s.signals}>
-          <Signal hazard="earthquake" value={data ? data.earthquakes_24h : null} label="earthquakes M2.5+" sub={data?.earthquakes_24h_max_mag != null ? `max M${decimal(data.earthquakes_24h_max_mag)}` : undefined} />
-          <Signal hazard="wildfire" value={data ? data.fire_detections_24h : null} compactValue label="fire detections" sub={data ? `${int(data.fire_clusters)} clusters` : undefined} />
-          <Signal hazard="tropical_cyclone" value={data ? data.active_cyclones : null} label="active cyclones" />
+          <Signal hazard="earthquake" value={data ? data.earthquakes_24h : null} label={t("earthquakes M2.5+")} sub={data?.earthquakes_24h_max_mag != null ? `max M${decimal(data.earthquakes_24h_max_mag)}` : undefined} />
+          <Signal hazard="wildfire" value={data ? data.fire_detections_24h : null} compactValue label={t("fire detections")} sub={data ? `${int(data.fire_clusters)} clusters` : undefined} />
+          <Signal hazard="tropical_cyclone" value={data ? data.active_cyclones : null} label={t("active cyclones")} />
         </div>
       </section>
 
       <section className={s.section}>
-        <Label>By hazard</Label>
+        <Label>{t("By hazard")}</Label>
         <HazardTable data={data} />
       </section>
 
       {top.length ? (
         <section className={s.section}>
-          <Label>Most significant now</Label>
+          <Label>{t("Most significant now")}</Label>
           <ul className={s.topList}>
             {top.map((inc) => (
               <li key={inc.id}>
@@ -112,7 +117,7 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
 
       {compound.length ? (
         <section className={s.section}>
-          <Label right={<span title="Active incidents of two or more hazard types within 300 km of one another (derived)">{compound.length}</span>}>Compound events</Label>
+          <Label right={<span title="Active incidents of two or more hazard types within 300 km of one another (derived)">{compound.length}</span>}>{t("Compound events")}</Label>
           <ul className={s.topList}>
             {compound.slice(0, 4).map((g) => (
               <li key={g.lead.id}>
@@ -135,7 +140,7 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
       ) : null}
 
       <section className={s.section}>
-        <Label right={data ? `${data.recent_changes.length}` : undefined}>Recent changes</Label>
+        <Label right={data ? `${data.recent_changes.length}` : undefined}>{t("Recent changes")}</Label>
         <ul className={s.changes}>
           {(data?.recent_changes ?? []).slice(0, 10).map((c) => {
             const inc = incidents.find((i) => i.id === c.incident_id);
@@ -162,7 +167,7 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
       <HistoricalReplays />
 
       <section className={s.section}>
-        <Label right={<button type="button" className={s.link} onClick={() => setView("sources")}>Registry <ArrowUpRight size={12} /></button>}>Source health</Label>
+        <Label right={<button type="button" className={s.link} onClick={() => setView("sources")}>Registry <ArrowUpRight size={12} /></button>}>{t("Source health")}</Label>
         <div className={s.sources}>
           {(data?.sources ?? []).filter((x) => x.status !== "reference").map((src) => (
             <div key={src.id} className={s.source} title={`${src.name}: ${src.status}${src.last_ok ? ` · last success ${relTime(src.last_ok)}` : ""}`}>
@@ -185,7 +190,7 @@ function SpaceWeatherCard() {
   if (!d) return null;
   return (
     <section className={s.section}>
-      <Label right={<AsOf at={d.observed_at} source="NOAA SWPC" label="Observed" />}>Space weather</Label>
+      <Label right={<AsOf at={d.observed_at} source="NOAA SWPC" label="Observed" />}>{t("Space weather")}</Label>
       <div className={s.space}>
         {(["R", "S", "G"] as const).map((k) => {
           const lvl = d.current[k].scale ?? 0;
@@ -224,7 +229,7 @@ function HistoricalReplays() {
   if (!q.data?.events.length) return null;
   return (
     <section className={s.section}>
-      <Label right="USGS ComCat">Historical replays</Label>
+      <Label right="USGS ComCat">{t("Historical replays")}</Label>
       <div className={s.history}>
         {q.data.events.map((ev) => (
           <button key={ev.id} type="button" className={s.historyItem} onClick={() => startHistoricalReplay(ev)} title={`${ev.title} — replay ${ev.sequence.count} M4+ events over 7 days`}>

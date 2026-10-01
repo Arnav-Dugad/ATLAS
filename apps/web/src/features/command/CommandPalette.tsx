@@ -31,7 +31,8 @@ import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
 import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary, type SearchResponse } from "../../lib/api";
 import { compareIncident, compareView } from "../../lib/compare";
-import { ACCENTS, type Accent, openSettings, PRESET_WIDTHS, useSettings } from "../../lib/settings";
+import { ACCENTS, type Accent, type Lang, openSettings, PRESET_WIDTHS, useSettings } from "../../lib/settings";
+import { LANGS } from "../../lib/i18n";
 import { useMeasure } from "../../lib/measure";
 import { useSitrep } from "../../lib/sitrepStore";
 import { openSimulation } from "../../lib/simulate";
@@ -280,6 +281,17 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
           ...(["kt", "kmh", "mph"] as const)
             .filter((w) => w !== u.wind)
             .map((w) => ({ id: `units-wind-${w}`, section: "Units", label: `Show wind in ${w === "kt" ? "knots" : w === "kmh" ? "km/h" : "mph"}`, icon: <Settings size={15} />, keywords: "units wind speed", run: done(() => st.setUnits({ wind: w })) })),
+          ...(Object.keys(LANGS) as Lang[])
+            .filter((l) => l !== st.lang)
+            .map((l) => ({ id: `lang-${l}`, section: "Appearance", label: `Language: ${LANGS[l].native}`, icon: <Globe2 size={15} />, keywords: "language hindi english bhasha भाषा हिन्दी translate", run: done(() => st.setLang(l)) })),
+          {
+            id: "start-view",
+            section: "Appearance",
+            label: st.startView === "india" ? "Start on the whole planet" : "Start on India (regional view)",
+            icon: <Globe2 size={15} />,
+            keywords: "india bharat home region start default view",
+            run: done(() => st.setStartView(st.startView === "india" ? "world" : "india")),
+          },
           ...(Object.keys(ACCENTS) as Accent[])
             .filter((a) => a !== st.accent)
             .map((a) => ({ id: `accent-${a}`, section: "Appearance", label: `Accent colour: ${ACCENTS[a].label}`, icon: <Contrast size={15} />, keywords: "theme colour color accent", run: done(() => st.setAccent(a)) })),

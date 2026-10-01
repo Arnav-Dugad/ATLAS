@@ -3,6 +3,8 @@
  * meaning never depends on colour alone (WCAG 1.4.1). Glyph paths are 24×24 line drawings
  * shared by the DOM icons and the WebGL billboard sprites.
  */
+import { t } from "./i18n";
+import { useSettings } from "./settings";
 
 export type HazardId =
   | "earthquake"
@@ -75,7 +77,8 @@ export const HAZARDS: Record<HazardId, HazardMeta> = {
 export const PRIMARY_HAZARDS: HazardId[] = ["earthquake", "tropical_cyclone", "wildfire", "flood", "volcano", "drought"];
 
 export function hazardMeta(id: string): HazardMeta {
-  return HAZARDS[id as HazardId] ?? HAZARDS.other;
+  const m = HAZARDS[id as HazardId] ?? HAZARDS.other;
+  return useSettings.getState().lang === "en" ? m : { ...m, label: t(m.label), plural: t(m.plural) };
 }
 
 export const SEVERITY_COLORS = ["#4a5463", "#7d8899", "#c7b660", "#f0a43a", "#f4673c", "#ff3d71"] as const;

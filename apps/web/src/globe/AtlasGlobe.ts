@@ -1650,8 +1650,8 @@ export class AtlasGlobe {
     });
   }
 
-  home() {
-    this.fly({ id: 0, lat: 14, lon: 18, height: 22_500_000, duration: 2.4 });
+  home(target?: { lat: number; lon: number; height: number }) {
+    this.fly({ id: 0, lat: target?.lat ?? 14, lon: target?.lon ?? 18, height: target?.height ?? 22_500_000, duration: 2.4 });
   }
 
   screenPosition(lat: number, lon: number): { x: number; y: number } | null {

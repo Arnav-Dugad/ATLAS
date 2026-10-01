@@ -1,0 +1,91 @@
+.card {
+  display: grid;
+  gap: 8px;
+  flex: none;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, rgba(255, 153, 51, 0.1), rgba(19, 136, 8, 0.08));
+  box-shadow: inset 0 0 0 1px rgba(255, 153, 51, 0.25);
+}
+
+.fly {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-2xs);
+  color: var(--text-1);
+  background: rgba(150, 168, 194, 0.12);
+}
+
+.states {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.state {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border-radius: var(--r-sm);
+  text-align: left;
+  font-size: var(--fs-sm);
+  color: var(--text-1);
+}
+
+.state:hover,
+.state:focus-visible {
+  background: rgba(150, 168, 194, 0.08);
+}
+
+.stateName {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.glyphs {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-1);
+  line-height: 1.45;
+}
+
+.row svg {
+  margin-top: 2px;
+  color: #ff9933;
+}
+
+.dim,
+.quiet,
+.note {
+  color: var(--text-3);
+}
+
+.quiet,
+.note {
+  margin: 0;
+  font-size: var(--fs-xs);
+}
+
+.note {
+  font-size: var(--fs-2xs);
+}

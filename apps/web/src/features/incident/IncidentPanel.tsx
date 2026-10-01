@@ -23,6 +23,7 @@ import { TrackChart } from "./TrackChart";
 import s from "./IncidentPanel.module.css";
 import { useUnits } from "../../lib/settings";
 import { showUndo } from "../../lib/undo";
+import { t } from "../../lib/i18n";
 
 const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default: m.SatelliteTab })));
 const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
@@ -95,25 +96,25 @@ export function IncidentPanel({ id }: { id: string }) {
           {d.place?.offshore_km ? <span className={s.dim}> · offshore ~{dist(d.place.offshore_km)}</span> : null}
         </div>
         <div className={s.facts}>
-          <Fact label="Onset" value={utcShort(d.started_at)} hint={relTime(d.started_at)} />
-          <Fact label="Latest data" value={utcShort(d.last_observation_at)} hint={observedAgo(d.last_observation_at)} />
-          <Fact label="Position" value={coord(d.lat, d.lon)} mono />
+          <Fact label={t("Onset")} value={utcShort(d.started_at)} hint={relTime(d.started_at)} />
+          <Fact label={t("Latest data")} value={utcShort(d.last_observation_at)} hint={observedAgo(d.last_observation_at)} />
+          <Fact label={t("Position")} value={coord(d.lat, d.lon)} mono />
         </div>
         <div className={s.actions}>
           <button type="button" className={s.action} onClick={() => focusIncident(d, { select: false })}>
-            <Crosshair size={13} /> Fly to
+            <Crosshair size={13} /> {t("Fly to")}
           </button>
           <button type="button" className={s.action} onClick={() => compareIncident(d)} title="Swipe between satellite views from before onset and the latest day">
-            <Columns2 size={13} /> Before / after
+            <Columns2 size={13} /> {t("Before / after")}
           </button>
           {d.hazard === "earthquake" ? (
             <button type="button" className={s.action} onClick={() => openSimulation(d)} title="What-if shaking scenario from this earthquake (simulation, not a forecast)">
-              <FlaskConical size={13} /> Scenario
+              <FlaskConical size={13} /> {t("Scenario")}
             </button>
           ) : null}
           {d.lat != null && d.lon != null ? (
             <button type="button" className={s.action} onClick={() => useWatch.getState().setDraft({ lat: d.lat as number, lon: d.lon as number })} title="Watch the area around this incident">
-              <Eye size={13} /> Watch area
+              <Eye size={13} /> {t("Watch area")}
             </button>
           ) : null}
           <button type="button" className={cx(s.action, pinned.includes(d.id) && s.actionOn)} onClick={() => {
@@ -121,7 +122,7 @@ export function IncidentPanel({ id }: { id: string }) {
               togglePin(d.id);
               if (was) showUndo("Unpinned from the comparison", { undo: () => useUi.getState().togglePin(d.id) });
             }} aria-pressed={pinned.includes(d.id)} title="Pin to compare side by side (up to 3)">
-            <Pin size={13} /> {pinned.includes(d.id) ? "Pinned" : "Pin"}
+            <Pin size={13} /> {pinned.includes(d.id) ? t("Pinned") : t("Pin")}
           </button>
           <ExportMenu d={d} />
           <CopyId id={d.id} />
@@ -130,14 +131,14 @@ export function IncidentPanel({ id }: { id: string }) {
 
       <div className={s.assess}>
         <div className={s.assessCell}>
-          <div className="label">Severity</div>
+          <div className="label">{t("Severity")}</div>
           <div className={s.assessRow}>
             <SeverityMeter level={d.severity.level} showLabel />
           </div>
           <Explain>{d.severity.basis}. ATLAS Severity Scale v1 — an ordinal intensity scale, not an impact estimate.</Explain>
         </div>
         <div className={s.assessCell}>
-          <div className="label">Confidence</div>
+          <div className="label">{t("Confidence")}</div>
           <div className={s.assessRow}>
             <ConfidenceMeter score={d.confidence.score} label={d.confidence.label} />
           </div>
@@ -157,13 +158,13 @@ export function IncidentPanel({ id }: { id: string }) {
       <div className={s.tabs} role="tablist" aria-label="Incident sections">
         {(
           [
-            ["brief", "Intelligence"],
-            ["exposure", "Exposure"],
-            ["satellite", "Satellite"],
-            ["links", d.related.length ? `Links · ${d.related.length}` : "Links"],
-            ["timeline", `Chronology · ${d.changes.length}`],
-            ["sources", `Sources · ${d.citations.filter((c) => c.source_id !== "natural-earth").length}`],
-            ["context", "Context"],
+            ["brief", t("Intelligence")],
+            ["exposure", t("Exposure")],
+            ["satellite", t("Satellite")],
+            ["links", d.related.length ? `${t("Links")} · ${d.related.length}` : t("Links")],
+            ["timeline", `${t("Chronology")} · ${d.changes.length}`],
+            ["sources", `${t("Sources")} · ${d.citations.filter((c) => c.source_id !== "natural-earth").length}`],
+            ["context", t("Context")],
           ] as [Tab, string][]
         ).map(([k, label]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={cx(s.tab, tab === k && s.tabOn)} onClick={() => setTab(k)}>
@@ -199,7 +200,7 @@ function BriefTab({ d }: { d: IncidentDetail }) {
         <OfficialAlerts d={d} />
       </Suspense>
       <section>
-        <Label right={<span className={s.legendHint}>hover a badge for provenance</span>}>Key observations</Label>
+        <Label right={<span className={s.legendHint}>hover a badge for provenance</span>}>{t("Key observations")}</Label>
         <div className={s.metrics}>
           {d.headline.length ? d.headline.map((m) => <MetricTile key={`${m.key}-${m.source}`} m={m} />) : <div className={s.dim}>No quantitative observations available for this incident.</div>}
         </div>
@@ -241,7 +242,7 @@ function BriefTab({ d }: { d: IncidentDetail }) {
 
       <section className={s.official}>
         <div className={s.officialHead}>
-          <ShieldAlert size={14} aria-hidden /> Official sources
+          <ShieldAlert size={14} aria-hidden /> {t("Official sources")}
         </div>
         <ul className={s.linkList}>
           {d.official_links.map((l) => (
@@ -259,12 +260,12 @@ function BriefTab({ d }: { d: IncidentDetail }) {
         <Suspense fallback={null}>
           <CemsLinks d={d} />
         </Suspense>
-        <p className={s.officialNote}>ATLAS is a research tool, not an alerting service. Always follow official warnings and local authorities.</p>
+        <p className={s.officialNote}>{t("ATLAS is a research tool, not an alerting service. Always follow official warnings and local authorities.")}</p>
       </section>
 
       {d.related.length ? (
         <section>
-          <Label right={`${d.related.length}`}>Related incidents</Label>
+          <Label right={`${d.related.length}`}>{t("Related incidents")}</Label>
           <ul className={s.related}>
             {d.related.slice(0, 8).map((r) => (
               <li key={r.id}>
@@ -283,7 +284,7 @@ function BriefTab({ d }: { d: IncidentDetail }) {
       ) : null}
 
       <section>
-        <Label>Limitations</Label>
+        <Label>{t("Limitations")}</Label>
         <ul className={s.limits}>
           {d.limitations.map((l) => (
             <li key={l}>{l}</li>
@@ -306,7 +307,7 @@ function ContextTab({ d }: { d: IncidentDetail }) {
         <CountryContext d={d} />
       </Suspense>
       <section>
-        <Label right="Natural Earth · derived">Nearby places</Label>
+        <Label right="Natural Earth · derived">{t("Nearby places")}</Label>
         <ul className={s.places}>
           {d.nearby_places.map((p) => (
             <li key={`${p.name}-${p.lat}`} className={s.place}>
@@ -407,7 +408,7 @@ function Explain({ children }: { children: ReactNode }) {
   return (
     <div className={s.explain}>
       <button type="button" className={s.explainBtn} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-        <ChevronRight size={12} className={cx(s.chev, open && s.chevOpen)} aria-hidden /> How is this determined?
+        <ChevronRight size={12} className={cx(s.chev, open && s.chevOpen)} aria-hidden /> {t("How is this determined?")}
       </button>
       <AnimatePresence initial={false}>
         {open ? (
@@ -425,7 +426,7 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span className={s.status}>
       <Dot color={color} size={6} pulse={status === "active"} />
-      {status}
+      {t(status)}
     </span>
   );
 }
@@ -470,7 +471,7 @@ function ExportMenu({ d }: { d: IncidentDetail }) {
   return (
     <div className={s.menuWrap}>
       <button type="button" className={s.action} onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="menu">
-        <Download size={13} /> Export
+        <Download size={13} /> {t("Export")}
       </button>
       <AnimatePresence>
         {open ? (

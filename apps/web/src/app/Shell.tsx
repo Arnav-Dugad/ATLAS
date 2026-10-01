@@ -12,6 +12,8 @@ import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/
 import { CommandPalette } from "../features/command/CommandPalette";
 import { toggleMeasure, useMeasure } from "../lib/measure";
 import { useSitrep } from "../lib/sitrepStore";
+import { useLang } from "../lib/i18n";
+import { INDIA_VIEW } from "../lib/india";
 import { useNotices } from "../lib/notifications";
 import { useNativeIntents } from "../lib/useNativeIntents";
 import { useWatchAlerts } from "../lib/useWatchAlerts";
@@ -81,6 +83,7 @@ export function Shell() {
   const density = useSettings((st) => st.density);
   const layout = useSettings((st) => st.layout);
   const accent = useSettings((st) => st.accent);
+  const lang = useLang(); // re-renders the tree when the interface language changes
   const phone = useMediaQuery(PHONE_QUERY);
   const webgl = useMemo(() => supportsWebGL(), []);
   useWatchAlerts(incidents);
@@ -110,6 +113,7 @@ export function Shell() {
       root.dataset.surface = surface; // the website keeps its glass panels
     }
     root.dataset.density = density;
+    root.lang = lang === "hi" ? "hi" : "en";
     // Layout: the CSS variables describe what is on the left and right, so every overlay that
     // positions itself by --rail-w / --panel-w follows a swap or a resize.
     const preset = PRESET_WIDTHS[layout.preset];
@@ -126,7 +130,7 @@ export function Shell() {
     root.style.setProperty("--accent-line", line);
     root.style.setProperty("--info", a);
     root.style.setProperty("--prov-derived", a);
-  }, [reducedMotion, highContrast, surface, density, accent, layout]);
+  }, [reducedMotion, highContrast, surface, density, accent, layout, lang]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -200,7 +204,7 @@ export function Shell() {
       } else if (e.key.toLowerCase() === "r") {
         ui.setAutoRotate(!ui.autoRotate);
       } else if (e.key.toLowerCase() === "h") {
-        globeRef.current?.home();
+        globeRef.current?.home(useSettings.getState().startView === "india" ? INDIA_VIEW : undefined);
       } else if (e.key === "+" || e.key === "=") {
         globeRef.current?.zoom(0.6);
       } else if (e.key === "-" || e.key === "_") {

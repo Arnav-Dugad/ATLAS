@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { LANGS } from "../../lib/i18n";
 import { api, ApiError, type AppSettings, type CredentialName, type CredentialTest, type PackStatus, type PackTask } from "../../lib/api";
 import { NATIVE, pickFolder } from "../../lib/desktop";
 import { relTime } from "../../lib/format";
@@ -44,6 +45,8 @@ import {
   type LayoutPreset,
   PRESET_WIDTHS,
   type Units,
+  type Lang,
+  type StartView,
   useSettings,
 } from "../../lib/settings";
 import { useUi } from "../../lib/store";
@@ -710,8 +713,38 @@ function PersonalSection() {
   const setDensity = useSettings((st) => st.setDensity);
   const units = useSettings((st) => st.units);
   const setUnits = useSettings((st) => st.setUnits);
+  const lang = useSettings((st) => st.lang);
+  const setLang = useSettings((st) => st.setLang);
+  const startView = useSettings((st) => st.startView);
+  const setStartView = useSettings((st) => st.setStartView);
   return (
     <>
+      <section className={s.card}>
+        <div className={s.kv}>
+          <span>Language</span>
+          <Segmented<Lang>
+            label="Interface language"
+            size="sm"
+            value={lang}
+            onChange={setLang}
+            options={(Object.keys(LANGS) as Lang[]).map((l) => ({ value: l, label: LANGS[l].native }))}
+          />
+        </div>
+        {LANGS[lang].note ? <p className={s.muted}>{LANGS[lang].note}</p> : null}
+        <div className={s.kv}>
+          <span>Start view</span>
+          <Segmented<StartView>
+            label="Start view"
+            size="sm"
+            value={startView}
+            onChange={setStartView}
+            options={[
+              { value: "world", label: "Whole planet" },
+              { value: "india", label: "India" },
+            ]}
+          />
+        </div>
+      </section>
       <section className={s.card}>
         <div className={s.cardHead}>
           <div>

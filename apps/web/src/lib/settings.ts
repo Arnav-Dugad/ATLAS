@@ -100,7 +100,14 @@ export function resolveQuality(choice: QualityChoice): Quality {
   return gpu.software || isIntegratedGpu(gpu.renderer) ? "saver" : "high";
 }
 
+export type Lang = "en" | "hi";
+export type StartView = "world" | "india";
+
 interface SettingsState {
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  startView: StartView;
+  setStartView: (v: StartView) => void;
   surface: Surface;
   quality: QualityChoice;
   density: Density;
@@ -122,6 +129,10 @@ interface SettingsState {
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
+      lang: "en",
+      setLang: (lang) => set({ lang }),
+      startView: "world",
+      setStartView: (startView) => set({ startView }),
       surface: "solid",
       quality: "auto",
       density: "comfortable",
@@ -141,7 +152,16 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "atlas.settings.v1",
-      partialize: (s) => ({ surface: s.surface, quality: s.quality, density: s.density, accent: s.accent, units: s.units, layout: s.layout }),
+      partialize: (s) => ({
+        surface: s.surface,
+        quality: s.quality,
+        density: s.density,
+        accent: s.accent,
+        units: s.units,
+        layout: s.layout,
+        lang: s.lang,
+        startView: s.startView,
+      }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<SettingsState>;
         return { ...current, ...p, units: { ...DEFAULT_UNITS, ...(p.units ?? {}) }, layout: { ...DEFAULT_LAYOUT, ...(p.layout ?? {}) } };
