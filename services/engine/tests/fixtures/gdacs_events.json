@@ -1,0 +1,677 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "bbox": [
+    123.1839,
+    -0.863,
+    123.1839,
+    -0.863
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     123.1839,
+     -0.863
+    ]
+   },
+   "properties": {
+    "eventtype": "EQ",
+    "eventid": 1568847,
+    "episodeid": 1736992,
+    "eventname": "",
+    "glide": "",
+    "name": "Earthquake in Indonesia",
+    "description": "Earthquake in Indonesia",
+    "htmldescription": "Green M 4.6 Earthquake in Indonesia at: 01 Oct 2026 01:31:23.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=EQ&eventid=1568847&episodeid=1736992",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1568847&episodeid=1736992&eventtype=EQ",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=EQ&eventid=1568847"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.0,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Indonesia",
+    "fromdate": "2026-10-01T01:31:23",
+    "todate": "2026-10-01T01:31:23",
+    "datemodified": "2026-10-01T02:11:47",
+    "iso3": "IDN",
+    "source": "NEIC",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "ID",
+      "iso3": "IDN",
+      "countryname": "Indonesia"
+     }
+    ],
+    "severitydata": {
+     "severity": 4.6,
+     "severitytext": "Magnitude 4.6M, Depth:116.392km",
+     "severityunit": "M"
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    68.7818,
+    36.0991,
+    68.7818,
+    36.0991
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     68.7818,
+     36.0991
+    ]
+   },
+   "properties": {
+    "eventtype": "EQ",
+    "eventid": 1568845,
+    "episodeid": 1736990,
+    "eventname": "",
+    "glide": "",
+    "name": "Earthquake in Afghanistan",
+    "description": "Earthquake in Afghanistan",
+    "htmldescription": "Green M 5.2 Earthquake in Afghanistan at: 01 Oct 2026 01:29:20.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=EQ&eventid=1568845&episodeid=1736990",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1568845&episodeid=1736990&eventtype=EQ",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=EQ&eventid=1568845"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.0,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Afghanistan",
+    "fromdate": "2026-10-01T01:29:20",
+    "todate": "2026-10-01T01:29:20",
+    "datemodified": "2026-10-01T02:09:22",
+    "iso3": "AFG",
+    "source": "NEIC",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "AF",
+      "iso3": "AFG",
+      "countryname": "Afghanistan"
+     }
+    ],
+    "severitydata": {
+     "severity": 5.2,
+     "severitytext": "Magnitude 5.2M, Depth:49.602km",
+     "severityunit": "M"
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    -125.9,
+    15.2,
+    -125.9,
+    15.2
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -125.9,
+     15.2
+    ]
+   },
+   "properties": {
+    "eventtype": "TC",
+    "eventid": 1001331,
+    "episodeid": 7,
+    "eventname": "NINETEEN-E-26",
+    "glide": "",
+    "name": "Tropical Cyclone NINETEEN-E-26",
+    "description": "Tropical Cyclone NINETEEN-E-26",
+    "htmldescription": "Green Tropical Cyclone NINETEEN-E-26 off-shore from: 29 Sep 2026  to: 01 Oct 2026 .",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/TC.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/TC.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=TC&eventid=1001331&episodeid=7",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1001331&episodeid=7&eventtype=TC",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=TC&eventid=1001331"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 1.0,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "",
+    "fromdate": "2026-09-29T15:00:00",
+    "todate": "2026-10-01T03:00:00",
+    "datemodified": "2026-10-01T02:43:49",
+    "iso3": "",
+    "source": "NOAA",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "countryonland": "",
+    "affectedcountries": [],
+    "severitydata": {
+     "severity": 55.5552,
+     "severitytext": "Tropical Depression (maximum wind speed of 56 km/h)",
+     "severityunit": "km/h"
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    -108.5,
+    19.2,
+    -108.5,
+    19.2
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -108.5,
+     19.2
+    ]
+   },
+   "properties": {
+    "eventtype": "TC",
+    "eventid": 1001329,
+    "episodeid": 16,
+    "eventname": "RACHEL-26",
+    "glide": "",
+    "name": "Tropical Cyclone RACHEL-26",
+    "description": "Tropical Cyclone RACHEL-26",
+    "htmldescription": "Green Tropical Cyclone RACHEL-26 in Mexico from: 27 Sep 2026  to: 01 Oct 2026 .",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/TC.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/TC.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=TC&eventid=1001329&episodeid=16",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1001329&episodeid=16&eventtype=TC",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=TC&eventid=1001329"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 1.0,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Mexico",
+    "fromdate": "2026-09-27T09:00:00",
+    "todate": "2026-10-01T03:00:00",
+    "datemodified": "2026-10-01T02:42:58",
+    "iso3": "MEX",
+    "source": "NOAA",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "countryonland": "",
+    "affectedcountries": [
+     {
+      "iso2": "MX",
+      "iso3": "MEX",
+      "countryname": "Mexico"
+     }
+    ],
+    "severitydata": {
+     "severity": 194.4432,
+     "severitytext": "Hurricane/Typhoon > 74 mph (maximum wind speed of 194 km/h)",
+     "severityunit": "km/h"
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    -57.1838,
+    -10.8407,
+    -57.1838,
+    -10.8407
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -57.1838,
+     -10.8407
+    ]
+   },
+   "properties": {
+    "eventtype": "WF",
+    "eventid": 1032515,
+    "episodeid": 1,
+    "eventname": "",
+    "glide": "",
+    "name": "Forest fires in Brazil",
+    "description": "Forest fires in Brazil",
+    "htmldescription": "Green Forest fires in Brazil from: 19 Sep 2026 to: 30 Sep 2026.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/WF.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/WF.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=WF&eventid=1032515&episodeid=1",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1032515&episodeid=1&eventtype=WF",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=WF&eventid=1032515"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.5,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Brazil",
+    "fromdate": "2026-09-19T00:00:00",
+    "todate": "2026-09-30T00:00:00",
+    "datemodified": "2026-10-01T03:11:13",
+    "iso3": "BRA",
+    "source": "GWIS",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "BR",
+      "iso3": "BRA",
+      "countryname": "Brazil"
+     }
+    ],
+    "severitydata": {
+     "severity": 5783.0,
+     "severitytext": "Green impact for forestfire in 5783 ha",
+     "severityunit": "ha"
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    -46.9951,
+    -12.6937,
+    -46.9951,
+    -12.6937
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -46.9951,
+     -12.6937
+    ]
+   },
+   "properties": {
+    "eventtype": "WF",
+    "eventid": 1032514,
+    "episodeid": 1,
+    "eventname": "",
+    "glide": "",
+    "name": "Forest fires in Brazil",
+    "description": "Forest fires in Brazil",
+    "htmldescription": "Green Forest fires in Brazil from: 20 Sep 2026 to: 30 Sep 2026.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/WF.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/WF.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=WF&eventid=1032514&episodeid=1",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1032514&episodeid=1&eventtype=WF",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=WF&eventid=1032514"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.5,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Brazil",
+    "fromdate": "2026-09-20T00:00:00",
+    "todate": "2026-09-30T00:00:00",
+    "datemodified": "2026-10-01T03:09:22",
+    "iso3": "BRA",
+    "source": "GWIS",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "BR",
+      "iso3": "BRA",
+      "countryname": "Brazil"
+     }
+    ],
+    "severitydata": {
+     "severity": 5154.0,
+     "severitytext": "Green impact for forestfire in 5154 ha",
+     "severityunit": "ha"
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    3.7097,
+    43.9345,
+    3.7097,
+    43.9345
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     3.7097,
+     43.9345
+    ]
+   },
+   "properties": {
+    "eventtype": "FL",
+    "eventid": 1104202,
+    "episodeid": 1,
+    "eventname": "",
+    "glide": "",
+    "name": "Flood in France",
+    "description": "Flood in France",
+    "htmldescription": "Green Flood in France from: 29 Sep 2026 01 to: 01 Oct 2026 01.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=FL&eventid=1104202&episodeid=1",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1104202&episodeid=1&eventtype=FL",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=FL&eventid=1104202"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.5,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "France",
+    "fromdate": "2026-09-29T01:00:00",
+    "todate": "2026-10-01T01:00:00",
+    "datemodified": "2026-09-30T10:55:09",
+    "iso3": "FRA",
+    "source": "GLOFAS",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "FR",
+      "iso3": "FRA",
+      "countryname": "France"
+     }
+    ],
+    "severitydata": {
+     "severity": 0.0,
+     "severitytext": "Magnitude 0 ",
+     "severityunit": ""
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    -6.153,
+    39.1748,
+    -6.153,
+    39.1748
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -6.153,
+     39.1748
+    ]
+   },
+   "properties": {
+    "eventtype": "FL",
+    "eventid": 1104199,
+    "episodeid": 2,
+    "eventname": "",
+    "glide": "",
+    "name": "Flood in Spain",
+    "description": "Flood in Spain",
+    "htmldescription": "Green Flood in Spain from: 28 Sep 2026 01 to: 30 Sep 2026 01.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=FL&eventid=1104199&episodeid=2",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1104199&episodeid=2&eventtype=FL",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=FL&eventid=1104199"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.5,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Spain",
+    "fromdate": "2026-09-28T01:00:00",
+    "todate": "2026-09-30T01:00:00",
+    "datemodified": "2026-09-30T04:56:28",
+    "iso3": "ESP",
+    "source": "GLOFAS",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "ES",
+      "iso3": "ESP",
+      "countryname": "Spain"
+     }
+    ],
+    "severitydata": {
+     "severity": 0.0,
+     "severitytext": "Magnitude 0 ",
+     "severityunit": ""
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    33.606,
+    0.763,
+    33.606,
+    0.763
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     33.606,
+     0.763
+    ]
+   },
+   "properties": {
+    "eventtype": "DR",
+    "eventid": 1027465,
+    "episodeid": 7,
+    "eventname": "Uganda, Kenya, Tanzania-2026",
+    "glide": "DR-2026-000143-COD",
+    "name": "Drought in Democratic Republic of Congo, Kenya, Tanzania, Uganda",
+    "description": "Drought in Democratic Republic of Congo, Kenya, Tanzania, Uganda",
+    "htmldescription": "Orange Drought in Democratic Republic of Congo, Kenya, Tanzania, Uganda from: 21 May 2026  to: 30 Sep 2026 .",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Orange/DR.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Orange/DR.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=DR&eventid=1027465&episodeid=7",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1027465&episodeid=7&eventtype=DR",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=DR&eventid=1027465"
+    },
+    "alertlevel": "Orange",
+    "alertscore": 2,
+    "episodealertlevel": "Orange",
+    "episodealertscore": 1.25,
+    "istemporary": "false",
+    "iscurrent": "false",
+    "country": "Democratic Republic of Congo, Kenya, Tanzania, Uganda",
+    "fromdate": "2026-05-21T00:00:00",
+    "todate": "2026-09-30T13:48:57",
+    "datemodified": "2026-09-30T13:48:57",
+    "iso3": "COD",
+    "source": "GDO",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "CD",
+      "iso3": "COD",
+      "countryname": "Democratic Republic of Congo"
+     },
+     {
+      "iso2": "KE",
+      "iso3": "KEN",
+      "countryname": "Kenya"
+     },
+     {
+      "iso2": "TZ",
+      "iso3": "TZA",
+      "countryname": "Tanzania"
+     },
+     {
+      "iso2": "UG",
+      "iso3": "UGA",
+      "countryname": "Uganda"
+     }
+    ],
+    "severitydata": {
+     "severity": 233797.0,
+     "severitytext": "Medium impact for agricultural drought in 233797 km2",
+     "severityunit": "km2"
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    26.314,
+    9.57,
+    26.314,
+    9.57
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     26.314,
+     9.57
+    ]
+   },
+   "properties": {
+    "eventtype": "DR",
+    "eventid": 1027450,
+    "episodeid": 10,
+    "eventname": "East Africa, Central Sahel-2026",
+    "glide": "DR-2026-000117-ETH",
+    "name": "Drought in Democratic Republic of Congo, Central African Republic, Cameroon, Djibouti, Eritrea, Ethiopia, Kenya, Niger, Nigeria, Sudan, Somalia, South Sudan, Chad",
+    "description": "Drought in Democratic Republic of Congo, Central African Republic, Cameroon, Djibouti, Eritrea, Ethiopia, Kenya, Niger, Nigeria, Sudan, Somalia, South Sudan, Chad",
+    "htmldescription": "Orange Drought in Democratic Republic of Congo, Central African Republic, Cameroon, Djibouti, Eritrea, Ethiopia, Kenya, Niger, Nigeria, Sudan, Somalia, South Sudan, Chad from: 21 Jun 2026  to: 30 Sep 2026 .",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Orange/DR.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Orange/DR.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=DR&eventid=1027450&episodeid=10",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1027450&episodeid=10&eventtype=DR",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=DR&eventid=1027450"
+    },
+    "alertlevel": "Orange",
+    "alertscore": 2,
+    "episodealertlevel": "Orange",
+    "episodealertscore": 1.25,
+    "istemporary": "false",
+    "iscurrent": "false",
+    "country": "Democratic Republic of Congo, Central African Republic, Cameroon, Djibouti, Eritrea, Ethiopia, Kenya, Niger, Nigeria, Sudan, Somalia, South Sudan, Chad",
+    "fromdate": "2026-06-21T00:00:00",
+    "todate": "2026-09-30T13:48:55",
+    "datemodified": "2026-09-30T13:48:55",
+    "iso3": "COD",
+    "source": "GDO",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "CD",
+      "iso3": "COD",
+      "countryname": "Democratic Republic of Congo"
+     },
+     {
+      "iso2": "CF",
+      "iso3": "CAF",
+      "countryname": "Central African Republic"
+     },
+     {
+      "iso2": "CM",
+      "iso3": "CMR",
+      "countryname": "Cameroon"
+     },
+     {
+      "iso2": "DJ",
+      "iso3": "DJI",
+      "countryname": "Djibouti"
+     },
+     {
+      "iso2": "ER",
+      "iso3": "ERI",
+      "countryname": "Eritrea"
+     },
+     {
+      "iso2": "ET",
+      "iso3": "ETH",
+      "countryname": "Ethiopia"
+     },
+     {
+      "iso2": "KE",
+      "iso3": "KEN",
+      "countryname": "Kenya"
+     },
+     {
+      "iso2": "NE",
+      "iso3": "NER",
+      "countryname": "Niger"
+     },
+     {
+      "iso2": "NG",
+      "iso3": "NGA",
+      "countryname": "Nigeria"
+     },
+     {
+      "iso2": "SD",
+      "iso3": "SDN",
+      "countryname": "Sudan"
+     },
+     {
+      "iso2": "SO",
+      "iso3": "SOM",
+      "countryname": "Somalia"
+     },
+     {
+      "iso2": "SS",
+      "iso3": "SSD",
+      "countryname": "South Sudan"
+     },
+     {
+      "iso2": "TD",
+      "iso3": "TCD",
+      "countryname": "Chad"
+     }
+    ],
+    "severitydata": {
+     "severity": 2451121.0,
+     "severitytext": "Medium impact for agricultural drought in 2451121 km2",
+     "severityunit": "km2"
+    }
+   }
+  }
+ ],
+ "bbox": null
+}

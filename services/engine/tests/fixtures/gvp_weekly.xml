@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<rss version="2.0"
+      xmlns:georss="http://www.georss.org/georss"
+      xmlns:atom="https://www.w3.org/2005/Atom">
+	<channel>
+		<title>Smithsonian / USGS Weekly Volcanic Activity Report</title>
+		<link>https://volcano.si.edu/reports_weekly.cfm</link>
+		<description>The Weekly Volcanic Activity Report is a cooperative project between the Smithsonian's Global Volcanism Program and the US Geological Survey's Volcano Hazards Program. Updated by 2300 UTC every Thursday, these notices are preliminary and subject to change as events are studied in more detail. This is not a comprehensive list of eruptions during the week, but rather a summary of activity that meet selected criteria. Carefully reviewed, detailed reports are published in the Bulletin of the Global Volcanism Network.</description>
+		<language>en-us</language>
+		<copyright>Smithsonian Institution</copyright>
+		<managingEditor>kuhns@si.edu (Sally Kuhn Sennert)</managingEditor>
+		<webMaster>gvp@si.edu (Ed Venzke)</webMaster>
+		<atom:link href="https://volcano.si.edu/news/WeeklyVolcanoRSS.xml" rel="self" type="application/rss+xml" />
+		<pubDate>Thu, 17 Sep 2026 01:20:04 -0500</pubDate>
+
+
+
+<item>
+<title>Krakatau (Indonesia) - Report for 10 September-16 September 2026 - New Eruptive Activity</title>
+<description>
+&lt;p&gt;The Pusat Vulkanologi dan Mitigasi Bencana Geologi (PVMBG) reported ongoing eruptive activity at Krakatau during 9-16 September. During 6-11 September there were 14 Strombolian eruptions reported. There was one eruption detected on a seismograph at 0047 on 9 September, but it was not visually confirmed. According to an analysis of a HIMAWARI-9 RGB image taken on that same day, an ash plume rose 2.1 km above the summit and drifted NW at 1000. As of 16 September the five journalists and three crew members of a missing ship had not been found. The Alert Level remained at 3 (on a scale of 1-4) and the public was advised to stay 3 km away from summit.&lt;/p&gt;
+&lt;p&gt;Sources: Antara News,Pusat Vulkanologi dan Mitigasi Bencana Geologi (PVMBG, also known as CVGHM)&lt;/p&gt;
+</description>
+<link>https://volcano.si.edu/reports_weekly.cfm</link>
+<guid isPermaLink="true">https://volcano.si.edu/reports_weekly.cfm#vn_262000</guid>
+<pubDate>Thu, 17 Sep 2026 01:20:04 -0400</pubDate>
+<georss:point>-6.1009 105.4233</georss:point>
+</item><item>
+<title>Aira (Japan) - Report for 10 September-16 September 2026 - Continuing Eruptive Activity</title>
+<description>
+&lt;p&gt;The Japan Meteorological Agency (JMA) reported ongoing eruptive activity at Minamidake Crater (Aira Caldera?s Sakurajima volcano) during 8-14 September. Crater incandescence was visible in nighttime webcam images during 11-14 September. An eruptive event at 1246 on 8 September generated an ash plume that rose 1.3 km above the crater rim and drifted S. Volcanologists conducted a field survey on 10 September and measured high sulfur dioxide emissions, averaging 2,100 tons per day. A total of eight eruptive events during 13-14 September produced ash plumes that rose as high as 2.5 km above the crater and ejected large blocks 600 m from the vent. The Alert Level remained at 3 (on a 5-level scale), and the public was warned to be cautious within 1 km of both the Minimadake and Showa craters.&lt;/p&gt;
+&lt;p&gt;Source: Japan Meteorological Agency (JMA) &lt;/p&gt;
+</description>
+<link>https://volcano.si.edu/reports_weekly.cfm</link>
+<guid isPermaLink="true">https://volcano.si.edu/reports_weekly.cfm#vn_282080</guid>
+<pubDate>Thu, 17 Sep 2026 01:20:04 -0400</pubDate>
+<georss:point>31.5772 130.6589</georss:point>
+</item><item>
+<title>Dukono (Indonesia) - Report for 10 September-16 September 2026 - Continuing Eruptive Activity</title>
+<description>
+&lt;p&gt;The Pusat Vulkanologi dan Mitigasi Bencana Geologi (PVMBG) reported that eruptive activity at Dukono continued during 10-15 September. White-and-gray ash plumes rose 200-1,100 m above the summit and drifted in different directions during 10-11 and 13-14 September; weather conditions obscured the summit on the other days or no plumes were emitted. The Alert Level remained at Level 2 (on a scale of 1-4) and the public was warned to stay 4 km away from the Malupang Warirang Crater.&lt;/p&gt;
+&lt;p&gt;Source: Pusat Vulkanologi dan Mitigasi Bencana Geologi (PVMBG, also known as CVGHM)&lt;/p&gt;
+</description>
+<link>https://volcano.si.edu/reports_weekly.cfm</link>
+<guid isPermaLink="true">https://volcano.si.edu/reports_weekly.cfm#vn_268010</guid>
+<pubDate>Thu, 17 Sep 2026 01:20:04 -0400</pubDate>
+<georss:point>1.6992 127.8783</georss:point>
+</item></channel></rss>
