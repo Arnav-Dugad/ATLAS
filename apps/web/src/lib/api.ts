@@ -437,6 +437,11 @@ export interface OfficialAlert {
   url?: string | null;
   raw?: string | null;
   category?: string | null;
+  /** volcanic-ash SIGMETs: vertical extent and movement as published */
+  base_ft?: number | null;
+  top_ft?: number | null;
+  direction?: string | null;
+  speed_kt?: number | null;
 }
 
 export interface AlertsHere {

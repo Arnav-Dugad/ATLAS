@@ -28,6 +28,7 @@ import {
   LabelCollection,
   LabelStyle,
   Material,
+  MaterialAppearance,
   Math as CMath,
   NearFarScalar,
   PerInstanceColorAppearance,
@@ -162,6 +163,7 @@ export class AtlasGlobe {
   private arrows = new PolylineCollection();
   private alertLines = new PolylineCollection();
   private alertFill: GroundPrimitive | null = null;
+  private ash: { primitive: Primitive; material: Material }[] = [];
   alertData: AlertLayer["features"] = [];
   private measureLines = new PolylineCollection();
   private measurePoints = new PointPrimitiveCollection();
@@ -454,6 +456,10 @@ export class AtlasGlobe {
     }
     if (this.shimmer && !this.reducedMotion) {
       this.shimmer.material.uniforms.time = now / 1000;
+      animate = true;
+    }
+    if (this.ash.length && !this.reducedMotion) {
+      for (const a of this.ash) a.material.uniforms.time = now / 1000;
       animate = true;
     }
     if (this.trackReveal.length) {
@@ -825,6 +831,8 @@ export class AtlasGlobe {
       this.widget.scene.primitives.remove(this.alertFill);
       this.alertFill = null;
     }
+    for (const a of this.ash) this.widget.scene.primitives.remove(a.primitive);
+    this.ash = [];
     this.alertLines.removeAll();
     this.alertData = features ?? [];
     if (!features?.length) {
@@ -843,6 +851,7 @@ export class AtlasGlobe {
           }),
         );
         this.alertLines.add({ positions: [...h.positions, h.positions[0]!], width: 1.4, material: Material.fromType("Color", { color: colour.withAlpha(0.85) }) });
+        if (f.properties.category === "aviation" && f.properties.top_ft) this.addAshVolume(h, f.properties);
       }
     });
     this.alertFill = new GroundPrimitive({
@@ -852,6 +861,44 @@ export class AtlasGlobe {
     });
     this.widget.scene.primitives.add(this.alertFill);
     this.requestRender();
+  }
+
+  /** A volcanic-ash SIGMET as a translucent volume between its published flight levels, with a
+   *  texture drifting the way the SIGMET says the ash moves (still under reduced motion). */
+  private addAshVolume(h: PolygonHierarchy, p: { base_ft?: number | null; top_ft?: number | null; direction?: string | null; speed_kt?: number | null }) {
+    const ft = 0.3048;
+    const compass = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    const i = compass.indexOf(p.direction ?? "");
+    const bearing = i >= 0 ? (i * 22.5 * Math.PI) / 180 : 0;
+    const speed = i >= 0 ? Math.min(1.5, 0.3 + (p.speed_kt ?? 10) / 20) : 0;
+    const material = new Material({
+      fabric: {
+        uniforms: { time: 0, dir: new Cartesian2(Math.sin(bearing) * speed, Math.cos(bearing) * speed), tint: Color.fromCssColorString("#b39ddb") },
+        source: `czm_material czm_getMaterial(czm_materialInput materialInput) {
+          czm_material m = czm_getDefaultMaterial(materialInput);
+          vec2 p = materialInput.st * 9.0 - dir * time * 0.12;
+          float a = sin(p.x * 2.7 + sin(p.y * 1.9 + time * 0.07)) * 0.5 + 0.5;
+          float b = sin(p.y * 3.3 - p.x * 1.1) * 0.5 + 0.5;
+          m.diffuse = tint.rgb;
+          m.alpha = 0.12 + 0.28 * a * b;
+          return m;
+        }`,
+      },
+    });
+    const primitive = new Primitive({
+      geometryInstances: new GeometryInstance({
+        geometry: new PolygonGeometry({
+          polygonHierarchy: h,
+          height: Math.max(0, (p.base_ft ?? 0) * ft),
+          extrudedHeight: (p.top_ft ?? 0) * ft,
+          vertexFormat: MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat,
+        }),
+      }),
+      appearance: new MaterialAppearance({ material, translucent: true, closed: true, materialSupport: MaterialAppearance.MaterialSupport.TEXTURED }),
+      asynchronous: true,
+    });
+    this.widget.scene.primitives.add(primitive);
+    this.ash.push({ primitive, material });
   }
 
   /** A spread-direction arrow (e.g. a fire front moving from one centroid to another). */

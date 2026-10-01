@@ -35,6 +35,7 @@ METEOALARM = "https://feeds.meteoalarm.org/api/v1/warnings/feeds-{slug}"
 CAP = "{urn:oasis:names:tc:emergency:cap:1.2}"
 SEVERITY = {"Extreme": 4, "Severe": 3, "Moderate": 2, "Minor": 1, "Unknown": 0}
 SACHET_MAX = 60
+COMPASS = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"}
 
 # MeteoAlarm feed names for the countries it covers (Natural Earth country name → feed slug)
 METEOALARM_COUNTRIES = {
@@ -126,6 +127,10 @@ async def va_sigmets(http: HttpClient) -> list[dict[str, Any]]:
                 area=_text(s.get("firName"), 120),
                 raw=_text(s.get("rawSigmet"), 1200),
                 category="aviation",
+                base_ft=s.get("base") if isinstance(s.get("base"), int) else 0,
+                top_ft=s.get("top") if isinstance(s.get("top"), int) else None,
+                direction=s.get("dir") if s.get("dir") in COMPASS else None,
+                speed_kt=int(s["spd"]) if str(s.get("spd", "")).isdigit() else None,
                 geometry={"type": "Polygon", "coordinates": [coords]} if len(coords) >= 4 else None,
             )
         )
@@ -336,6 +341,10 @@ class AlertService:
                     "expires",
                     "area",
                     "category",
+                    "base_ft",
+                    "top_ft",
+                    "direction",
+                    "speed_kt",
                 )
             }
             feats.append({"type": "Feature", "geometry": a["geometry"], "properties": props})
