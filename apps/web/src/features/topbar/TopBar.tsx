@@ -1,5 +1,7 @@
 import { Activity, Command, Database, Globe2, Layers, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { fetchSnapshotInfo, STATIC_MODE } from "../../lib/api";
 import { relTime } from "../../lib/format";
 import { useLive } from "../../lib/live";
 import { useUi, type View } from "../../lib/store";
@@ -35,8 +37,28 @@ export function TopBar() {
   const ss = String(now.getUTCSeconds()).padStart(2, "0");
   const date = now.toISOString().slice(0, 10);
 
-  const liveColor = live === "live" ? "var(--ok)" : live === "connecting" ? "var(--warn)" : "var(--bad)";
-  const liveText = live === "live" ? "Live" : live === "connecting" ? "Connecting" : "Engine offline";
+  const snapshot = useQuery({
+    queryKey: ["snapshot-info"],
+    queryFn: ({ signal }) => fetchSnapshotInfo(signal),
+    enabled: STATIC_MODE,
+    staleTime: 300_000,
+  });
+  const liveColor =
+    live === "live" ? "var(--ok)" : live === "snapshot" ? "var(--accent)" : live === "connecting" ? "var(--warn)" : "var(--bad)";
+  const liveText =
+    live === "live"
+      ? "Live"
+      : live === "snapshot"
+        ? `Snapshot · ${snapshot.data ? relTime(snapshot.data.generated_at) : "…"}`
+        : live === "connecting"
+          ? "Connecting"
+          : "Engine offline";
+  const liveTitle =
+    live === "snapshot"
+      ? "Public static snapshot rebuilt every few hours by GitHub Actions. Run ATLAS locally for the live stream."
+      : lastEventAt
+        ? `Last stream event ${relTime(lastEventAt)}`
+        : "Waiting for the live stream";
 
   return (
     <header className={s.bar}>
@@ -64,7 +86,7 @@ export function TopBar() {
 
       <button type="button" className={s.search} onClick={() => openPalette()} aria-label="Search and commands">
         <Search size={14} aria-hidden />
-        <span className={s.searchText}>Search places, incidents, or try “M6+ in Japan since 2020”</span>
+        <span className={s.searchText}>{STATIC_MODE ? "Search incidents, layers and commands" : "Search places, incidents, or try “M6+ in Japan since 2020”"}</span>
         <span className={s.searchKeys}>
           <Kbd>
             <Command size={10} aria-hidden />
@@ -83,7 +105,7 @@ export function TopBar() {
         >
           <Layers size={14} aria-hidden /> Layers
         </button>
-        <div className={s.live} title={lastEventAt ? `Last stream event ${relTime(lastEventAt)}` : "Waiting for the live stream"}>
+        <div className={s.live} title={liveTitle}>
           <Dot color={liveColor} pulse={live === "live"} />
           <span>{liveText}</span>
         </div>

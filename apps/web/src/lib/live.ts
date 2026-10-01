@@ -4,9 +4,9 @@
  */
 import type { QueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
-import { streamUrl } from "./api";
+import { STATIC_MODE, streamUrl } from "./api";
 
-export type LiveStatus = "connecting" | "live" | "offline";
+export type LiveStatus = "connecting" | "live" | "offline" | "snapshot";
 
 export interface LiveChange {
   id: number;
@@ -51,6 +51,11 @@ export const useLive = create<LiveState>((set) => ({
 }));
 
 export function connectLive(client: QueryClient): () => void {
+  if (STATIC_MODE) {
+    // The public snapshot has no stream; it is rebuilt on a schedule instead.
+    useLive.setState({ status: "snapshot" });
+    return () => undefined;
+  }
   let es: EventSource | null = null;
   let retry = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;

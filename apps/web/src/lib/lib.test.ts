@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { IncidentDetail } from "./api";
+import { filterIncidents, type IncidentDetail, type IncidentList, type IncidentSummary } from "./api";
 import { briefMarkdown } from "./export";
 import { compact, coord, metricValue, relTime, utcFull, utcShort } from "./format";
 import { fuzzy } from "./fuzzy";
@@ -79,5 +79,32 @@ describe("brief export", () => {
     expect(md).toContain("| Magnitude | 6.6 mww | Observed | usgs |");
     expect(md).toContain("Earthquake data: U.S. Geological Survey (USGS)");
     expect(md).toContain("Not an official alert");
+  });
+});
+
+describe("filterIncidents (snapshot mode)", () => {
+  const inc = (id: string, status: string, hazard: string, level: number, at: string) =>
+    ({ id, status, hazard, severity: { level }, last_observation_at: at }) as unknown as IncidentSummary;
+  const list: IncidentList = {
+    total: 4,
+    generated_at: "2026-10-01T12:00:00Z",
+    items: [
+      inc("a", "active", "earthquake", 2, "2026-10-01T11:00:00Z"),
+      inc("b", "active", "wildfire", 4, "2026-09-30T08:00:00Z"),
+      inc("c", "closed", "earthquake", 5, "2026-10-01T10:00:00Z"),
+      inc("d", "monitoring", "volcano", 1, "2026-09-20T00:00:00Z"),
+    ],
+  };
+
+  it("applies status, hazard and time filters like the engine", () => {
+    const q = new URLSearchParams({ status: "active,monitoring", since: "2026-09-29T00:00:00Z" });
+    expect(filterIncidents(list, q).items.map((i) => i.id)).toEqual(["b", "a"]);
+    expect(filterIncidents(list, new URLSearchParams({ hazard: "earthquake" })).total).toBe(2);
+  });
+
+  it("sorts by recency when asked and honours the limit", () => {
+    const out = filterIncidents(list, new URLSearchParams({ sort: "recent", limit: "2" }));
+    expect(out.items.map((i) => i.id)).toEqual(["a", "c"]);
+    expect(out.total).toBe(4);
   });
 });

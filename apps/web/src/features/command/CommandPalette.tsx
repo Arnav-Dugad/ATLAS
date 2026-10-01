@@ -21,10 +21,10 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
-import { api, type IncidentSummary, type SearchResponse } from "../../lib/api";
+import { api, STATIC_MODE, type IncidentSummary, type SearchResponse } from "../../lib/api";
 import { exportBrief } from "../../lib/export";
 import { focusIncident, focusPoint } from "../../lib/focus";
-import { compact, relTime, utcDate } from "../../lib/format";
+import { compact, observedAgo, utcDate } from "../../lib/format";
 import { fuzzy } from "../../lib/fuzzy";
 import { HAZARDS, hazardMeta, type HazardId } from "../../lib/hazards";
 import { startHistoricalReplay, useHistoricalCatalog } from "../../lib/history";
@@ -91,7 +91,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
   const search = useQuery<SearchResponse>({
     queryKey: ["search", dq],
     queryFn: ({ signal }) => api.search(dq, signal),
-    enabled: dq.length >= 2,
+    enabled: dq.length >= 2 && !STATIC_MODE,
     staleTime: 60_000,
   });
 
@@ -109,7 +109,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
       { id: "motion", section: "Accessibility", label: ui.reducedMotion ? "Enable motion" : "Reduce motion", icon: <Accessibility size={15} />, keywords: "animation a11y", run: done(() => ui.setReducedMotion(!ui.reducedMotion)) },
       { id: "contrast", section: "Accessibility", label: ui.highContrast ? "Standard contrast" : "High contrast", icon: <Contrast size={15} />, keywords: "a11y readability", run: done(() => ui.setHighContrast(!ui.highContrast)) },
       { id: "intro", section: "Help", label: "Replay the introduction", icon: <Sparkles size={15} />, keywords: "onboarding tour help", run: done(() => ui.resetIntro()) },
-      { id: "refresh", section: "Data", label: "Refresh all live sources now", icon: <RefreshCw size={15} />, keywords: "sync update poll", run: done(() => ["usgs", "gdacs", "nhc", "eonet", "firms", "gvp"].forEach((id) => void api.syncSource(id).catch(() => undefined))) },
+      ...(STATIC_MODE ? [] : [{ id: "refresh", section: "Data", label: "Refresh all live sources now", icon: <RefreshCw size={15} />, keywords: "sync update poll", run: done(() => ["usgs", "gdacs", "nhc", "eonet", "firms", "gvp"].forEach((id) => void api.syncSource(id).catch(() => undefined))) }]),
     ];
     for (const h of ["earthquake", "tropical_cyclone", "wildfire", "flood", "volcano", "drought"] as HazardId[]) {
       const meta = HAZARDS[h];
@@ -321,7 +321,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
                   <button key={r.id} type="button" className={s.sRow} onClick={() => { focusIncident(r); onClose(); }}>
                     <HazardGlyph hazard={r.hazard} size={14} />
                     <span className={s.sTitle}>{r.title}</span>
-                    <span className={s.sMeta}>{relTime(r.last_observation_at)}</span>
+                    <span className={s.sMeta}>{observedAgo(r.last_observation_at)}</span>
                   </button>
                 ))}
               </div>
@@ -375,7 +375,13 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
             );
           })}
           {items.length === 0 && !showStructured ? (
-            <div className={s.none}>{search.isFetching ? "Searching…" : "No matches. Try a place name, an incident, or a question."}</div>
+            <div className={s.none}>
+              {STATIC_MODE
+                ? "No matches in this snapshot. Place search, natural-language queries and the USGS archive run in the local engine."
+                : search.isFetching
+                  ? "Searching…"
+                  : "No matches. Try a place name, an incident, or a question."}
+            </div>
           ) : null}
         </div>
         <footer className={s.foot}>

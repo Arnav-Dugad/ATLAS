@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { api, type IncidentQuery } from "./api";
+import { api, STATIC_MODE, type IncidentQuery } from "./api";
 import { useUi, WINDOW_HOURS } from "./store";
 
 export const qk = {
@@ -72,7 +72,7 @@ export function useWeather(id: string | null, enabled = true) {
   return useQuery({
     queryKey: qk.weather(id ?? "none"),
     queryFn: ({ signal }) => api.weather(id as string, signal),
-    enabled: Boolean(id) && enabled,
+    enabled: Boolean(id) && enabled && !STATIC_MODE,
     staleTime: 15 * 60_000,
     retry: 1,
   });
@@ -92,7 +92,7 @@ export function useInfrastructureExposure(id: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ["exposure", "infrastructure", id ?? "none"],
     queryFn: ({ signal }) => api.infrastructure(id as string, signal),
-    enabled: Boolean(id) && enabled,
+    enabled: Boolean(id) && enabled && !STATIC_MODE,
     staleTime: 24 * 3600_000,
     retry: 0,
   });
@@ -102,7 +102,7 @@ export function useKnowledge(id: string | null, at?: string) {
   return useQuery({
     queryKey: qk.knowledge(id ?? "none", at),
     queryFn: ({ signal }) => api.knowledge(id as string, at, signal),
-    enabled: Boolean(id),
+    enabled: Boolean(id) && !STATIC_MODE,
   });
 }
 
@@ -120,15 +120,15 @@ export function useSource(id: string | null) {
 }
 
 export function useStorage(enabled = true) {
-  return useQuery({ queryKey: qk.storage, queryFn: ({ signal }) => api.storage(signal), enabled, refetchInterval: 60_000 });
+  return useQuery({ queryKey: qk.storage, queryFn: ({ signal }) => api.storage(signal), enabled: enabled && !STATIC_MODE, refetchInterval: 60_000 });
 }
 
 export function useHealth(enabled = true) {
-  return useQuery({ queryKey: qk.health, queryFn: ({ signal }) => api.health(signal), enabled, refetchInterval: 10_000 });
+  return useQuery({ queryKey: qk.health, queryFn: ({ signal }) => api.health(signal), enabled: enabled && !STATIC_MODE, refetchInterval: 10_000 });
 }
 
 export function useMetrics(enabled = true) {
-  return useQuery({ queryKey: qk.metrics, queryFn: ({ signal }) => api.metrics(signal), enabled, refetchInterval: 10_000 });
+  return useQuery({ queryKey: qk.metrics, queryFn: ({ signal }) => api.metrics(signal), enabled: enabled && !STATIC_MODE, refetchInterval: 10_000 });
 }
 
 export function useChanges() {

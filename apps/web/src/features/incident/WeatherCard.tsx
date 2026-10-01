@@ -1,4 +1,5 @@
 import { CloudRain, Droplets, Gauge, Navigation, Thermometer, Wind } from "lucide-react";
+import { LOCAL_ONLY_MESSAGE, STATIC_MODE } from "../../lib/api";
 import { relTime } from "../../lib/format";
 import { useWeather } from "../../lib/queries";
 import { ErrorState, Label, ProvenanceBadge, Skeleton, Sparkline } from "../../ui/primitives";
@@ -6,6 +7,7 @@ import s from "./IncidentPanel.module.css";
 
 export function WeatherCard({ id }: { id: string }) {
   const q = useWeather(id);
+  if (STATIC_MODE) return <ErrorState title="Weather context runs locally" message={LOCAL_ONLY_MESSAGE} />;
   if (q.error) {
     return <ErrorState title="Weather context unavailable" message="Open-Meteo did not respond. This does not affect incident data." onRetry={() => void q.refetch()} />;
   }

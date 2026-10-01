@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { ExternalLink, Radar, RefreshCw, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ExposureUnavailable, IncidentDetail, InfrastructureExposure, PopulationExposure } from "../../lib/api";
+import { LOCAL_ONLY_MESSAGE, STATIC_MODE, type ExposureUnavailable, type IncidentDetail, type InfrastructureExposure, type PopulationExposure } from "../../lib/api";
 import { compact, int, relTime } from "../../lib/format";
 import { FACILITY_META, type FacilityKey } from "../../lib/hazards";
 import { useInfrastructureExposure, usePopulationExposure } from "../../lib/queries";
@@ -101,7 +101,9 @@ function InfrastructureSection({ id }: { id: string }) {
           <Radar size={12} aria-hidden /> Mapped infrastructure
         </span>
       </Label>
-      {!requested && !data ? (
+      {STATIC_MODE ? (
+        <Unavailable reason={`OpenStreetMap infrastructure scans query the live Overpass service. ${LOCAL_ONLY_MESSAGE}`} />
+      ) : !requested && !data ? (
         <div className={s.cta}>
           <div className={s.ctaText}>
             Count hospitals, fire stations, schools, airports, ports, power and water facilities, and major bridges within each ring from

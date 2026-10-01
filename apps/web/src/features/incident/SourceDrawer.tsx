@@ -1,7 +1,7 @@
 import { ChevronDown, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import type { IncidentDetail, ObservationOut } from "../../lib/api";
-import { relTime, utcFull } from "../../lib/format";
+import { observedAgo, relTime, utcFull } from "../../lib/format";
 import { cx, Label } from "../../ui/primitives";
 import s from "./IncidentPanel.module.css";
 
@@ -34,7 +34,7 @@ function CitationItem({ c, obs }: { c: IncidentDetail["citations"][number]; obs:
         </span>
         <span className={s.citationWhat}>{c.contributed}</span>
         <span className={s.citationMeta}>
-          {c.source_updated_at ? <>Source updated {relTime(c.source_updated_at)}</> : null}
+          {c.source_updated_at ? <>Source updated {observedAgo(c.source_updated_at)}</> : null}
           {c.retrieved_at ? <> · retrieved {relTime(c.retrieved_at)}</> : null}
         </span>
         <ChevronDown size={14} className={cx(s.citationChev, open && s.chevOpen)} aria-hidden />

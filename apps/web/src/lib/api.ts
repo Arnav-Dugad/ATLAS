@@ -280,9 +280,135 @@ export class ApiError extends Error {
   }
 }
 
-export const API_BASE: string = (import.meta.env.VITE_ATLAS_API as string | undefined) ?? "";
+/**
+ * Static snapshot mode — the free public demo on GitHub Pages. API paths resolve to JSON files
+ * written by `atlas export-static`; capabilities that need the local engine raise `local_only`.
+ */
+export const STATIC_MODE: boolean = import.meta.env.VITE_ATLAS_STATIC === "1";
+
+export const API_BASE: string = STATIC_MODE
+  ? `${import.meta.env.BASE_URL}snapshot`
+  : ((import.meta.env.VITE_ATLAS_API as string | undefined) ?? "");
+
+export const LOCAL_ONLY_MESSAGE =
+  "Available when you run ATLAS locally. This public page is a static snapshot refreshed every few hours.";
+
+const LOCAL_ONLY: RegExp[] = [
+  /\/weather$/,
+  /\/exposure\/infrastructure$/,
+  /\/knowledge$/,
+  /\/health$/,
+  /\/metrics$/,
+  /\/storage/,
+  /\/sync$/,
+  /\/packs\//,
+  /\/layers\/fires\/detections$/,
+  /\/search$/,
+];
+
+export function isLocalOnly(err: unknown): boolean {
+  return err instanceof ApiError && err.code === "local_only";
+}
+
+async function staticRequest<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const [p = "", query = ""] = path.split("?");
+  if (LOCAL_ONLY.some((r) => r.test(p))) throw new ApiError(501, "local_only", LOCAL_ONLY_MESSAGE);
+  const isSource = p.startsWith("/api/v1/sources/");
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${isSource ? "/api/v1/sources" : p}.json`, { signal });
+  } catch (err) {
+    if ((err as Error).name === "AbortError") throw err;
+    throw new ApiError(0, "offline", "The snapshot could not be loaded.");
+  }
+  // Static hosts differ on missing files: a 404, or an SPA fallback page served as text/html.
+  if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) {
+    if (p.endsWith("/exposure/population")) {
+      const unavailable: ExposureUnavailable = {
+        status: "unavailable",
+        kind: "population",
+        provenance: "unavailable",
+        reason: "Population exposure is not part of this public snapshot. Run ATLAS locally with the Population Pack.",
+        action: null,
+      };
+      return unavailable as T;
+    }
+    throw new ApiError(res.status, "not_in_snapshot", "Not included in this snapshot.");
+  }
+  const data = (await res.json()) as unknown;
+  if (isSource) {
+    const id = decodeURIComponent(p.slice("/api/v1/sources/".length));
+    const found = (data as SourceStatus[]).find((x) => x.id === id);
+    if (!found) throw new ApiError(404, "not_found", "Unknown source");
+    return found as T;
+  }
+  const params = new URLSearchParams(query);
+  if (p === "/api/v1/incidents") {
+    const list = data as IncidentList;
+    // Time windows are relative to when the snapshot was taken, not to the viewer's clock.
+    const since = params.get("since");
+    if (since) params.set("since", new Date(Date.parse(since) - snapshotLag(list.generated_at)).toISOString());
+    return filterIncidents(list, params) as T;
+  }
+  if (p === "/api/v1/layers/earthquakes" && params.get("hours")) {
+    const layer = data as Columnar & { generated_at: string };
+    return sliceColumnar(layer, "t", Date.parse(layer.generated_at) - Number(params.get("hours")) * 3600_000) as T;
+  }
+  return data as T;
+}
+
+function snapshotLag(generatedAt: string): number {
+  const t = Date.parse(generatedAt);
+  return Number.isFinite(t) ? Math.max(0, Date.now() - t) : 0;
+}
+
+function sliceColumnar<C extends Columnar>(layer: C, timeColumn: string, from: number): C {
+  const times = (layer.columns[timeColumn] ?? []) as number[];
+  const keep = times.map((t, i) => (t >= from ? i : -1)).filter((i) => i >= 0);
+  const columns = Object.fromEntries(Object.entries(layer.columns).map(([k, v]) => [k, keep.map((i) => (v as unknown[])[i])]));
+  return { ...layer, count: keep.length, columns };
+}
+
+/** Client-side equivalent of the engine's incident filters, for snapshot mode. */
+export function filterIncidents(list: IncidentList, q: URLSearchParams): IncidentList {
+  const status = q.get("status")?.split(",");
+  const hazards = q.get("hazard")?.split(",");
+  const minSeverity = Number(q.get("min_severity") ?? 0);
+  const since = q.get("since") ? Date.parse(q.get("since") as string) : null;
+  const sort = q.get("sort") ?? "severity";
+  const limit = Number(q.get("limit") ?? 1000);
+  const t = (i: IncidentSummary) => Date.parse(i.last_observation_at);
+  const items = list.items
+    .filter(
+      (i) =>
+        (!status || status.includes(i.status)) &&
+        (!hazards || hazards.includes(i.hazard)) &&
+        i.severity.level >= minSeverity &&
+        (since == null || t(i) >= since),
+    )
+    .sort((a, b) => (sort === "severity" ? b.severity.level - a.severity.level : 0) || t(b) - t(a));
+  return { ...list, items: items.slice(0, limit), total: items.length };
+}
+
+export interface SnapshotInfo {
+  generated_at: string;
+  version: string;
+  incidents: number;
+  population_exposure: boolean;
+  note: string;
+}
+
+export async function fetchSnapshotInfo(signal?: AbortSignal): Promise<SnapshotInfo> {
+  const res = await fetch(`${API_BASE}/snapshot.json`, { signal });
+  if (!res.ok) throw new ApiError(res.status, "not_in_snapshot", "Snapshot metadata unavailable");
+  return (await res.json()) as SnapshotInfo;
+}
 
 async function request<T>(path: string, init: RequestInit & { signal?: AbortSignal } = {}): Promise<T> {
+  if (STATIC_MODE) {
+    if (init.method && init.method !== "GET") throw new ApiError(501, "local_only", LOCAL_ONLY_MESSAGE);
+    return staticRequest<T>(path, init.signal);
+  }
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, { ...init, headers: { Accept: "application/json", ...init.headers } });

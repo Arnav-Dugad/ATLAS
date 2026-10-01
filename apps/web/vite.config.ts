@@ -4,7 +4,7 @@ import { extname, join, normalize, resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
-const CESIUM_BUILD = resolve(__dirname, "node_modules/cesium/Build/Cesium");
+const CESIUM_BUILD = resolve(import.meta.dirname, "node_modules/cesium/Build/Cesium");
 const CESIUM_DIRS = ["Workers", "ThirdParty", "Assets", "Widgets"];
 
 // The public web demo is served from a sub-path on GitHub Pages; local builds use "/".

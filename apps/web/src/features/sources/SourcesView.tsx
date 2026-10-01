@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, KeyRound, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
-import { api, type SourceStatus } from "../../lib/api";
+import { api, STATIC_MODE, type SourceStatus } from "../../lib/api";
 import { bytes, compact, duration, relTime, utcFull } from "../../lib/format";
 import { sourceLabel } from "../../lib/hazards";
 import { useSource, useSources } from "../../lib/queries";
@@ -188,7 +188,7 @@ function SourceDetail({ id, onClose }: { id: string; onClose: () => void }) {
               <a className={s.linkBtn} href={meta.docs_url} target="_blank" rel="noreferrer noopener">
                 Documentation <ExternalLink size={12} />
               </a>
-              {src.enabled && (src.jobs?.length ?? 0) > 0 ? (
+              {!STATIC_MODE && src.enabled && (src.jobs?.length ?? 0) > 0 ? (
                 <button type="button" className={s.linkBtn} onClick={() => sync.mutate()} disabled={sync.isPending}>
                   <RefreshCw size={12} className={cx(sync.isPending && s.spin)} /> Sync now
                 </button>

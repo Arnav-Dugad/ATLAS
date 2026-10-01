@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
-import type { IncidentSummary, Overview } from "../../lib/api";
+import { STATIC_MODE, type IncidentSummary, type Overview } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
 import { compact, decimal, int, relTime, utcFull } from "../../lib/format";
 import { hazardMeta, severityColor, SEVERITY_LABELS, sourceLabel } from "../../lib/hazards";
@@ -28,7 +28,11 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
   if (q.error && !data) {
     return (
       <div className={s.wrap}>
-        <ErrorState title="Engine unreachable" message="Start the ATLAS engine with `pnpm dev`. Cached views will reappear when it reconnects." onRetry={() => void q.refetch()} />
+        <ErrorState
+          title={STATIC_MODE ? "Snapshot unavailable" : "Engine unreachable"}
+          message={STATIC_MODE ? "The public snapshot could not be loaded. Try again shortly." : "Start the ATLAS engine with `pnpm dev`. Cached views will reappear when it reconnects."}
+          onRetry={() => void q.refetch()}
+        />
       </div>
     );
   }
@@ -118,7 +122,7 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
             <div key={src.id} className={s.source} title={`${src.name}: ${src.status}${src.last_ok ? ` · last success ${relTime(src.last_ok)}` : ""}`}>
               <Dot color={STATUS_COLOR[src.status] ?? "var(--text-3)"} pulse={src.status === "healthy"} size={6} />
               <span>{sourceLabel(src.id)}</span>
-              <span className={s.sourceAge}>{src.data_age_s != null ? relTime(Date.now() - src.data_age_s * 1000) : src.status}</span>
+              <span className={s.sourceAge}>{src.data_age_s != null && data ? relTime(Date.parse(data.generated_at) - src.data_age_s * 1000) : src.status}</span>
             </div>
           ))}
         </div>

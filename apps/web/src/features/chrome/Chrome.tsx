@@ -3,7 +3,7 @@ import { Compass, Home, Info, Minus, Pause, Play, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
-import type { IncidentSummary } from "../../lib/api";
+import { STATIC_MODE, type IncidentSummary } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
 import { relTime } from "../../lib/format";
 import { sourceLabel } from "../../lib/hazards";
@@ -154,7 +154,9 @@ const STEPS = [
   },
   {
     title: "Ask, search, time travel",
-    body: "Press ⌘/Ctrl K and type a place, an incident or a question like “M6+ near Tokyo since 2020”. Scrub the timeline or replay what ATLAS knew at any moment.",
+    body: STATIC_MODE
+      ? "Press ⌘/Ctrl K to search incidents and commands, or replay a historical earthquake sequence. Run ATLAS locally to ask questions like “M6+ near Tokyo since 2020”."
+      : "Press ⌘/Ctrl K and type a place, an incident or a question like “M6+ near Tokyo since 2020”. Scrub the timeline or replay what ATLAS knew at any moment.",
   },
 ];
 
@@ -182,7 +184,7 @@ export function Intro({ incidents }: { incidents: IncidentSummary[] }) {
       const top = [...incidents].filter((i) => i.status === "active").sort((a, b) => b.severity.level - a.severity.level)[0];
       if (top) focusIncident(top);
     } else if (n === 3) {
-      ui.openPalette("M6+ near Tokyo since 2020");
+      ui.openPalette(STATIC_MODE ? "replay" : "M6+ near Tokyo since 2020");
     }
   };
 
@@ -210,7 +212,11 @@ export function Intro({ incidents }: { incidents: IncidentSummary[] }) {
                 Explore on my own
               </button>
             </div>
-            <p className={s.heroFine}>Open data · runs on your machine · no account · no tracking. Not an official alerting service.</p>
+            <p className={s.heroFine}>
+              {STATIC_MODE
+                ? "Public snapshot of open data, rebuilt every few hours · no account · no tracking. Not an official alerting service."
+                : "Open data · runs on your machine · no account · no tracking. Not an official alerting service."}
+            </p>
           </motion.div>
         </motion.div>
       ) : (

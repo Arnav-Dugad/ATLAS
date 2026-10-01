@@ -4,7 +4,7 @@ import { ListFilter, Radio } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { IncidentSummary } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
-import { relTime } from "../../lib/format";
+import { observedAgo } from "../../lib/format";
 import { hazardMeta, PRIMARY_HAZARDS, type HazardId } from "../../lib/hazards";
 import { useLive } from "../../lib/live";
 import { useUi } from "../../lib/store";
@@ -246,7 +246,7 @@ const IncidentCard = memo(function IncidentCard({ inc, selected, cursor, fresh }
             </span>
           ) : null}
           <span className={s.dim}>·</span>
-          <span className={s.dim}>{relTime(inc.last_observation_at)}</span>
+          <span className={s.dim}>{observedAgo(inc.last_observation_at)}</span>
           {inc.source_count > 1 ? (
             <span className={s.sources} title={inc.sources.join(", ")}>
               {inc.source_count} src

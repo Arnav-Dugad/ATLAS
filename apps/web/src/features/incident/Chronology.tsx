@@ -1,6 +1,6 @@
 import { History } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { IncidentDetail } from "../../lib/api";
+import { STATIC_MODE, type IncidentDetail } from "../../lib/api";
 import { relTime, utcFull, utcShort } from "../../lib/format";
 import { sourceLabel } from "../../lib/hazards";
 import { useKnowledge } from "../../lib/queries";
@@ -100,7 +100,7 @@ function TimeMachine({ d }: { d: IncidentDetail }) {
   const live = end - t < 60_000;
   const at = live ? undefined : new Date(t).toISOString();
   const k = useKnowledge(d.id, at);
-  if (!Number.isFinite(start) || end - start < 120_000) return null;
+  if (STATIC_MODE || !Number.isFinite(start) || end - start < 120_000) return null;
   return (
     <section className={s.tm}>
       <div className={s.tmHead}>

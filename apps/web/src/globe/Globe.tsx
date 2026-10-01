@@ -1,7 +1,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api, type IncidentSummary } from "../lib/api";
-import { compact, coord, decimal, relTime, utcShort } from "../lib/format";
+import { api, STATIC_MODE, type IncidentSummary } from "../lib/api";
+import { compact, coord, decimal, observedAgo, relTime, utcShort } from "../lib/format";
 import { hazardMeta } from "../lib/hazards";
 import { qk, useCountries, useEarthquakeLayer, useFireClusters, useFireGrid, useIncident } from "../lib/queries";
 import { useUi } from "../lib/store";
@@ -102,7 +102,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const detections = useQuery({
     queryKey: qk.fireDetections(detailBbox ?? "none", 48),
     queryFn: ({ signal }) => api.fireDetections(detailBbox as string, 48, signal),
-    enabled: Boolean(detailBbox) && layers.fires,
+    enabled: Boolean(detailBbox) && layers.fires && !STATIC_MODE,
     staleTime: 10 * 60_000,
   });
   useEffect(() => {
@@ -170,7 +170,7 @@ function HoverCard({ info, globe, incidents }: { info: HoverInfo; globe: AtlasGl
         </div>
         <div className={styles.hoverTitle}>{inc.title}</div>
         <div className={styles.hoverMeta}>
-          {inc.sources.length} source{inc.sources.length === 1 ? "" : "s"} · updated {relTime(inc.last_observation_at)}
+          {inc.sources.length} source{inc.sources.length === 1 ? "" : "s"} · updated {observedAgo(inc.last_observation_at)}
         </div>
       </>
     );

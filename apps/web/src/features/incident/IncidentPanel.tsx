@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import type { IncidentDetail, Metric } from "../../lib/api";
 import { exportBrief, exportGeoJson, exportJson } from "../../lib/export";
 import { focusIncident } from "../../lib/focus";
-import { coord, metricValue, relTime, titleCase, utcFull, utcShort } from "../../lib/format";
+import { coord, metricValue, observedAgo, relTime, titleCase, utcFull, utcShort } from "../../lib/format";
 import { hazardMeta, PROVENANCE_META, severityColor, sourceLabel } from "../../lib/hazards";
 import { useIncident } from "../../lib/queries";
 import { useUi } from "../../lib/store";
@@ -62,7 +62,7 @@ export function IncidentPanel({ id }: { id: string }) {
         </div>
         <div className={s.facts}>
           <Fact label="Onset" value={utcShort(d.started_at)} hint={relTime(d.started_at)} />
-          <Fact label="Latest data" value={utcShort(d.last_observation_at)} hint={relTime(d.last_observation_at)} />
+          <Fact label="Latest data" value={utcShort(d.last_observation_at)} hint={observedAgo(d.last_observation_at)} />
           <Fact label="Position" value={coord(d.lat, d.lon)} mono />
         </div>
         <div className={s.actions}>

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { HardDrive, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { api } from "../../lib/api";
+import { api, LOCAL_ONLY_MESSAGE, STATIC_MODE } from "../../lib/api";
 import { bytes, compact, duration, relTime } from "../../lib/format";
 import { useLive } from "../../lib/live";
 import { useHealth, useMetrics, useStorage } from "../../lib/queries";
@@ -37,6 +37,32 @@ export function HealthView() {
     .filter(([k]) => k.startsWith("http.requests."))
     .reduce((a, [, v]) => a + v, 0);
 
+  if (STATIC_MODE) {
+    return (
+      <motion.div className={s.page} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        <div className={s.inner}>
+          <header className={s.head}>
+            <div>
+              <div className="label">Data health & observability</div>
+              <h1 className={s.title}>Engine status</h1>
+              <p className={s.lede}>Scheduler, job, latency and storage telemetry are measured by the local engine.</p>
+            </div>
+            <div className={s.summary}>
+              <div className={h.badges}>
+                <Badge label="Mode" ok value="snapshot" />
+                <Badge label="Render" ok={fps >= 40} value={`${fps} fps`} />
+              </div>
+              <button type="button" className={s.back} onClick={() => setView("planet")}>
+                Back to planet
+              </button>
+            </div>
+          </header>
+          <ErrorState title="Engine health runs locally" message={LOCAL_ONLY_MESSAGE} />
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div className={s.page} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className={s.inner}>
@@ -58,7 +84,9 @@ export function HealthView() {
           </div>
         </header>
 
-        {health.error && !health.data ? <ErrorState title="Engine unreachable" message="Start the engine with `pnpm dev`." onRetry={() => void health.refetch()} /> : null}
+        {health.error && !health.data ? (
+          <ErrorState title="Engine unreachable" message="Start the engine with `pnpm dev`." onRetry={() => void health.refetch()} />
+        ) : null}
 
         <div className={h.grid}>
           <section className={h.card}>

@@ -29,6 +29,16 @@ export function relTime(iso: string | number | null | undefined, now: number = D
   return future ? `in ${out}` : `${out} ago`;
 }
 
+/**
+ * Age of an observation. Agencies stamp some products with their nominal issue time (e.g. an NHC
+ * intermediate advisory released a few minutes early), so a small future skew reads "just now".
+ */
+export function observedAgo(iso: string | null | undefined, now: number = Date.now()): string {
+  const t = parseTime(iso);
+  if (t !== null && t > now && t - now < 30 * 60_000) return "just now";
+  return relTime(iso, now);
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const pad = (n: number) => String(n).padStart(2, "0");
 

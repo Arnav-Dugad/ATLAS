@@ -46,3 +46,6 @@ Thumbs.db
 .codex/
 .mcp.json
 .playwright-mcp/
+
+# Generated static snapshot for the public demo (built in CI)
+apps/web/public/snapshot/
