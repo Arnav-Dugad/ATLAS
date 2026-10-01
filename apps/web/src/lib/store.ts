@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Facility } from "./api";
+import type { HistoricalEvent } from "./history";
 import type { HazardId } from "./hazards";
 
 export type TimeWindow = "1h" | "24h" | "7d" | "30d";
@@ -94,6 +95,8 @@ interface UiState {
   playing: boolean;
   /** simulated hours per real second */
   speed: number;
+  /** Active historical replay (Demo Mode), or null for live data. */
+  history: HistoricalEvent | null;
 
   setView: (v: View) => void;
   select: (id: string | null, opts?: { fly?: boolean }) => void;
@@ -122,6 +125,7 @@ interface UiState {
   setPlaying: (on: boolean) => void;
   setSpeed: (hoursPerSecond: number) => void;
   goLive: () => void;
+  setHistory: (ev: HistoricalEvent | null) => void;
 }
 
 function yesterdayUtc(): string {
@@ -158,6 +162,7 @@ export const useUi = create<UiState>()(
       playhead: null,
       playing: false,
       speed: 6,
+      history: null,
 
       setView: (view) => set({ view }),
       select: (selectedId) => set((s) => ({ selectedId, autoRotate: selectedId ? false : s.autoRotate, workspace: selectedId ? s.workspace : false })),
@@ -186,7 +191,8 @@ export const useUi = create<UiState>()(
       setPlayhead: (playhead) => set({ playhead, autoRotate: false }),
       setPlaying: (playing) => set({ playing }),
       setSpeed: (speed) => set({ speed }),
-      goLive: () => set({ playhead: null, playing: false }),
+      goLive: () => set({ playhead: null, playing: false, history: null }),
+      setHistory: (history) => set({ history }),
     }),
     {
       name: "atlas.ui.v1",

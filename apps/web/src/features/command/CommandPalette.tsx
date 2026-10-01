@@ -27,6 +27,7 @@ import { focusIncident, focusPoint } from "../../lib/focus";
 import { compact, relTime, utcDate } from "../../lib/format";
 import { fuzzy } from "../../lib/fuzzy";
 import { HAZARDS, hazardMeta, type HazardId } from "../../lib/hazards";
+import { startHistoricalReplay, useHistoricalCatalog } from "../../lib/history";
 import { useUi, type LayerId, type TimeWindow } from "../../lib/store";
 import { cx, HazardGlyph, Highlight, Kbd, SeverityMeter } from "../../ui/primitives";
 import s from "./CommandPalette.module.css";
@@ -81,6 +82,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
   const listRef = useRef<HTMLDivElement>(null);
   const dq = useDebounced(q.trim(), 220);
   const ui = useUi();
+  const catalog = useHistoricalCatalog();
 
   useEffect(() => {
     input.current?.focus();
@@ -131,6 +133,17 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
       const id = def.id as LayerId;
       out.push({ id: `ov-${id}`, section: "Layers", label: `${ui.layers[id] ? "Hide" : "Show"} ${def.title}`, icon: <Layers size={15} />, keywords: `satellite imagery overlay ${def.group}`, run: done(() => ui.toggleLayer(id)) });
     }
+    for (const ev of catalog.data?.events ?? []) {
+      out.push({
+        id: `hist-${ev.id}`,
+        section: "Historical replays",
+        label: `Replay ${ev.name} · M${ev.magnitude.toFixed(1)}`,
+        icon: <History size={15} />,
+        hint: `${ev.sequence.count} events · ${new Date(ev.time).getUTCFullYear()}`,
+        keywords: `${ev.title} demo history aftershocks sequence earthquake`,
+        run: done(() => startHistoricalReplay(ev)),
+      });
+    }
     const sel = ui.selectedId;
     if (sel) {
       out.push({
@@ -143,7 +156,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
       });
     }
     return out;
-  }, [ui, onClose]);
+  }, [ui, onClose, catalog.data]);
 
   const items = useMemo<Item[]>(() => {
     const query = q.trim();
@@ -217,7 +230,7 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
         });
       }
     }
-    const sectionOrder = ["Ask", "Incidents", "Places", "Navigate", "Filter", "Time", "Layers", "Incident", "Data", "View", "Sources", "Accessibility", "Help"];
+    const sectionOrder = ["Ask", "Incidents", "Places", "Navigate", "Historical replays", "Filter", "Time", "Layers", "Incident", "Data", "View", "Sources", "Accessibility", "Help"];
     res.sort((a, b) => (query ? b.score - a.score : sectionOrder.indexOf(a.section) - sectionOrder.indexOf(b.section)));
     return res.slice(0, query ? 40 : 18);
   }, [commands, incidents, q, dq, search.data, onClose]);

@@ -4,6 +4,7 @@ import type { IncidentSummary, Overview } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
 import { compact, decimal, int, relTime, utcFull } from "../../lib/format";
 import { hazardMeta, severityColor, SEVERITY_LABELS, sourceLabel } from "../../lib/hazards";
+import { startHistoricalReplay, useHistoricalCatalog } from "../../lib/history";
 import { useOverview } from "../../lib/queries";
 import { useUi } from "../../lib/store";
 import { AnimatedNumber } from "../../ui/AnimatedNumber";
@@ -108,6 +109,8 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
         </ul>
       </section>
 
+      <HistoricalReplays />
+
       <section className={s.section}>
         <Label right={<button type="button" className={s.link} onClick={() => setView("sources")}>Registry <ArrowUpRight size={12} /></button>}>Source health</Label>
         <div className={s.sources}>
@@ -121,6 +124,24 @@ export function OverviewPanel({ incidents }: { incidents: IncidentSummary[] }) {
         </div>
       </section>
     </div>
+  );
+}
+
+function HistoricalReplays() {
+  const q = useHistoricalCatalog();
+  if (!q.data?.events.length) return null;
+  return (
+    <section className={s.section}>
+      <Label right="USGS ComCat">Historical replays</Label>
+      <div className={s.history}>
+        {q.data.events.map((ev) => (
+          <button key={ev.id} type="button" className={s.historyItem} onClick={() => startHistoricalReplay(ev)} title={`${ev.title} — replay ${ev.sequence.count} M4+ events over 7 days`}>
+            <span className={s.historyMag}>M{ev.magnitude.toFixed(1)}</span>
+            <span className={s.historyName}>{ev.name}</span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 

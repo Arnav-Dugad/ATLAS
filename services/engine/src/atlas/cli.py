@@ -101,6 +101,21 @@ async def _packs(action: str, pack_id: str | None) -> int:
     return 0
 
 
+async def _export_static(out: str) -> int:
+    from pathlib import Path
+
+    from atlas.export_static import export_static
+
+    rt = _runtime()
+    try:
+        snap = await asyncio.to_thread(export_static, rt, Path(out))
+        print(json.dumps(snap, indent=2))
+    finally:
+        await rt.http.aclose()
+        rt.db.close()
+    return 0
+
+
 def _serve(no_sync: bool) -> int:
     import uvicorn
 
@@ -126,6 +141,8 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("packs")
     p.add_argument("action", choices=["list", "install", "remove"])
     p.add_argument("pack", nargs="?")
+    x = sub.add_parser("export-static", help="write a read-only JSON snapshot for static hosting")
+    x.add_argument("out")
     d = sub.add_parser("demo")
     d.add_argument("action", choices=["build"])
     args = parser.parse_args(argv)
@@ -142,6 +159,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(_sync(args.source))
     if args.cmd == "packs":
         return asyncio.run(_packs(args.action, args.pack))
+    if args.cmd == "export-static":
+        return asyncio.run(_export_static(args.out))
     if args.cmd == "demo":
         from atlas.demo import build_demo
 

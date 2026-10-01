@@ -277,3 +277,40 @@
   font-size: var(--fs-xs);
   color: var(--accent);
 }
+
+.history {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.historyItem {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: var(--r-sm);
+  text-align: left;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+  transition:
+    background var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-1) var(--ease-out);
+}
+.historyItem:hover {
+  background: rgba(242, 184, 75, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(242, 184, 75, 0.35);
+}
+.historyMag {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--hz-earthquake);
+}
+.historyName {
+  font-size: var(--fs-xs);
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

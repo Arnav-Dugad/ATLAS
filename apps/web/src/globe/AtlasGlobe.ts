@@ -104,6 +104,11 @@ export class AtlasGlobe {
   private timeCursor: number | null = null;
   private quakePointTimes: number[] = [];
   private quakePointMags: number[] = [];
+  private historyPoints = new PointPrimitiveCollection();
+  private historyTimes: number[] = [];
+  private historyMags: number[] = [];
+  private historyActive = false;
+  private liveFlags = { incidents: true, earthquakes: true, cyclones: true };
   facilityData: Facility[] = [];
   private focusFill: GroundPrimitive | null = null;
   private trackFill: GroundPrimitive | null = null;
@@ -190,6 +195,7 @@ export class AtlasGlobe {
       this.fires,
       this.fireDetail,
       this.quakes,
+      this.historyPoints,
       this.tracks,
       this.focusLines,
       this.ringLabels,
@@ -376,10 +382,12 @@ export class AtlasGlobe {
 
   setLayerVisibility(layers: Record<LayerId, boolean>) {
     this.layerFlags = { fires: layers.fires, fireClusters: layers.fireClusters };
-    this.incidents.show = layers.incidents;
-    this.pulses.show = layers.incidents && !this.reducedMotion;
-    this.quakes.show = layers.earthquakes;
-    this.tracks.show = layers.cyclones;
+    this.liveFlags = { incidents: layers.incidents, earthquakes: layers.earthquakes, cyclones: layers.cyclones };
+    const live = !this.historyActive;
+    this.incidents.show = live && layers.incidents;
+    this.pulses.show = live && layers.incidents && !this.reducedMotion && this.timeCursor == null;
+    this.quakes.show = live && layers.earthquakes;
+    this.tracks.show = live && layers.cyclones;
     this.borders.show = layers.borders;
     this.setLighting(layers.lighting);
     this.setNightLights(layers.nightLights && layers.lighting);
@@ -557,16 +565,65 @@ export class AtlasGlobe {
         this.spawnRipple(p.position, this.quakePointMags[i] ?? 3);
       }
     }
+    for (let i = 0; i < this.historyPoints.length; i += 1) {
+      const p = this.historyPoints.get(i);
+      const t = this.historyTimes[i] ?? 0;
+      const visible = cursor != null && t <= cursor;
+      p.show = visible;
+      if (!visible) continue;
+      p.color = quakeColor((ref - t) / 3600_000);
+      if (prev != null && t > prev && t <= (cursor as number) && (cursor as number) - prev < 24 * 3600_000) {
+        this.spawnRipple(p.position, this.historyMags[i] ?? 4);
+      }
+    }
     for (const { billboard, data } of this.incidentIndex.values()) {
       billboard.show = cursor == null || Date.parse(data.started_at) <= cursor;
     }
     const live = cursor == null;
-    this.pulses.show = live && this.incidents.show && !this.reducedMotion;
+    this.pulses.show = live && !this.historyActive && this.incidents.show && !this.reducedMotion;
     // Fire layers describe the latest 48 h; showing them at a past instant would mislead.
     this.fires.show = live && this.layerFlags.fires && !(this.camera.positionCartographic.height < DETAIL_HEIGHT && this.fireDetail.length > 0);
     this.fireDetail.show = live && this.layerFlags.fires && this.camera.positionCartographic.height < DETAIL_HEIGHT && this.fireDetail.length > 0;
     this.clusterLines.show = live && this.layerFlags.fireClusters;
     this.requestRender();
+  }
+
+  /** Demo Mode: replay a real historical sequence; live layers step aside while active. */
+  setHistory(seq: { t: number[]; lat: number[]; lon: number[]; mag: number[] } | null) {
+    this.historyPoints.removeAll();
+    this.historyTimes = [];
+    this.historyMags = [];
+    this.historyActive = Boolean(seq);
+    if (seq) {
+      for (let i = 0; i < seq.t.length; i += 1) {
+        const m = seq.mag[i] ?? 4;
+        this.historyPoints.add({
+          position: Cartesian3.fromDegrees(seq.lon[i] ?? 0, seq.lat[i] ?? 0, POINT_ALT),
+          pixelSize: Math.max(3, 2.4 + (m - 2.5) * 2.4),
+          color: Color.fromCssColorString("#f2b84b"),
+          outlineColor: Color.fromCssColorString("#04060a").withAlpha(0.7),
+          outlineWidth: 1,
+          scaleByDistance: new NearFarScalar(1e5, 1.6, 2.5e7, 0.75),
+          show: false,
+        });
+        this.historyTimes.push(seq.t[i] ?? 0);
+        this.historyMags.push(m);
+      }
+    }
+    const live = !this.historyActive;
+    this.incidents.show = live && this.liveFlags.incidents;
+    this.quakes.show = live && this.liveFlags.earthquakes;
+    this.tracks.show = live && this.liveFlags.cyclones;
+    this.reticle.show = live;
+    this.labels.show = live;
+    // Present-day geometry (cyclone cones, incident focus, exposure rings, facilities) never
+    // belongs on a historical replay.
+    if (this.trackFill) this.trackFill.show = live;
+    if (this.focusFill) this.focusFill.show = live;
+    this.focusLines.show = live;
+    this.ringLabels.show = live;
+    this.facilityMarkers.show = live;
+    this.applyTime(null);
   }
 
   private spawnRipple(position: Cartesian3, mag: number) {
@@ -738,6 +795,7 @@ export class AtlasGlobe {
         geometryInstances: cones,
         appearance: new PerInstanceColorAppearance({ flat: true, translucent: true }),
         asynchronous: true,
+        show: !this.historyActive,
       });
       this.widget.scene.primitives.add(this.trackFill);
     }

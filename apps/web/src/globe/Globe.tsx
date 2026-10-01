@@ -26,6 +26,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const reducedMotion = useUi((s) => s.reducedMotion);
   const facilities = useUi((s) => s.facilities);
   const playhead = useUi((s) => s.playhead);
+  const history = useUi((s) => s.history);
   const appView = useUi((s) => s.view);
 
   // ---- mount ------------------------------------------------------------------------
@@ -70,6 +71,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   useEffect(() => globe?.setIncidents(incidents), [globe, incidents]);
   useEffect(() => globe?.setSelected(selectedId), [globe, selectedId]);
   useEffect(() => globe?.setFacilities(facilities), [globe, facilities]);
+  useEffect(() => globe?.setHistory(history ? history.sequence.columns : null), [globe, history]);
   useEffect(() => globe?.setTime(playhead), [globe, playhead]);
   useEffect(() => globe?.highlight(hoveredId), [globe, hoveredId]);
   useEffect(() => {

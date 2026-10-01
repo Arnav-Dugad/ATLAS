@@ -191,7 +191,6 @@
   background: var(--accent);
   box-shadow: 0 0 12px var(--accent);
   pointer-events: none;
-  transition: left 60ms linear;
 }
 .playhead span {
   position: absolute;
@@ -262,4 +261,17 @@
   font-size: var(--fs-xs);
   color: #07101b;
   background: var(--accent);
+}
+
+.bannerHistory {
+  box-shadow: var(--shadow-pop), inset 0 0 0 1px rgba(242, 184, 75, 0.35);
+}
+.bannerHistory .bannerDot {
+  background: var(--hz-earthquake);
+}
+.bannerTitle {
+  white-space: nowrap;
+}
+.bannerHistory .bannerBtn {
+  background: var(--hz-earthquake);
 }

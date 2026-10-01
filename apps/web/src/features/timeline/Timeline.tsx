@@ -4,6 +4,7 @@ import { OVERLAYS } from "../../globe/imagery";
 import type { IncidentSummary } from "../../lib/api";
 import { utcFull, utcShort } from "../../lib/format";
 import { hazardMeta, PRIMARY_HAZARDS } from "../../lib/hazards";
+import { HISTORY_AFTER_MS, HISTORY_BEFORE_MS } from "../../lib/history";
 import { useEarthquakeLayer } from "../../lib/queries";
 import { useUi, WINDOW_HOURS, type LayerId, type TimeWindow } from "../../lib/store";
 import { cx, Segmented } from "../../ui/primitives";
@@ -18,6 +19,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
   const playhead = useUi((st) => st.playhead);
   const playing = useUi((st) => st.playing);
   const speed = useUi((st) => st.speed);
+  const history = useUi((st) => st.history);
   const { setPlayhead, setPlaying, setSpeed, goLive } = useUi.getState();
   const quakes = useEarthquakeLayer(layers.earthquakes);
   const [hover, setHover] = useState<number | null>(null);
@@ -29,8 +31,11 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
     const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, []);
-  const span = WINDOW_HOURS[window] * 3600_000;
-  const start = now - span;
+  // Live mode: the trailing window ending now. Historical replay: the event's own window.
+  const t0 = history ? Date.parse(history.time) : 0;
+  const end = history ? t0 + HISTORY_AFTER_MS : now;
+  const start = history ? t0 - HISTORY_BEFORE_MS : now - WINDOW_HOURS[window] * 3600_000;
+  const span = end - start;
   const bucketMs = span / BUCKETS;
 
   // Playback clock: advance the playhead at `speed` simulated hours per real second.
@@ -48,8 +53,11 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
         const cur = ui.playhead ?? start;
         const next = cur + ui.speed * 3600_000 * acc;
         acc = 0;
-        if (next >= Date.now()) {
-          ui.goLive();
+        if (next >= end) {
+          if (ui.history) {
+            ui.setPlayhead(end);
+            ui.setPlaying(false);
+          } else ui.goLive();
           return;
         }
         ui.setPlayhead(next);
@@ -58,10 +66,22 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing, start]);
+  }, [playing, start, end]);
 
   const { stacks, quakeCounts, max } = useMemo(() => {
     const stacks: Record<string, number>[] = Array.from({ length: BUCKETS }, () => ({}));
+    if (history) {
+      const seq = history.sequence.columns;
+      const quakeCounts = new Array<number>(BUCKETS).fill(0);
+      seq.t.forEach((t, i) => {
+        if (t < start || t > end) return;
+        const b = Math.min(BUCKETS - 1, Math.floor((t - start) / bucketMs));
+        stacks[b]!.earthquake = (stacks[b]!.earthquake ?? 0) + 1;
+        quakeCounts[b] = Math.max(quakeCounts[b]!, seq.mag[i] ?? 0);
+      });
+      const max = Math.max(1, ...stacks.map((st) => st.earthquake ?? 0));
+      return { stacks, quakeCounts: new Array<number>(BUCKETS).fill(0), max };
+    }
     for (const inc of incidents) {
       const t = Date.parse(inc.started_at);
       if (t < start || t > now) continue;
@@ -76,7 +96,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
     }
     const max = Math.max(1, ...stacks.map((st) => Object.values(st).reduce((a, b) => a + b, 0)));
     return { stacks, quakeCounts, max };
-  }, [incidents, quakes.data, start, now, bucketMs]);
+  }, [incidents, quakes.data, start, now, end, bucketMs, history]);
   const qMax = Math.max(1, ...quakeCounts);
 
   const ticks = useMemo(() => Array.from({ length: 7 }, (_, i) => start + (span * i) / 6), [start, span]);
@@ -96,7 +116,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
     const t = timeAt(e.clientX);
     if (t != null) {
       setPlaying(false);
-      if (now - t < 60_000) goLive();
+      if (!history && now - t < 60_000) goLive();
       else setPlayhead(t);
     }
   };
@@ -108,7 +128,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
     }
     if (!dragging.current) return;
     const t = timeAt(e.clientX);
-    if (t != null) setPlayhead(now - t < 60_000 ? null : t);
+    if (t != null) setPlayhead(!history && now - t < 60_000 ? null : t);
   };
   const onUp = () => {
     dragging.current = false;
@@ -117,7 +137,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
   const togglePlay = () => {
     if (playing) setPlaying(false);
     else {
-      if (playhead == null || playhead < start) setPlayhead(start);
+      if (playhead == null || playhead < start || playhead >= end) setPlayhead(start);
       setPlaying(true);
     }
   };
@@ -180,7 +200,7 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
         tabIndex={0}
         aria-label="Playback position"
         aria-valuemin={start}
-        aria-valuemax={now}
+        aria-valuemax={end}
         aria-valuenow={playhead ?? now}
         aria-valuetext={playhead ? utcFull(playhead) : "Live"}
         onKeyDown={(e) => {
@@ -246,7 +266,26 @@ export function Timeline({ incidents }: { incidents: IncidentSummary[] }) {
 export function PlaybackBanner() {
   const playhead = useUi((st) => st.playhead);
   const playing = useUi((st) => st.playing);
+  const history = useUi((st) => st.history);
   if (playhead == null) return null;
+  if (history) {
+    const shown = history.sequence.columns.t.filter((t) => t <= playhead).length;
+    return (
+      <div className={cx(s.banner, s.bannerHistory)} role="status">
+        <span className={s.bannerDot} data-playing={playing} />
+        <span className={s.bannerTitle}>
+          Historical replay · <strong>{history.name}</strong> · M{history.magnitude.toFixed(1)}
+        </span>
+        <strong className="num">{utcFull(playhead)}</strong>
+        <span className={s.bannerNote}>
+          <span className="num">{shown}</span> of {history.sequence.count} M4+ events · USGS ComCat · not live data
+        </span>
+        <button type="button" className={s.bannerBtn} onClick={() => useUi.getState().goLive()}>
+          Exit replay
+        </button>
+      </div>
+    );
+  }
   return (
     <div className={s.banner} role="status">
       <span className={s.bannerDot} data-playing={playing} />
