@@ -49,7 +49,7 @@ export function Attribution() {
   const imagery = [
     "EOxCloudless 2024 (contains modified Copernicus Sentinel data)",
     "NASA GIBS",
-    ...new Set(overlays.length ? ["GIBS overlays"] : []),
+    ...new Set(overlays.map((o) => (o.source === "effis" ? "EFFIS, Copernicus EMS (© European Union)" : "GIBS overlays"))),
     ...(comparing ? ["before/after: NASA GIBS / LANCE daily imagery"] : []),
     ...(layers.terrain ? [TERRAIN_CREDIT] : []),
   ];

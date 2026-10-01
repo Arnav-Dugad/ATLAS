@@ -39,6 +39,7 @@ export type LayerId =
   | "nightLights"
   | "lighting"
   | "imagery.truecolor"
+  | "imagery.effis-fwi"
   | "imagery.precip"
   | "imagery.sst"
   | "imagery.no2"
@@ -77,6 +78,7 @@ export const DEFAULT_LAYERS: Record<LayerId, boolean> = {
   nightLights: true,
   lighting: true,
   "imagery.truecolor": false,
+  "imagery.effis-fwi": false,
   "imagery.precip": false,
   "imagery.sst": false,
   "imagery.no2": false,

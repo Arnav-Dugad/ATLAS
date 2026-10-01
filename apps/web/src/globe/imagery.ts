@@ -63,6 +63,12 @@ export const NIGHT_LIGHTS: ImageryDef = {
   description: "VIIRS night-time lights composite, shown on the night side of the planet.",
 };
 
+const EFFIS_WMS = "https://maps.effis.emergency.copernicus.eu/effis";
+/** A WMS layer as Web-Mercator tiles (Cesium fills in the projected tile bounds). */
+const wms = (base: string, layer: string) => (date: string) =>
+  `${base}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=${layer}&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&WIDTH=256&HEIGHT=256` +
+  `&BBOX={westProjected},{southProjected},{eastProjected},{northProjected}${date ? `&TIME=${date}` : ""}`;
+
 export const OVERLAYS: ImageryDef[] = [
   {
     id: "imagery.truecolor",
@@ -76,6 +82,20 @@ export const OVERLAYS: ImageryDef[] = [
     temporal: true,
     alpha: 1,
     description: "Corrected reflectance true-colour imagery from the selected day, including clouds and smoke.",
+  },
+  {
+    id: "imagery.effis-fwi",
+    title: "Fire danger (FWI) — EFFIS",
+    group: "Environment",
+    source: "effis",
+    layer: "mf010.fwi",
+    url: wms(EFFIS_WMS, "mf010.fwi"),
+    maximumLevel: 8,
+    latencyDays: 0,
+    temporal: true,
+    alpha: 0.75,
+    legend: { gradient: ["#7fffd4", "#e4e64a", "#f5a623", "#d0452b", "#5a0a0a"], min: "Very low", max: "Extreme" },
+    description: "Canadian Fire Weather Index for the selected day from the EU's EFFIS (Copernicus EMS): how weather favours fire, not where fires are.",
   },
   {
     id: "imagery.precip",
@@ -262,6 +282,16 @@ export interface CompareProduct {
 }
 
 export const COMPARE_PRODUCTS: CompareProduct[] = [
+  {
+    id: "black-marble",
+    title: "Night lights — NASA Black Marble daily (VIIRS NOAA-20)",
+    short: "Night lights",
+    layer: "VIIRS_NOAA20_GapFilled_BRDF_Corrected_DayNightBand_Radiance",
+    level: 8,
+    ext: "png",
+    description:
+      "Night-time radiance corrected for moonlight and viewing angle (Black Marble VNP46A2): compare a night before with one after to see power outages. Cloudy nights are gap-filled from earlier ones, and fires and moonlit snow also change brightness.",
+  },
   {
     id: "viirs-truecolor",
     title: "True colour — VIIRS NOAA-20",
