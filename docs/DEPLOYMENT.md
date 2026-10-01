@@ -27,18 +27,49 @@ pnpm engine serve --no-sync      # serve cached data without polling
 ATLAS_OFFLINE=true pnpm engine serve   # never touch the network
 ```
 
-## Free public demo (planned)
+## Free public demo (GitHub Pages)
 
-A public demo cannot run a persistent Python process for free, so it will be static:
+**https://arnav-dugad.github.io/ATLAS/** is a read-only snapshot that costs nothing to run.
+A persistent Python process cannot be hosted for free, so the demo is static:
 
-1. A scheduled GitHub Actions workflow (free for public repos) runs `atlas sync all`
-   headless every 30–60 minutes.
-2. It exports snapshot JSON (`overview`, `incidents`, layer columns, incident details) and
-   publishes them with the web build to GitHub Pages.
-3. The web client detects the static mode and reads snapshots instead of the live API.
+1. [`.github/workflows/pages.yml`](../.github/workflows/pages.yml) runs every 3 hours (and on
+   pushes to `main` that touch the app, engine or registry). Actions minutes are free for
+   public repositories.
+2. It restores the previous engine state (DuckDB + HTTP cache) from the Actions cache, runs
+   `atlas sync all`, and exports JSON that mirrors the API paths with `atlas export-static`.
+   Incident histories, change logs and ETag revalidation carry over between runs.
+3. The GHSL Population Pack is downloaded once and then restored from cache, so the snapshot
+   includes population exposure for every incident.
+4. The web app is built with `VITE_ATLAS_STATIC=1` and `ATLAS_BASE=/<repo>/`, and deployed
+   with `actions/deploy-pages`.
 
-Differences from local: no SSE live stream, no archive search, no manual refresh, no Data
-Time Machine beyond what the snapshot includes. These will be stated in the UI.
+In snapshot mode the client reads `snapshot/api/v1/*.json`, applies incident filters itself,
+and shows **Snapshot · updated N ago** instead of the live indicator. Time windows are relative
+to when the snapshot was taken, so an older snapshot never silently drops incidents.
+
+| Capability | Local | Public snapshot |
+|---|---|---|
+| Live incidents, layers, correlation, severity, confidence | ✅ live | ✅ every 3 h |
+| Population exposure (GHSL) | ✅ with pack | ✅ |
+| OpenStreetMap infrastructure scan | ✅ on demand | — needs live Overpass |
+| Weather context (Open-Meteo) | ✅ | — |
+| Data Time Machine, archive search, NL queries | ✅ | — |
+| SSE live stream, manual sync, health telemetry | ✅ | — |
+| Historical earthquake replays (Demo Mode) | ✅ | ✅ |
+
+Every unavailable feature says so in the UI and points to the local install. Nothing is
+simulated to fill the gaps.
+
+To publish your own fork: Settings → Pages → Source **GitHub Actions**, then run the
+*Public demo* workflow.
+
+Local test of the same build:
+
+```bash
+pnpm engine export-static ../../apps/web/public/snapshot     # path is relative to services/engine; stop `pnpm dev` first (DB lock)
+cd apps/web && ATLAS_BASE=/ATLAS/ VITE_ATLAS_STATIC=1 npx vite build && ATLAS_BASE=/ATLAS/ npx vite preview
+# Git Bash on Windows rewrites /ATLAS/ into a path; prefix both commands with MSYS_NO_PATHCONV=1
+```
 
 ## Desktop (roadmap)
 A Tauri shell around the static web build with the engine bundled as a sidecar — single

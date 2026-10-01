@@ -20,7 +20,7 @@ ATLAS is built vertically: each phase is usable end to end before the next begin
 - Population by intensity band (ShakeMap MMI contours) where USGS publishes them
 - ✅ Historical playback: transport (1 h/s, 6 h/s, 1 d/s), scrubbing, sun-synced lighting, earthquake arrival ripples, incident onsets; current-state layers hidden during replay
 - Playback for fires (archive detections) and cyclone tracks over time
-- Static public demo snapshots (GitHub Pages)
+- ✅ Free public demo: static snapshot on GitHub Pages, rebuilt every 3 h by Actions with rolling engine state and population exposure
 
 ## Phase 3 — Satellite intelligence
 - Before/after comparison slider (GIBS dates; Sentinel-2 via Copernicus Data Space)

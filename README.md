@@ -12,6 +12,8 @@ tracks how they change, and renders it all on a real-time 3D Earth.
 
 `₹0 required operating cost` · `no account` · `no API keys required` · `no telemetry`
 
+**[Open the public snapshot →](https://arnav-dugad.github.io/ATLAS/)** &nbsp;·&nbsp; rebuilt every 3 hours from open data · run it locally for the live stream
+
 <img src="docs/assets/planet.webp" alt="ATLAS planetary view: live incidents, 116k satellite fire detections, earthquakes and cyclones on a real-time lit globe" width="100%" />
 
 </div>
@@ -136,9 +138,10 @@ send only an incident location rounded to ~5 km.
 ## Status & roadmap
 
 Phase 1 (foundation, live ingestion, correlation, planetary view, incident intelligence) is
-complete. Next: population and infrastructure exposure, historical playback, before/after
-satellite comparison, local AI over typed tools, a simulation lab and a Tauri desktop app.
-See [ROADMAP.md](docs/ROADMAP.md).
+complete. From Phase 2: population exposure (GHSL), on-demand OpenStreetMap infrastructure
+exposure, historical playback, Demo Mode replays and the free public snapshot on GitHub Pages.
+Next: before/after satellite comparison, local AI over typed tools, a simulation lab and a
+Tauri desktop app. See [ROADMAP.md](docs/ROADMAP.md).
 
 ## Contributing & licence
 
