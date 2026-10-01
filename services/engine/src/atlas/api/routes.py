@@ -437,9 +437,9 @@ async def simulate_earthquake(
 
 @router.get("/incidents/{incident_id}/imagery/change")
 async def incident_spectral_change(
-    request: Request, incident_id: str, index: Annotated[str | None, Query(pattern="^(auto|nbr|mndwi|ndvi)$")] = None
+    request: Request, incident_id: str, index: Annotated[str | None, Query(pattern="^(auto|nbr|mndwi|sar|ndvi)$")] = None
 ) -> dict[str, Any]:
-    """Sentinel-2 before/after change (dNBR, MNDWI or ΔNDVI) around the incident. DERIVED; 10–60 s
+    """Before/after change around the incident: Sentinel-2 dNBR, MNDWI or ΔNDVI, or Sentinel-1 radar water. DERIVED; 10–60 s
     on first request (reads only small windows of the public COGs), then cached for 12 h."""
     r = rt(request)
     with r.db.read() as cur:

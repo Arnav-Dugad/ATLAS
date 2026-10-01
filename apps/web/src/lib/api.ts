@@ -44,7 +44,7 @@ export interface ExposureUnavailable {
   action: "install-pack" | "retry" | null;
 }
 
-export type SpectralIndex = "nbr" | "mndwi" | "ndvi";
+export type SpectralIndex = "nbr" | "mndwi" | "sar" | "ndvi";
 
 export interface SpectralScene {
   id: string;
@@ -54,6 +54,9 @@ export interface SpectralScene {
   tiles: string[];
   scene_cloud_cover: number | null;
   window_valid_fraction: number;
+  /** radar passes only */
+  relative_orbit?: number | null;
+  orbit_state?: string | null;
 }
 
 export interface SpectralClass {

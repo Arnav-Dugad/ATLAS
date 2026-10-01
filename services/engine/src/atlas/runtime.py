@@ -49,7 +49,7 @@ class Runtime:
         self.http.set_host_policy("api.open-meteo.com", HostPolicy(max_concurrency=2, min_interval_s=0.2))
         self.http.set_host_policy("api.openaq.org", HostPolicy(max_concurrency=1, min_interval_s=1.1))  # 60 requests/min
         self.packs = PackManager(settings.packs_dir, self.http)
-        self.spectral = SpectralService(self.http, settings.cache_dir, offline=settings.offline)
+        self.spectral = SpectralService(self.http, settings.cache_dir, offline=settings.offline, core_dir=self.packs.path("core"))
         self.geocoder = self._load_geocoder()
         self.bus = EventBus()
         self.pipeline = IngestPipeline(self.db, self.geocoder, self.registry, self.bus)

@@ -80,6 +80,12 @@ INDICES: dict[str, IndexSpec] = {
         "Xu (2006), Modification of normalised difference water index (NDWI), Int. J. Remote Sensing 27(14):3025-3033",
         "new_water_km2",
     ),
+    "sar": IndexSpec(
+        "sar", "Radar flood mapping (Sentinel-1)", ("vv", "vv"), ("VV", "VV"), frozenset(),
+        "Sentinel-1 RTC VV backscatter below -18 dB as open water (a widely used threshold; e.g. Twele et al. 2016, "
+        "Int. J. Remote Sensing 37(13):2990-3004), after a 5x5 speckle filter",
+        "new_water_km2",
+    ),
     "ndvi": IndexSpec(
         "ndvi", "Vegetation change (ΔNDVI)", ("nir", "red"), ("B08", "B04"),
         frozenset({SCL_VEGETATION, SCL_BARE, SCL_UNCLASSIFIED}),
@@ -266,7 +272,7 @@ GDAL_ENV = {
 }
 
 
-def _read(href: str, grid: Grid, *, nearest: bool, bands: int | list[int] = 1) -> np.ndarray:
+def _read(href: str, grid: Grid, *, nearest: bool, bands: int | list[int] = 1, env: dict[str, str] | None = None) -> np.ndarray:
     """Warp a window of a remote COG onto the analysis grid, choosing the overview level whose
     resolution matches the grid so only the bytes needed are fetched."""
     import rasterio
@@ -275,7 +281,7 @@ def _read(href: str, grid: Grid, *, nearest: bool, bands: int | list[int] = 1) -
     from rasterio.vrt import WarpedVRT
 
     transform = from_bounds(*grid.bbox, grid.width, grid.height)
-    with rasterio.Env(**GDAL_ENV):
+    with rasterio.Env(**{**GDAL_ENV, **(env or {})}):
         with rasterio.open(href) as probe:
             native = abs(probe.res[0])
             ovs = probe.overviews(1)
@@ -394,7 +400,7 @@ def classify(
         d = pre - post  # dNBR: positive where vegetation burned
         for lo, hi, key, label, color in NBR_CLASSES:
             add(key, label, color, (d >= lo) & (d < hi))
-    elif spec.id == "mndwi":
+    elif spec.id in ("mndwi", "sar"):
         wpre, wpost = pre > 0, post > 0
         add("new_water", "New surface water", (56, 189, 248, 235), wpost & ~wpre)
         add("persistent_water", "Water on both dates", (30, 64, 175, 150), wpost & wpre)
@@ -414,7 +420,7 @@ def headline(spec: IndexSpec, classes: list[dict[str, Any]]) -> dict[str, Any]:
     if spec.id == "nbr":
         value = sum(by.get(k, 0.0) for k in ("low", "moderate_low", "moderate_high", "high"))
         return {"key": spec.headline, "label": "Burned area (dNBR ≥ 0.10)", "value": round(value, 2), "unit": "km²"}
-    if spec.id == "mndwi":
+    if spec.id in ("mndwi", "sar"):
         return {"key": spec.headline, "label": "New surface water", "value": round(by.get("new_water", 0.0), 2), "unit": "km²"}
     return {
         "key": spec.headline,
@@ -433,7 +439,7 @@ CAVEATS: dict[str, list[str]] = {
     "mndwi": [
         "Optical satellites cannot see through clouds, which often cover floods; flooded vegetation and urban flooding are frequently missed.",
         "Seasonal rivers, reservoirs, tides and irrigation also change surface water.",
-        "Radar (Sentinel-1) would see through clouds; it is not part of this analysis.",
+        "Radar sees through clouds: try the Sentinel-1 radar analysis when the optical view is cloudy.",
     ],
     "ndvi": [
         "Vegetation change also follows season, harvest, drought and phenology, not only the hazard.",
@@ -549,8 +555,9 @@ def unavailable(reason: str, retry: bool = False) -> dict[str, Any]:
 class SpectralService:
     """Caches results on disk (per incident and index) and serialises heavy reads."""
 
-    def __init__(self, http: HttpClient, cache_dir: Path, *, offline: bool = False) -> None:
+    def __init__(self, http: HttpClient, cache_dir: Path, *, offline: bool = False, core_dir: Path | None = None) -> None:
         self.http = http
+        self.core_dir = core_dir
         self.root = cache_dir / "spectral"
         self.offline = offline
 
@@ -591,6 +598,8 @@ class SpectralService:
         window = analysis_window(hazard.value, lat, lon, bbox)
         grid = Grid.for_bbox(window)
         now = utcnow()
+        if spec.id == "sar":
+            return await self._radar(incident_id, spec, window, grid, onset, now)
         try:
             before = await search_passes(
                 self.http, window, onset - timedelta(days=45), onset - timedelta(hours=1), (*spec.bands, "scl", "visual")
@@ -632,6 +641,70 @@ class SpectralService:
             "caveats": CAVEATS[spec.id],
             "method": METHOD,
             "attribution": f"Contains modified Copernicus Sentinel data {year}, processed by ATLAS. Catalogue: Element 84 Earth Search (AWS Open Data).",
+            "computed_at": iso_z(now),
+        }
+        await asyncio.to_thread(_store, self.path(incident_id, spec.id), result["files"], payload)
+        return payload
+
+    async def _radar(
+        self,
+        incident_id: str,
+        spec: IndexSpec,
+        window: tuple[float, float, float, float],
+        grid: Grid,
+        onset: datetime,
+        now: datetime,
+    ) -> dict[str, Any]:
+        from atlas.engine import radar
+
+        try:
+            passes = await radar.search(self.http, window, onset - timedelta(days=60), now)
+            tok = await radar.token(self.http)
+        except Exception as exc:  # network / catalogue errors
+            log.warning("radar: catalogue search failed for %s: %s", incident_id, exc)
+            return unavailable("The Planetary Computer catalogue did not respond.", retry=True)
+        land = await radar.land(self.http, self.core_dir)
+        land_mask = land.mask(grid.bbox, grid.width, grid.height) if land is not None else None
+        pair = radar.choose_pair(passes, onset)
+        if pair is None:
+            if not any(p.when >= onset for p in passes):
+                return unavailable(
+                    "No Sentinel-1 radar pass over this area since onset yet; passes come every few days.", retry=True
+                )
+            return unavailable("No earlier Sentinel-1 pass from the same orbit in the 60 days before onset to compare with.")
+        try:
+            result = await asyncio.to_thread(radar.run, spec, grid, pair[0], pair[1], tok, land_mask)
+        except SpectralUnavailable as exc:
+            return unavailable(exc.reason, exc.retry)
+        except Exception as exc:
+            log.exception("radar: analysis failed for %s", incident_id)
+            return unavailable(f"Reading Sentinel-1 data failed ({type(exc).__name__}).", retry=True)
+        payload = {
+            "status": "ok",
+            "kind": "spectral_change",
+            "provenance": "derived",
+            "incident_id": incident_id,
+            "index": {
+                "id": spec.id,
+                "name": spec.name,
+                "formula": f"VV backscatter < {radar.WATER_DB:g} dB → water",
+                "citation": spec.citation,
+            },
+            "available_indices": list(INDICES),
+            "window": {"bbox": list(window), "resolution_m": round(grid.res_m, 1), "width": grid.width, "height": grid.height},
+            **result["payload"],
+            "images": {name: f"/api/v1/imagery/files/{incident_id}/{spec.id}/{name}" for name in sorted(FILES)},
+            "caveats": [
+                *radar.CAVEATS,
+                "The sea and a 500 m coastal margin are excluded (Natural Earth 1:10m land), so flooding right at the shore is not mapped."
+                if land_mask is not None
+                else "Land outlines were unavailable, so the sea is not masked: calm sea can appear as new water.",
+            ],
+            "method": "atlas-radar-v1",
+            "attribution": (
+                f"Contains modified Copernicus Sentinel data {now.year}; terrain correction by Catalyst; "
+                "Microsoft Planetary Computer (CC BY 4.0). Processed by ATLAS."
+            ),
             "computed_at": iso_z(now),
         }
         await asyncio.to_thread(_store, self.path(incident_id, spec.id), result["files"], payload)

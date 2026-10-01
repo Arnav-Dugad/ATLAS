@@ -446,6 +446,34 @@
       ]
     },
     {
+      "id": "planetary-computer",
+      "name": "Sentinel-1 RTC radar via Microsoft Planetary Computer",
+      "provider": "ESA Copernicus (Sentinel-1) · Catalyst (terrain correction) · Microsoft Planetary Computer",
+      "category": "imagery",
+      "hazards": ["flood", "tropical_cyclone"],
+      "homepage": "https://planetarycomputer.microsoft.com/dataset/sentinel-1-rtc",
+      "docs_url": "https://planetarycomputer.microsoft.com/docs/concepts/sas/",
+      "hosts": ["planetarycomputer.microsoft.com", "sentinel1euwestrtc.blob.core.windows.net"],
+      "license": { "name": "CC BY 4.0 (Sentinel-1 RTC on the Planetary Computer)", "url": "https://creativecommons.org/licenses/by/4.0/", "commercial_use": true },
+      "attribution": "Contains modified Copernicus Sentinel data; radiometric terrain correction by Catalyst; Microsoft Planetary Computer",
+      "update_interval": "New passes within about a day; each place revisited every few days (Sentinel-1C/1D)",
+      "expected_latency": "About a day after acquisition",
+      "coverage": { "geographic": "Global land", "temporal": "2014 – present" },
+      "resolution": "10 m (VV and VH backscatter)",
+      "historical_depth": "Full Sentinel-1 IW archive",
+      "rate_limits": "Anonymous short-lived SAS tokens; ATLAS reads small windows around one incident, on demand",
+      "auth": { "required": false },
+      "cache_strategy": "Analysis results cached on disk per incident; access token cached 15 min",
+      "reliability": { "rating": "A", "rationale": "Operational ESA mission; Microsoft-hosted analysis-ready archive" },
+      "parser_version": "stac/1",
+      "default_enabled": true,
+      "limitations": [
+        "Smooth dry surfaces (sand, tarmac) look like water; flooded vegetation and towns often look brighter and are missed.",
+        "Wind-roughened water and radar shadow on steep slopes confuse the water threshold.",
+        "The -18 dB VV water threshold is a common default, not calibrated per place."
+      ]
+    },
+    {
       "id": "earth-search",
       "name": "Sentinel-2 L2A via Earth Search (STAC) and AWS COGs",
       "provider": "Element 84 (STAC API) · ESA Copernicus (Sentinel-2) · AWS Open Data",

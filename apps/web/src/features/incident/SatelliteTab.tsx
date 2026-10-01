@@ -17,11 +17,18 @@ import s from "./SatelliteTab.module.css";
 const INDEX_LABEL: Record<SpectralIndex, string> = {
   nbr: "Burn severity",
   mndwi: "Surface water",
+  sar: "Radar water",
   ndvi: "Vegetation",
 };
-const DEFAULT_INDEX: Record<string, SpectralIndex> = { wildfire: "nbr", flood: "mndwi", tropical_cyclone: "mndwi" };
+const INDEX_WHAT: Record<SpectralIndex, string> = {
+  nbr: "burn severity (dNBR) with cloud and shadow masked",
+  mndwi: "new surface water (MNDWI) with cloud and shadow masked",
+  sar: "new surface water from Sentinel-1 radar, which sees through cloud (VV backscatter below −18 dB), comparing passes from the same orbit",
+  ndvi: "vegetation change (ΔNDVI) with cloud and shadow masked",
+};
+const DEFAULT_INDEX: Record<string, SpectralIndex> = { wildfire: "nbr", flood: "sar", tropical_cyclone: "sar" };
 
-const STEPS = ["Searching the Sentinel-2 catalogue", "Checking cloud cover over the area", "Reading bands from the satellite archive", "Mapping change"];
+const STEPS = ["Searching the satellite catalogue", "Checking coverage and cloud over the area", "Reading data from the satellite archive", "Mapping change"];
 
 function isOk(x: SpectralChange | SpectralUnavailable | undefined): x is SpectralChange {
   return x?.status === "ok";
@@ -38,7 +45,7 @@ export function SatelliteTab({ d }: { d: IncidentDetail }) {
       <OverpassCard d={d} />
       <Label right={<ProvenanceBadge kind={isOk(data) ? "derived" : "unavailable"} compact />}>
         <span className={s.titleRow}>
-          <Satellite size={12} aria-hidden /> Sentinel-2 change
+          <Satellite size={12} aria-hidden /> {index === "sar" ? "Sentinel-1 radar change" : "Sentinel-2 change"}
         </span>
       </Label>
 
@@ -55,13 +62,18 @@ export function SatelliteTab({ d }: { d: IncidentDetail }) {
       {!requested ? (
         <div className={s.cta}>
           <p>
-            Compare a clear Sentinel-2 pass from before onset with the clearest pass since, at 10–20 m, and map{" "}
-            {index === "nbr" ? "burn severity (dNBR)" : index === "mndwi" ? "new surface water (MNDWI)" : "vegetation change (ΔNDVI)"} with cloud and shadow masked.
+            {index === "sar"
+              ? "Compare the newest Sentinel-1 radar pass since onset with an earlier pass, at 10 m or coarser, and map "
+              : "Compare a clear Sentinel-2 pass from before onset with the clearest pass since, at 10–20 m, and map "}
+            {INDEX_WHAT[index]}.
           </p>
           <button type="button" className={s.primary} onClick={() => setRequested(true)}>
             <Satellite size={14} /> Analyse satellite imagery
           </button>
-          <div className={s.hint}>Reads small windows of the public Sentinel-2 archive · typically 10–60 s · cached 12 h</div>
+          <div className={s.hint}>
+            Reads small windows of the public {index === "sar" ? "Sentinel-1 archive (Microsoft Planetary Computer)" : "Sentinel-2 archive"} · typically 10–60 s ·
+            cached 12 h
+          </div>
         </div>
       ) : q.isFetching && !data ? (
         <Working />
@@ -172,8 +184,10 @@ function Result({ r, title }: { r: SpectralChange; title: string }) {
       <details className={s.method}>
         <summary>Method, caveats and attribution</summary>
         <p>
-          <strong>{r.index.name}</strong>: {r.index.formula}. {r.index.citation}. Clouds, cloud shadow, snow and gaps are removed using ESA&apos;s Scene
-          Classification Layer on both dates; nothing is filled in.
+          <strong>{r.index.name}</strong>: {r.index.formula}. {r.index.citation}.{" "}
+          {r.index.id === "sar"
+            ? "Radar needs no cloud mask; pixels outside either pass are left out and nothing is filled in."
+            : "Clouds, cloud shadow, snow and gaps are removed using ESA's Scene Classification Layer on both dates; nothing is filled in."}
         </p>
         <ul>
           {r.caveats.map((c) => (
@@ -196,7 +210,10 @@ function Scene({ label, scene }: { label: string; scene: SpectralChange["before"
         {utcFull(scene.datetime)} · {scene.platform.replace(/^sentinel-(\w+)$/i, (_m, sat: string) => `Sentinel-${sat.toUpperCase()}`)}
         <span className={s.dim}>
           {" "}
-          · {scene.scene_cloud_cover != null ? `${decimal(scene.scene_cloud_cover, 0)}% tile cloud` : "cloud n/a"} · {Math.round(scene.window_valid_fraction * 100)}% of window clear
+          ·{" "}
+          {scene.relative_orbit != null
+            ? `radar, orbit ${scene.relative_orbit} ${scene.orbit_state ?? ""} · ${Math.round(scene.window_valid_fraction * 100)}% of window covered`
+            : `${scene.scene_cloud_cover != null ? `${decimal(scene.scene_cloud_cover, 0)}% tile cloud` : "cloud n/a"} · ${Math.round(scene.window_valid_fraction * 100)}% of window clear`}
         </span>
       </dd>
     </div>
@@ -243,11 +260,11 @@ function Swipe({ r }: { r: SpectralChange }) {
         aria-valuenow={Math.round(pos * 100)}
         onKeyDown={onKey}
       >
-        <img className={s.img} src={apiUrl(r.images["after.jpg"])} alt={`After: Sentinel-2 true colour, ${utcFull(r.after.datetime)}`} draggable={false} />
+        <img className={s.img} src={apiUrl(r.images["after.jpg"])} alt={`After: ${r.index.id === "sar" ? "Sentinel-1 radar backscatter" : "Sentinel-2 true colour"}, ${utcFull(r.after.datetime)}`} draggable={false} />
         <img
           className={s.img}
           src={apiUrl(r.images["before.jpg"])}
-          alt={`Before: Sentinel-2 true colour, ${utcFull(r.before.datetime)}`}
+          alt={`Before: ${r.index.id === "sar" ? "Sentinel-1 radar backscatter" : "Sentinel-2 true colour"}, ${utcFull(r.before.datetime)}`}
           style={{ clipPath: `inset(0 ${(1 - pos) * 100}% 0 0)` }}
           draggable={false}
         />
