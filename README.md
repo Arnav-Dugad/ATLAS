@@ -41,6 +41,11 @@ tracks how they change, and renders it all on a real-time 3D Earth.
 - **Local AI analyst.** Ask questions of the live data with a model running on your own machine (Ollama). It can only call eight read-only tools, cites every incident it uses, and treats retrieved text as untrusted.
 - **Story mode, comparison, watchlists.** A guided tour of the planet right now; pin up to three incidents side by side; draw a watch area and get a browser notification when something new happens there — stored only on your device.
 - **More corroboration.** EMSC earthquakes confirm USGS independently, official NOAA tsunami-centre bulletins raise severity floors, NOAA SWPC space weather sits on the overview, and OpenAQ stations report measured air quality near an incident.
+- **Official alerts first.** US National Weather Service warnings, India's NDMA SACHET alerts (IMD, CWC, INCOIS and state authorities), MeteoAlarm and volcanic-ash SIGMETs are drawn on the globe and lead each incident — relayed exactly as issued.
+- **Earthquake intelligence.** USGS PAGER and ShakeMap, the USGS aftershock forecast quoted as published, where USGS and EMSC disagree, JMA/NCS/INCOIS reports beside them, the largest quakes nearby since 1900, this week's activity against the 10-year rate, and the location's uncertainty on the globe.
+- **Hazard intelligence.** Fire growth and spread direction, cyclone rapid intensification, residents inside the forecast cone, Sentinel-1 radar flood maps that see through cloud, an automatic burn-scar gallery, rivers (GloFAS and USGS gauges), sea level at tide gauges and DART buoys, compound conditions (heat vs climatology, fire weather, air quality) and compound events.
+- **Tools.** Right-click anywhere for *what's here* (elevation, residents, local and sundial time); measure distances and areas with residents and facilities inside and an elevation profile; side-by-side globes; "since you were last here"; one-click situation reports where every sentence is cited.
+- **India.** An India start view with incidents by state, SACHET alerts in force and the season, and a Hindi interface (beta).
 - **Everywhere.** A dedicated phone layout with a draggable sheet, an installable web app, keyboard-first desktop use, and a native desktop app with the engine built in.
 - **A real registry.** Licence, attribution, cadence, latency, limits and live health for every source, plus local observability (job scheduler, latency percentiles, storage, logs).
 
@@ -151,6 +156,15 @@ All verified live on 2026-10-01. Full research notes: [docs/DATA_SOURCES.md](doc
 | GHSL GHS-POP R2023A | Population (optional pack) | CC BY 4.0 |
 | OpenAQ | Air quality near incidents (free key) | CC BY 4.0 platform · provider licences vary |
 | ReliefWeb | Adapter, disabled until an approved appname is set | per document |
+| NWS · NDMA SACHET · MeteoAlarm · AWC SIGMETs | Official alerts, relayed as issued | Public domain · CC BY 4.0-equivalent (MeteoAlarm) |
+| JMA · NCS India · INCOIS | National seismic and tsunami agencies | Govt terms / attribution |
+| Sentinel-1 RTC (Microsoft Planetary Computer) | Radar flood mapping | CC BY 4.0 |
+| Copernicus DEM GLO-30 | Elevation, profiles | Copernicus DEM licence |
+| IOC SLSMF · NOAA DART | Sea level after undersea earthquakes | Open · public domain |
+| GloFAS (Open-Meteo) · USGS Water | River discharge and gauges | CC BY 4.0 · public domain |
+| WorldPop · Overture Maps | Second population model · building footprints | CC BY 4.0 · ODbL |
+| EFFIS · NASA Black Marble · Copernicus EMS | Fire danger · night lights · emergency maps | EU / NASA open terms |
+| HDX HAPI | Country humanitarian context (free identifier) | per dataset |
 
 ATLAS shows the required attribution on the map, in incident source drawers, in exports and
 in the attribution dialog.

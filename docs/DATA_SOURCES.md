@@ -31,6 +31,28 @@ observed status and payload shape are noted.
 | NOAA Tsunami Warning Centers (NTWC, PTWC) | ✅ live connector | none | Public domain | 3 min |
 | NOAA SWPC (NOAA scales) | ✅ overview context | none | Public domain | 10 min |
 | Terrain Tiles (Terrarium, AWS Open Data) | ✅ browser terrain | none | mixed open, attribution list | per view |
+| NOAA SWPC OVATION aurora + GOES X-ray flares | ✅ globe effect / overview | none | Public domain | 10 min |
+| CelesTrak GP element sets | ✅ satellite passes | none | Free with attribution | 6 h |
+| Copernicus DEM GLO-30 (AWS Open Data) | ✅ on demand (point, profile) | none | Copernicus DEM licence (free, attribution) | per click |
+| Natural Earth 1:10m time zones and land | ✅ Core Pack (on first use) | none | Public domain | once |
+| Sentinel-1 RTC (Microsoft Planetary Computer) | ✅ on demand (radar floods) | anonymous SAS token | CC BY 4.0 | per analysis |
+| US National Weather Service alerts | ✅ alerts layer + incident card | none (User-Agent) | Public domain | 5 min |
+| NDMA SACHET (India, CAP) | ✅ alerts layer + incident card | none | Public domain (as stated) | 10 min |
+| MeteoAlarm (Europe) | ✅ incident card (by country) | none | CC BY 4.0-equivalent + T&C | 10 min |
+| Volcanic-ash SIGMETs (NOAA AWC) | ✅ alerts layer | none | Public domain | 10 min |
+| JMA earthquake list | ✅ Japan earthquakes | none | Govt of Japan Standard Terms 2.0 | 1 min |
+| NCS India (riseq.seismo.gov.in) | ✅ India-region earthquakes | none | No published open licence; shown with attribution | 5 min |
+| INCOIS ITEWC tsunami bulletins | ✅ M6+ earthquakes | none | No published open licence; shown with attribution | 5 min |
+| IOC Sea Level Station Monitoring Facility | ✅ tsunami-capable quakes | none | Free and open, acknowledge operators | 2 min |
+| NOAA NDBC DART buoys | ✅ tsunami-capable quakes | none | Public domain | 5 min |
+| GloFAS via Open-Meteo Flood API | ✅ floods and cyclones | none | CC BY 4.0 | 6 h |
+| USGS Water Data OGC API | ✅ US floods | none | Public domain | 15 min |
+| WorldPop stats API | ✅ population comparison | none | CC BY 4.0 | 30 days |
+| Overture Maps buildings (DuckDB on AWS) | ✅ building counts | none | ODbL | per request |
+| EFFIS fire danger (WMS) | ✅ imagery overlay | none | Free with acknowledgement | per view |
+| NASA Black Marble daily (GIBS) | ✅ before/after product | none | NASA open data | per view |
+| Copernicus EMS rapid mapping | ✅ incident links | none | Free and open, attribution | 30 min |
+| HDX HAPI | ✅ country context (with identifier) | **free app identifier** | per dataset | 1 day |
 
 ## Details
 
@@ -136,6 +158,93 @@ context; the outlook is SWPC's forecast, quoted as issued.
 `Access-Control-Allow-Origin: *` (verified 2026-10-01). Height = R·256 + G + B/256 − 32768 m.
 The required per-source attribution list (tilezen/joerd `docs/attribution.md`) is shown in
 the attribution panel whenever terrain is on.
+
+### NOAA SWPC OVATION aurora and CelesTrak orbits
+`https://services.swpc.noaa.gov/json/ovation_aurora_latest.json` (aurora probability grid, a
+30–90 minute forecast quoted as such) and CelesTrak GP data per catalogue number
+(`https://celestrak.org/NORAD/elements/gp.php?CATNR=…&FORMAT=TLE`, Sentinel-2A/B/C, Landsat 8/9).
+CelesTrak intermittently answered HTTP 500 on bulk queries, so satellites are requested one by
+one and partial results are kept.
+
+### Copernicus DEM GLO-30 — point elevation and profiles
+COGs at `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N28_00_E077_00_DEM/…tif`
+(verified 2026-10-01: Delhi 214 m, Everest 8,718 m, Dead Sea −427 m; a missing tile means open water).
+One pixel per point; profiles take 64 samples along the path. A surface model: buildings and trees
+are included.
+
+### Sentinel-1 RTC on Microsoft Planetary Computer — radar flood maps
+STAC search `https://planetarycomputer.microsoft.com/api/stac/v1/search?collections=sentinel-1-rtc`
+and anonymous tokens from `/api/sas/v1/token/sentinel-1-rtc` (verified 2026-10-01; Sentinel-1D
+passes from the previous week; assets on `sentinel1euwestrtc.blob.core.windows.net`, `.tiff`).
+Collection licence CC BY 4.0. Earth Search's `sentinel-1-grd` was also checked but its assets
+are requester-pays, so it is not used. Tested on live floods: Ghana (1.1 km² new water) and
+Barcelona, where calm sea after a windy pass first read as 108 km² of "new water" — fixed by
+masking the sea with Natural Earth 1:10m land plus a 500 m coastal margin.
+
+### Official alerts — NWS, NDMA SACHET, MeteoAlarm, volcanic-ash SIGMETs
+* `https://api.weather.gov/alerts/active?status=actual&message_type=alert,update` — 342 alerts,
+  134 with polygons (verified 2026-10-01). NWS asks for an identifying User-Agent, which ATLAS sends.
+* `https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml` — RSS marked public domain;
+  each item links a CAP 1.2 message (`FetchXMLFile?identifier=`) whose parameter "Polygon URL"
+  gives `FetchPolygonXMLFile` with `lat,lon` pairs. IMD, CWC, INCOIS and state SDMAs publish
+  through SACHET. **IMD's own APIs** (`mausam.imd.gov.in/api/…`) returned 401: they need IP
+  whitelisting, so ATLAS takes IMD warnings from SACHET.
+* `https://feeds.meteoalarm.org/api/v1/warnings/feeds-{country}` — JSON CAP alerts by EMMA
+  region code, no polygons, so warnings are listed for the incident's country. Rights:
+  "terms equivalent to CC BY 4.0, with additional requirements for redistributing"; MeteoAlarm
+  is therefore not included in the public static snapshot.
+* `https://aviationweather.gov/api/data/isigmet?format=json&hazard=va` — 11 volcanic-ash SIGMETs
+  with polygons (verified 2026-10-01). The VAAC advisories themselves are linked, not parsed.
+
+### Regional seismic and tsunami agencies
+* JMA `https://www.jma.go.jp/bosai/quake/data/list.json` — 224 reports; `cod` is ISO 6709
+  (`+35.8+140.7-40000/`), `maxi` the shindo. Matched a live M5.3 near Tokyo (12 s, 17 km).
+* NCS `https://riseq.seismo.gov.in/riseq/earthquake` — HTML whose rows carry `data-json`
+  attributes (event, IST time, lat/long, "M: 3.7 , D: 10km"); no documented API, so a layout
+  change is reported rather than guessed around.
+* INCOIS `https://tsunami.incois.gov.in/itews/DSSProducts/OPR/past90days.json` — times in IST;
+  bulletin JSON carries the centre's evaluation of the threat to India. The server omits its
+  intermediate certificate (GlobalSign RSA OV SSL CA 2018); the engine ships that public
+  intermediate (`services/engine/src/atlas/http/certs/intermediates.pem`) and keeps verification on.
+
+### Sea level — IOC and DART
+`https://www.ioc-sealevelmonitoring.org/service.php?query=stationlist&showall=a` (1,946 stations)
+and `query=data&code=…&timestart=YYYY-MM-DD HH:MM` (the space-separated time format is required;
+ISO `T` times returned empty lists). DART: `https://www.ndbc.noaa.gov/activestations.xml` lists 76
+DART stations, 41 with `dart="y"`; `/data/realtime2/{id}.dart` is plain text. Raw data: tides
+included, no quality control.
+
+### Rivers — GloFAS and USGS
+`https://flood-api.open-meteo.com/v1/flood` (verified 2026-10-01). The nearest GloFAS cell to
+Dhaka returned 3.7 m³/s (a minor channel), so ATLAS probes a 3×3 neighbourhood in one request
+and keeps the wettest cell (214 m³/s). USGS: the new OGC API
+`https://api.waterdata.usgs.gov/ogcapi/v0/collections/latest-continuous/items` returns retired
+gauges with decade-old values unless a `datetime` filter is applied (ATLAS uses the last 3 days);
+station names come from `monitoring-locations?id=…`. The legacy `waterservices.usgs.gov` timed out.
+
+### Population and buildings — WorldPop, Overture
+WorldPop `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&runasync=false`
+answered for rings of 10 and 100 km (5–8 s) and returned no total for 300 km, so comparisons stop
+at 100 km. Overture: the bucket listing gives releases (`2026-09-23.1` on 2026-10-01); DuckDB read
+building footprints for a 4 km box in 73 s cold and 2–5 s with its metadata cache.
+
+### EFFIS, Black Marble, Copernicus EMS, HDX HAPI
+* EFFIS WMS `https://maps.effis.emergency.copernicus.eu/effis` supports EPSG:3857; `mf010.fwi`
+  renders. Burnt-area layers (`effis.nrt.ba.poly`, `modis.ba.poly`) returned empty tiles even over
+  a known 2026 fire, so they are not offered.
+* Black Marble daily: GIBS `VIIRS_NOAA20_GapFilled_BRDF_Corrected_DayNightBand_Radiance`
+  (Level 8 PNG, current to the previous day) — no Earthdata account needed.
+* Copernicus EMS `https://rapidmapping.emergency.copernicus.eu/backend/dashboard-api/public-activations-info/`
+  (265 activations; `public-activations/?code=EMSR…` for details). The old
+  `emergency.copernicus.eu/mapping/activations-rapid/feed` RSS now returns 404.
+* HDX HAPI `https://hapi.humdata.org/api/v2/…` returns 403 without an app identifier; ATLAS was
+  built against the published OpenAPI schema (`/openapi.json`) and does not call data endpoints
+  with an invented identity. `encode_app_identifier` generates one from an app name and email.
+
+### NOAA SWPC flares — and why not DONKI
+`https://services.swpc.noaa.gov/json/goes/primary/xray-flares-7-day.json` (38 flares on
+2026-10-01). NASA DONKI (`kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/…`) timed out and its
+`api.nasa.gov` proxy redirected to a CCMC "major updates" page, so CMEs are not shown yet.
 
 ## Adding a source
 

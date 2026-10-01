@@ -246,3 +246,95 @@ boundaries make attribution near borders approximate.
 Every material revision of an observation is appended to `observation_versions`. The
 knowledge endpoint reconstructs, for any instant *T*, the latest version of each
 observation recorded at or before *T* — i.e. what *this ATLAS instance* knew at that time.
+
+## Earthquake intelligence — quoted, matched and counted
+
+* **Official USGS products** (REAL, quoted as issued): PAGER alert and residents per shaking
+  intensity, ShakeMap `cont_mmi` contours, and the origin's horizontal/depth uncertainty,
+  station count and azimuthal gap. The uncertainty circle on the globe uses the USGS
+  `horizontal-error`. The **aftershock forecast** table is the USGS OAF product exactly as
+  published (model, issue time, next update); ATLAS computes no aftershock forecast.
+* **Source agreement** (DERIVED): latest USGS vs EMSC magnitude, epicentre distance and depth;
+  flagged when they differ by ≥ 0.3 units, ≥ 25 km or ≥ 20 km. Neither value is preferred.
+* **National agencies** (REAL): JMA, NCS India and INCOIS reports matched to the USGS solution
+  within 2–5 minutes and 150–300 km, shown separately with the time and distance between them.
+* **Historical analogs** (REAL): M5.5+ within 300 km since 1900 from ComCat (incl. ISC-GEM),
+  largest first.
+* **Activity this week** (DERIVED): M4+ within 200 km in the last 7 days (*k*) against the mean
+  weekly count over the ten years before (*λ*). Reported with *k/λ* and the Poisson tail
+  *p* = P(X ≥ *k* | λ). Verdicts: "above usual" when *p* < 0.05, "far above usual" when
+  *p* < 0.001. Aftershocks are counted, catalogue completeness varies, and this describes the
+  present only.
+
+## Fire growth — `atlas-growth-v1`
+
+FIRMS detections of the last 48 h for an incident's clusters, in 6-hour windows. Each H3
+resolution-9 cell (~0.1 km²) counts once, in the window it first burned: "new ground" per window
+and the cumulative footprint. Spread = bearing and distance from the centroid of cells that
+burned earlier to the centroid of cells that first burned in the last 12 h (shown only if
+≥ 1 km). The multi-day history sums each merged cluster's latest footprint. Detections are
+375 m–1 km pixels seen at overpasses; a footprint is an indicator, not a mapped burn scar.
+
+## Rapid intensification
+
+The NHC definition, ≥ 30 kt increase in maximum sustained wind within 24 h, checked on pairs of
+reported winds 22–26 h apart. Observed track and agency forecast are evaluated separately; the
+forecast line restates the agency's forecast.
+
+## What's inside the cone
+
+Residents (GHSL, cell centres inside) and the largest Natural Earth places inside the published
+forecast cone and GDACS wind swaths (60/90/120 km/h). GDACS swaths cover the whole track, past
+and forecast. Population is read in 5° tiles so large cones never load the whole window.
+
+## Radar flood mapping — `atlas-radar-v1`
+
+Sentinel-1 RTC (VV, γ⁰ linear). The newest pass since onset is compared with the latest earlier
+pass from the same relative orbit and direction. 5×5 mean in linear power (speckle), then dB;
+water where VV < −18 dB (a common default, e.g. Twele et al. 2016). New water = water after and
+not before. Only land is analysed: Natural Earth 1:10m land minus a 500 m coastal margin, because
+calm sea after a windy pass reads as new water. Smooth dry surfaces look like water; flooded
+vegetation and towns are often missed.
+
+## Burn-scar gallery
+
+Every 6 h the engine runs the Sentinel-2 dNBR analysis (`atlas-spectral-v1`) for up to four of
+the largest active wildfires without a fresh result. Results are the same as a requested
+analysis and carry the same caveats.
+
+## Compound conditions and compound events
+
+* **Heat** (MODEL vs climatology): forecast daily maximum above the 90th percentile of ERA5 daily
+  maxima for the same ±7 days in 2010–2024 and ≥ 25 °C; three or more consecutive such days is
+  called a heatwave (percentile-based, cf. Perkins & Alexander 2013).
+* **Fire weather** (MODEL): hours in the next 48 h with relative humidity ≤ 25 % and wind
+  ≥ 30 km/h together — a generic screen, not an official fire-danger rating.
+* **Air quality** (REAL): highest PM2.5 within 25 km; above 35.4 µg/m³ is "unhealthy for sensitive
+  groups" on the US EPA scale (a 24 h standard, applied to hourly readings — stated).
+* **Compound events** (DERIVED): active incidents of two or more hazard types linked through pairs
+  of *different* hazards within 300 km (union–find), so dense fields of one hazard never group.
+
+## Rivers
+
+GloFAS v4 discharge for the wettest 5 km cell within ±0.05° of the incident (3×3 probe), today's
+value ranked against the previous two years at that cell; the forecast is GloFAS's ensemble
+(median and range). USGS gauges: latest stage/discharge within ~40 km reported in the last 3 days.
+
+## Population comparison and buildings
+
+WorldPop 2020 (constrained, 100 m) counts the same rings as GHSL (up to 100 km); both and their
+ratio are shown — the spread is model uncertainty. Overture Maps building footprints are counted
+within 1/2/5/10 km by bounding-box centre; mapped footprints only.
+
+## Measuring
+
+Great-circle distance and spherical polygon area on a sphere of radius 6,371.0088 km (within
+~0.5 % of the ellipsoid). Inside a drawn area: GHSL residents with cell centres inside, and
+OpenStreetMap facility counts via Overpass `poly:` (skipped above 5,000 km²). Elevation profiles
+sample Copernicus DEM GLO-30 at 64 points.
+
+## Situation report
+
+Built only from ATLAS records with fixed templates; each sentence lists the sources and ATLAS
+records behind it as numbered references. Nothing is generated freely; the local analyst can be
+asked separately and cites its own facts.

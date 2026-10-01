@@ -135,9 +135,10 @@ The Windows build has a Settings window; the website and the macOS/Linux builds 
 
 | Section | What it does |
 |---|---|
-| Data sources | Paste an **OpenAQ API key** or a **ReliefWeb appname** with the sign-up steps alongside; each is checked against the service when saved and applies at once (no restart). Keys are encrypted for the Windows user with DPAPI in `credentials.json`; only the last four characters are ever shown. |
+| Data sources | Paste an **OpenAQ API key**, a **ReliefWeb appname** or an **HDX HAPI app identifier** with the sign-up steps alongside; each is checked against the service when saved and applies at once (no restart). Keys are encrypted for the Windows user with DPAPI in `credentials.json`; only the last four characters are ever shown. |
 | Data packs | Install the **Population Pack** (~484 MB) with progress, **import a copy you already downloaded** (it finds `…\data\runtime\packs\population-ghsl` in ATLAS checkouts under Desktop, Documents, Downloads and similar folders, or takes a path), or remove it. |
-| Appearance | **Solid** panels (default: opaque, higher-contrast, no backdrop blur) or **Glass**; high contrast; reduced motion; idle rotation. |
+| Offline areas | Save the area on screen (up to 6° across, 8,000 tiles) at a chosen detail level — Sentinel-2 cloudless imagery, the Blue Marble backdrop and terrain — so the globe keeps working there without internet. Progress, size and delete per area. |
+| Appearance | **Solid** panels (default: opaque, higher-contrast, no backdrop blur) or **Glass**; high contrast; reduced motion; idle rotation; accent colour, density, layout, units; **language** (English / हिन्दी beta); **start view** (whole planet / India). |
 | Graphics | **Automatic** (default: High on a dedicated GPU, Battery saver on integrated graphics), Battery saver, Balanced or High; shows the GPU in use. |
 | About & storage | Engine version, data folder (copy), privacy notes. |
 
@@ -146,6 +147,50 @@ The Windows app also opens maximised and passes `--force_high_performance_gpu` t
 the development laptop (Intel UHD + RTX 4060, 1536×824 at 125 %) the globe went from ~15 fps
 (Intel, glass, High) to a steady 60 fps (RTX), and Battery saver holds 60 fps page refresh
 on the Intel GPU alone.
+### Windows app: native integration
+
+| Feature | How it behaves |
+|---|---|
+| One copy at a time | Starting ATLAS again focuses the open window (and passes on any jump-list action or `atlas://` link) instead of starting a second engine. |
+| Free port | The engine uses 8787, or any free port when 8787 is taken; the window learns the port before it loads. |
+| Background and tray | Closing the window can leave ATLAS watching in the tray (Settings → App); the tray menu reopens it, plays the planet story or quits. **Start with Windows** starts it quietly in the tray. |
+| Notifications | Watch-area alerts appear as Windows notifications. |
+| Jump list | Right-click the taskbar icon: Play the planet story, Watch areas, Search, Settings. |
+| `atlas://` links | `atlas://incident/ATL-EQ-2026-XXXXXXXX` opens ATLAS on that incident (registered for your Windows user when ATLAS first runs). |
+| Links | External links open in your default browser. |
+| Diagnostics | Settings → App → Export diagnostics zips logs and settings (never keys) for a bug report. |
+| Startup | The engine ships as a folder, not a self-extracting file, so it starts without unpacking ~100 MB each time. |
+| Offline areas | Base imagery and terrain load through the local engine (`/api/v1/tiles/…`), which serves saved areas first. |
+
+### Windows app: automatic updates
+
+The app checks `https://github.com/Arnav-Dugad/ATLAS/releases/latest/download/latest.json`
+(Settings → App → Check for updates) and installs updates signed with the ATLAS updater key.
+
+- The *Desktop app* workflow signs the installer with the repository secrets
+  `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` and writes `latest.json`
+  into the **draft** release.
+- **Updates reach people only after the draft release is published** (GitHub's "latest release"
+  never points at a draft).
+- Keep a private backup of the updater key (`atlas-updater.key` and its password). If it is
+  lost, installed copies cannot verify future updates and must be reinstalled by hand.
+
+### Windows code signing (free for open source)
+
+Unsigned installers trigger SmartScreen's "Windows protected your PC". The
+[SignPath Foundation](https://signpath.org/) signs open-source projects free of charge with its
+own certificate:
+
+1. Read the conditions (OSI licence, public source, builds from CI, no malware or PUP behaviour)
+   and apply at <https://signpath.org/apply> with the repository URL.
+2. Once accepted, install the SignPath GitHub App on the repository and add the
+   organisation id, project slug, signing-policy slug and an API token as repository secrets.
+3. In `desktop.yml`, upload the unsigned `.exe`/`.msi` as an artifact and add the
+   `signpath/github-action-submit-signing-request` step to sign them before the release step.
+
+SmartScreen reputation still builds up over the first downloads even when signed; an EV
+certificate would skip that but is not free.
+
 - **Build locally:** Rust (stable), Node 22 + pnpm, Python 3.12. See the workflow
   [`desktop.yml`](../.github/workflows/desktop.yml) for the exact steps (sidecar → web build
   with `VITE_ATLAS_API=http://127.0.0.1:8787` → `pnpm --filter @atlas/desktop tauri build`).
