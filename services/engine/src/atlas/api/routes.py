@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from datetime import datetime, timedelta
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import orjson
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from atlas import __version__
@@ -188,6 +190,49 @@ async def incident_infrastructure(request: Request, incident_id: str) -> dict[st
     r = rt(request)
     hazard, lat, lon = _incident_point(r, incident_id)
     return await exposure.infrastructure_exposure(r.http, hazard, lat, lon)
+
+
+class AskTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(max_length=4000)
+
+
+class AskBody(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    history: list[AskTurn] = Field(default_factory=list, max_length=16)
+    model: str | None = Field(None, max_length=80, pattern=r"^[A-Za-z0-9._:/-]+$")
+
+
+def _assistant(r: Runtime) -> Any:
+    from atlas.ai.agent import Assistant
+    from atlas.ai.ollama import OllamaClient
+
+    a = getattr(r, "assistant", None)
+    if a is None:
+        a = Assistant(r, OllamaClient(r.settings.ai_base_url), default_model=r.settings.ai_model)
+        r.assistant = a  # type: ignore[attr-defined]
+    return a
+
+
+@router.get("/ai/status")
+async def ai_status(request: Request) -> dict[str, Any]:
+    """Whether a local model is available (Ollama on this machine), and which."""
+    return await _assistant(rt(request)).status()  # type: ignore[no-any-return]
+
+
+@router.post("/ai/ask")
+async def ai_ask(request: Request, body: AskBody) -> EventSourceResponse:
+    """Stream an answer from the local model, which may call ATLAS's read-only tools.
+    Events: status, tool_call, tool_result, token, reset, citations, done, error."""
+    assistant = _assistant(rt(request))
+
+    async def events() -> AsyncIterator[dict[str, str]]:
+        async for ev in assistant.ask(body.question, [t.model_dump() for t in body.history], body.model):
+            if await request.is_disconnected():
+                break
+            yield {"event": ev["event"], "data": orjson.dumps(ev["data"]).decode()}
+
+    return EventSourceResponse(events(), ping=15)
 
 
 @router.get("/incidents/{incident_id}/imagery/change")

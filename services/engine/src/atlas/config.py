@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     reliefweb_appname: str | None = None
     openaq_api_key: SecretStr | None = None
 
+    # Local AI (Phase 4): an Ollama server on this machine. Loopback addresses only.
+    ai_base_url: str = "http://127.0.0.1:11434"
+    ai_model: str | None = None
+
     # Disable network entirely (offline mode): connectors serve cached data only.
     offline: bool = False
 

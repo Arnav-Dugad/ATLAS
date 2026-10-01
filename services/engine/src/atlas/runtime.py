@@ -109,6 +109,9 @@ class Runtime:
     async def stop(self) -> None:
         await self.scheduler.stop()
         await self.http.aclose()
+        assistant = getattr(self, "assistant", None)
+        if assistant is not None:
+            await assistant.client.aclose()
         self.db.checkpoint()
         self.db.close()
 
