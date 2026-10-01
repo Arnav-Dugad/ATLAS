@@ -168,6 +168,18 @@
   --glass-strong: #06090d;
 }
 
+/* Compact density: more rows on small laptop screens (Settings → Appearance, or the palette). */
+:root[data-density="compact"] {
+  --topbar-h: 46px;
+  --rail-w: 340px;
+  --panel-w: 392px;
+  --timeline-h: 56px;
+  --gutter: 8px;
+  --fs-md: 12.5px;
+  --fs-sm: 12px;
+  --fs-lg: 14px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --dur-1: 0ms;

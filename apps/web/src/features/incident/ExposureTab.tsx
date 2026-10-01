@@ -2,15 +2,16 @@ import { motion } from "motion/react";
 import { ExternalLink, Radar, RefreshCw, Settings, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LOCAL_ONLY_MESSAGE, STATIC_MODE, WINDOWS_APP, type ExposureUnavailable, type IncidentDetail, type InfrastructureExposure, type PopulationExposure } from "../../lib/api";
-import { compact, int, relTime } from "../../lib/format";
+import { compact, int, relTime, dist } from "../../lib/format";
 import { FACILITY_META, type FacilityKey } from "../../lib/hazards";
 import { useInfrastructureExposure, usePopulationExposure } from "../../lib/queries";
-import { openSettings, type SettingsSection } from "../../lib/settings";
+import { openSettings, type SettingsSection, useUnits } from "../../lib/settings";
 import { useUi } from "../../lib/store";
 import { cx, ErrorState, Label, ProvenanceBadge, Skeleton } from "../../ui/primitives";
 import s from "./ExposureTab.module.css";
 
 export function ExposureTab({ d }: { d: IncidentDetail }) {
+  useUnits(); // re-render when display units change
   return (
     <div className={s.stack}>
       <PopulationSection id={d.id} />
@@ -193,7 +194,7 @@ function InfraTable({ data }: { data: InfrastructureExposure }) {
                       {f.name ?? <span className={s.dim}>Unnamed {meta?.label.toLowerCase() ?? f.category}</span>}
                       {f.iata ? <span className={s.tag}>{f.iata}</span> : null}
                     </span>
-                    <span className="num">{f.distance_km < 10 ? f.distance_km.toFixed(1) : Math.round(f.distance_km)} km</span>
+                    <span className="num">{dist(f.distance_km, f.distance_km < 10 ? 1 : 0)}</span>
                   </button>
                   <a className={s.osm} href={`https://www.openstreetmap.org/${type}/${oid}`} target="_blank" rel="noreferrer noopener" aria-label="Open in OpenStreetMap">
                     <ExternalLink size={11} />

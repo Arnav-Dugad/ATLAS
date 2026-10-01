@@ -29,7 +29,7 @@ import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
 import { api, STATIC_MODE, WINDOWS_APP, type IncidentSummary, type SearchResponse } from "../../lib/api";
 import { compareIncident, compareView } from "../../lib/compare";
-import { openSettings } from "../../lib/settings";
+import { ACCENTS, type Accent, openSettings, useSettings } from "../../lib/settings";
 import { openSimulation } from "../../lib/simulate";
 import { useWatch } from "../../lib/watch";
 import { exportBrief } from "../../lib/export";
@@ -186,6 +186,21 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
             { id: "settings-graphics", section: "App", label: "Graphics quality (smoother globe)", icon: <Settings size={15} />, keywords: "performance lag slow gpu fps battery", run: done(() => openSettings("graphics")) },
           ]
         : []),
+      ...(() => {
+        const st = useSettings.getState();
+        const u = st.units;
+        return [
+          { id: "density", section: "Appearance", label: st.density === "compact" ? "Comfortable density" : "Compact density (more rows)", icon: <Layers size={15} />, keywords: "dense small laptop rows spacing", run: done(() => st.setDensity(st.density === "compact" ? "comfortable" : "compact")) },
+          { id: "units-distance", section: "Units", label: u.distance === "km" ? "Show distances in miles" : "Show distances in kilometres", icon: <Settings size={15} />, keywords: "units miles km imperial metric", run: done(() => st.setUnits({ distance: u.distance === "km" ? "mi" : "km" })) },
+          { id: "units-temp", section: "Units", label: u.temperature === "C" ? "Show temperatures in °F" : "Show temperatures in °C", icon: <Settings size={15} />, keywords: "units fahrenheit celsius", run: done(() => st.setUnits({ temperature: u.temperature === "C" ? "F" : "C" })) },
+          ...(["kt", "kmh", "mph"] as const)
+            .filter((w) => w !== u.wind)
+            .map((w) => ({ id: `units-wind-${w}`, section: "Units", label: `Show wind in ${w === "kt" ? "knots" : w === "kmh" ? "km/h" : "mph"}`, icon: <Settings size={15} />, keywords: "units wind speed", run: done(() => st.setUnits({ wind: w })) })),
+          ...(Object.keys(ACCENTS) as Accent[])
+            .filter((a) => a !== st.accent)
+            .map((a) => ({ id: `accent-${a}`, section: "Appearance", label: `Accent colour: ${ACCENTS[a].label}`, icon: <Contrast size={15} />, keywords: "theme colour color accent", run: done(() => st.setAccent(a)) })),
+        ];
+      })(),
       { id: "intro", section: "Help", label: "Replay the introduction", icon: <Sparkles size={15} />, keywords: "onboarding tour help", run: done(() => ui.resetIntro()) },
       ...(STATIC_MODE ? [] : [{ id: "refresh", section: "Data", label: "Refresh all live sources now", icon: <RefreshCw size={15} />, keywords: "sync update poll", run: done(() => ["usgs", "gdacs", "nhc", "eonet", "firms", "gvp"].forEach((id) => void api.syncSource(id).catch(() => undefined))) }]),
     ];

@@ -7,13 +7,15 @@ import { AnimatePresence, motion } from "motion/react";
 import { Columns3, Crosshair, X } from "lucide-react";
 import { api, type ExposureUnavailable, type IncidentDetail, type IncidentSummary, type PopulationExposure } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";
-import { compact, metricValue, relTime, utcShort } from "../../lib/format";
+import { compact, metricValue, relTime, utcShort, dist } from "../../lib/format";
 import { hazardMeta, PROVENANCE_META, sourceLabel } from "../../lib/hazards";
 import { useUi } from "../../lib/store";
 import { ConfidenceMeter, HazardGlyph, SeverityMeter, Skeleton } from "../../ui/primitives";
 import s from "./IncidentComparison.module.css";
+import { useUnits } from "../../lib/settings";
 
 export function CompareTray({ incidents }: { incidents: IncidentSummary[] }) {
+  useUnits(); // re-render when display units change
   const pinned = useUi((st) => st.pinned);
   const toggle = useUi((st) => st.togglePin);
   const clear = useUi((st) => st.clearPins);
@@ -55,6 +57,7 @@ function isPop(x: PopulationExposure | ExposureUnavailable | undefined): x is Po
 }
 
 export function IncidentComparison() {
+  useUnits(); // re-render when display units change
   const open = useUi((st) => st.comparingIncidents);
   return <AnimatePresence>{open ? <Modal key="cmp" /> : null}</AnimatePresence>;
 }
@@ -170,7 +173,7 @@ function Modal() {
                   const r = pop.rings.find((x) => x.radius_km === km);
                   return r ? (
                     <li key={km}>
-                      <span className={s.mLabel}>within {km} km</span>
+                      <span className={s.mLabel}>within {dist(km)}</span>
                       <span className={s.mValue}>{compact(r.population)}</span>
                       <span className={s.mProv} style={{ color: PROVENANCE_META.model.color }}>
                         {PROVENANCE_META.model.short}

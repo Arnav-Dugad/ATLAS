@@ -31,9 +31,21 @@ import { api, ApiError, type AppSettings, type CredentialName, type CredentialTe
 import { NATIVE, pickFolder } from "../../lib/desktop";
 import { relTime } from "../../lib/format";
 import { gpuInfo } from "../../lib/media";
-import { isIntegratedGpu, QUALITY, type QualityChoice, resolveQuality, type SettingsSection, type Surface, useSettings } from "../../lib/settings";
+import {
+  type Accent,
+  ACCENTS,
+  type Density,
+  isIntegratedGpu,
+  QUALITY,
+  type QualityChoice,
+  resolveQuality,
+  type SettingsSection,
+  type Surface,
+  type Units,
+  useSettings,
+} from "../../lib/settings";
 import { useUi } from "../../lib/store";
-import { cx, Toggle } from "../../ui/primitives";
+import { cx, Segmented, Toggle } from "../../ui/primitives";
 import { AppSection } from "./AppSection";
 import s from "./SettingsModal.module.css";
 
@@ -631,6 +643,77 @@ function AppearanceSection() {
         <Toggle checked={ui.reducedMotion} onChange={ui.setReducedMotion} label="Reduce motion" description="No globe rotation, pulses or camera flights." />
         <Toggle checked={ui.autoRotate} onChange={ui.setAutoRotate} label="Rotate the globe when idle" description="Press R at any time to toggle." />
       </div>
+      <PersonalSection />
+    </>
+  );
+}
+
+function PersonalSection() {
+  const accent = useSettings((st) => st.accent);
+  const setAccent = useSettings((st) => st.setAccent);
+  const density = useSettings((st) => st.density);
+  const setDensity = useSettings((st) => st.setDensity);
+  const units = useSettings((st) => st.units);
+  const setUnits = useSettings((st) => st.setUnits);
+  return (
+    <>
+      <section className={s.card}>
+        <div className={s.cardHead}>
+          <div>
+            <h4>Accent colour</h4>
+            <p className={s.muted}>Used for highlights, focus rings and derived values.</p>
+          </div>
+        </div>
+        <div className={s.swatches} role="radiogroup" aria-label="Accent colour">
+          {(Object.keys(ACCENTS) as Accent[]).map((a) => (
+            <button
+              key={a}
+              type="button"
+              role="radio"
+              aria-checked={accent === a}
+              aria-label={ACCENTS[a].label}
+              title={ACCENTS[a].label}
+              className={cx(s.swatchBtn, accent === a && s.swatchOn)}
+              style={{ "--c": ACCENTS[a].colors[0] } as React.CSSProperties}
+              onClick={() => setAccent(a)}
+            />
+          ))}
+        </div>
+      </section>
+      <section className={s.card}>
+        <div className={s.kv}>
+          <span>Density</span>
+          <Segmented<Density>
+            label="Density"
+            size="sm"
+            value={density}
+            onChange={setDensity}
+            options={[
+              { value: "comfortable", label: "Comfortable" },
+              { value: "compact", label: "Compact" },
+            ]}
+          />
+        </div>
+        <div className={s.kv}>
+          <span>Distances</span>
+          <Segmented<Units["distance"]> label="Distance units" size="sm" value={units.distance} onChange={(distance) => setUnits({ distance })} options={[{ value: "km", label: "km" }, { value: "mi", label: "miles" }]} />
+        </div>
+        <div className={s.kv}>
+          <span>Temperature</span>
+          <Segmented<Units["temperature"]> label="Temperature units" size="sm" value={units.temperature} onChange={(temperature) => setUnits({ temperature })} options={[{ value: "C", label: "°C" }, { value: "F", label: "°F" }]} />
+        </div>
+        <div className={s.kv}>
+          <span>Wind</span>
+          <Segmented<Units["wind"]>
+            label="Wind units"
+            size="sm"
+            value={units.wind}
+            onChange={(wind) => setUnits({ wind })}
+            options={[{ value: "kt", label: "knots" }, { value: "kmh", label: "km/h" }, { value: "mph", label: "mph" }]}
+          />
+        </div>
+        <p className={s.muted}>Values keep their source units in exports and provenance; only the display converts.</p>
+      </section>
     </>
   );
 }

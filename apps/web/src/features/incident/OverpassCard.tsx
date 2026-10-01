@@ -6,10 +6,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Orbit } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, type IncidentDetail } from "../../lib/api";
-import { relTime, utcFull } from "../../lib/format";
+import { relTime, utcFull, dist } from "../../lib/format";
 import type { Overpass } from "../../lib/orbits";
 import { Label, ProvenanceBadge, Skeleton } from "../../ui/primitives";
 import s from "./SatelliteTab.module.css";
+import { useUnits } from "../../lib/settings";
 
 function hm(hour: number): string {
   const h = Math.floor(hour);
@@ -18,6 +19,7 @@ function hm(hour: number): string {
 }
 
 export function OverpassCard({ d }: { d: IncidentDetail }) {
+  useUnits(); // re-render when display units change
   const sats = useQuery({ queryKey: ["satellites"], queryFn: ({ signal }) => api.satellites(signal), staleTime: 6 * 3600_000, retry: 1 });
   const [passes, setPasses] = useState<Overpass[] | null>(null);
 
@@ -65,7 +67,7 @@ export function OverpassCard({ d }: { d: IncidentDetail }) {
               <span className={s.passSat}>
                 {p.satellite.replace("SENTINEL-", "Sentinel-").replace("LANDSAT ", "Landsat ")}
                 <span>
-                  {p.offTrackKm} km from the ground track (swath ±{Math.round(p.swathKm / 2)} km) · sun {p.sunElevation}° · {hm(p.localSolarHour)} local solar time
+                  {dist(p.offTrackKm)} from the ground track (swath ±{dist(p.swathKm / 2)}) · sun {p.sunElevation}° · {hm(p.localSolarHour)} local solar time
                 </span>
               </span>
             </li>

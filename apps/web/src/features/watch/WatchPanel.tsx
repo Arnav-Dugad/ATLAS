@@ -9,17 +9,19 @@ import { globeRef } from "../../globe/ref";
 import type { IncidentSummary } from "../../lib/api";
 import { ensureNotificationPermission } from "../../lib/desktop";
 import { focusIncident, focusPoint } from "../../lib/focus";
-import { coord } from "../../lib/format";
+import { coord, dist } from "../../lib/format";
 import { HAZARDS, type HazardId } from "../../lib/hazards";
 import { useUi } from "../../lib/store";
 import { matches, useWatch, type Watch } from "../../lib/watch";
 import { cx, HazardGlyph, SeverityMeter } from "../../ui/primitives";
 import s from "./WatchPanel.module.css";
+import { useUnits } from "../../lib/settings";
 
 const RADII = [25, 50, 100, 200, 300, 500, 750, 1000];
 const HAZARD_IDS: HazardId[] = ["earthquake", "tropical_cyclone", "wildfire", "flood", "volcano", "drought"];
 
 export function WatchPanel({ incidents }: { incidents: IncidentSummary[] }) {
+  useUnits(); // re-render when display units change
   const open = useWatch((st) => st.panelOpen);
   return <AnimatePresence>{open ? <Panel key="watch" incidents={incidents} /> : null}</AnimatePresence>;
 }
@@ -99,7 +101,7 @@ function Draft({ at, incidents, onDone }: { at: { lat: number; lon: number }; in
       </label>
       <label className={s.field}>
         <span>
-          Radius <strong>{radius} km</strong>
+          Radius <strong>{dist(radius)}</strong>
         </span>
         <input type="range" min={0} max={RADII.length - 1} step={1} value={RADII.indexOf(radius)} onChange={(e) => setRadius(RADII[Number(e.target.value)]!)} />
       </label>
@@ -190,7 +192,7 @@ function WatchRow({ w, incidents }: { w: Watch; incidents: IncidentSummary[] }) 
                 <HazardGlyph hazard={inc.hazard} size={12} />
                 <span className={s.matchTitle}>{inc.title}</span>
                 <SeverityMeter level={inc.severity.level} size="sm" />
-                <span className={s.matchDist}>{Math.round(inc.distance_km)} km</span>
+                <span className={s.matchDist}>{dist(inc.distance_km)}</span>
               </button>
             </li>
           ))}

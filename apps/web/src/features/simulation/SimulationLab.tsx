@@ -8,11 +8,12 @@ import { motion } from "motion/react";
 import { Crosshair, FlaskConical, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { globeRef } from "../../globe/ref";
-import { coord, compact } from "../../lib/format";
+import { coord, compact, dist } from "../../lib/format";
 import { engineScenario, localScenario, type Scenario } from "../../lib/simulation";
 import { useUi } from "../../lib/store";
 import { cx } from "../../ui/primitives";
 import s from "./SimulationLab.module.css";
+import { useUnits } from "../../lib/settings";
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value);
@@ -24,6 +25,7 @@ function useDebounced<T>(value: T, ms: number): T {
 }
 
 export function SimulationLab() {
+  useUnits(); // re-render when display units change
   const sim = useUi((st) => st.simulation);
   const pick = useUi((st) => st.groundPick);
   if (!sim && pick === "simulation") return <PickHint />;
@@ -118,7 +120,7 @@ function Lab() {
         {outer ? (
           <>
             {" "}
-            · light shaking (IV) out to about <strong>{Math.round(outer.radius_km)} km</strong>
+            · light shaking (IV) out to about <strong>{dist(outer.radius_km)}</strong>
           </>
         ) : null}
       </div>
@@ -143,7 +145,7 @@ function Lab() {
               </td>
               <td>{b.shaking}</td>
               <td className={s.dim}>{b.damage}</td>
-              <td className={s.num}>{b.radius_km < 1 ? "<1" : Math.round(b.radius_km)} km</td>
+              <td className={s.num}>{b.radius_km < 1 ? `<${dist(1)}` : dist(b.radius_km)}</td>
               <td className={s.num}>{b.residents_in_band != null ? compact(b.residents_in_band) : remote.isFetching ? "…" : "—"}</td>
             </tr>
           ))}

@@ -12,6 +12,24 @@ export type Quality = "saver" | "balanced" | "high";
 /** "auto" picks from the graphics processor: High on a dedicated GPU, Battery saver on integrated graphics. */
 export type QualityChoice = "auto" | Quality;
 export type SettingsSection = "sources" | "packs" | "appearance" | "graphics" | "app" | "about";
+export type Density = "comfortable" | "compact";
+export type Accent = "atlas" | "aurora" | "solar" | "nebula" | "ember";
+
+export interface Units {
+  distance: "km" | "mi";
+  temperature: "C" | "F";
+  wind: "kt" | "kmh" | "mph";
+}
+export const DEFAULT_UNITS: Units = { distance: "km", temperature: "C", wind: "kt" };
+
+/** Accent colours: [accent, strong, soft background, line]. */
+export const ACCENTS: Record<Accent, { label: string; colors: [string, string, string, string] }> = {
+  atlas: { label: "Atlas blue", colors: ["#9cc9ff", "#c4e0ff", "rgba(156, 201, 255, 0.12)", "rgba(156, 201, 255, 0.38)"] },
+  aurora: { label: "Aurora green", colors: ["#7ee2b8", "#b6f2d7", "rgba(126, 226, 184, 0.12)", "rgba(126, 226, 184, 0.38)"] },
+  solar: { label: "Solar amber", colors: ["#f5c26b", "#fadfa8", "rgba(245, 194, 107, 0.12)", "rgba(245, 194, 107, 0.38)"] },
+  nebula: { label: "Nebula violet", colors: ["#b9a4ff", "#d8ccff", "rgba(185, 164, 255, 0.12)", "rgba(185, 164, 255, 0.38)"] },
+  ember: { label: "Ember coral", colors: ["#ff9f8a", "#ffc7bb", "rgba(255, 159, 138, 0.12)", "rgba(255, 159, 138, 0.38)"] },
+};
 
 export interface QualityProfile {
   label: string;
@@ -69,6 +87,12 @@ export function resolveQuality(choice: QualityChoice): Quality {
 interface SettingsState {
   surface: Surface;
   quality: QualityChoice;
+  density: Density;
+  accent: Accent;
+  units: Units;
+  setDensity: (d: Density) => void;
+  setAccent: (a: Accent) => void;
+  setUnits: (u: Partial<Units>) => void;
   open: boolean;
   section: SettingsSection;
   openSettings: (section?: SettingsSection) => void;
@@ -82,6 +106,12 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       surface: "solid",
       quality: "auto",
+      density: "comfortable",
+      accent: "atlas",
+      units: DEFAULT_UNITS,
+      setDensity: (density) => set({ density }),
+      setAccent: (accent) => set({ accent }),
+      setUnits: (u) => set((s) => ({ units: { ...s.units, ...u } })),
       open: false,
       section: "sources",
       openSettings: (section) => set((s) => ({ open: true, section: section ?? s.section })),
@@ -89,9 +119,21 @@ export const useSettings = create<SettingsState>()(
       setSurface: (surface) => set({ surface }),
       setQuality: (quality) => set({ quality }),
     }),
-    { name: "atlas.settings.v1", partialize: (s) => ({ surface: s.surface, quality: s.quality }) },
+    {
+      name: "atlas.settings.v1",
+      partialize: (s) => ({ surface: s.surface, quality: s.quality, density: s.density, accent: s.accent, units: s.units }),
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<SettingsState>;
+        return { ...current, ...p, units: { ...DEFAULT_UNITS, ...(p.units ?? {}) } };
+      },
+    },
   ),
 );
+
+/** Subscribe a component to unit changes (values are converted where they are formatted). */
+export function useUnits(): Units {
+  return useSettings((s) => s.units);
+}
 
 export function openSettings(section?: SettingsSection): void {
   useSettings.getState().openSettings(section);

@@ -6,7 +6,7 @@ import { WINDOWS_APP } from "../lib/api";
 import { connectLive } from "../lib/live";
 import { PHONE_QUERY, supportsWebGL, useMediaQuery } from "../lib/media";
 import { useIncidentFeed } from "../lib/queries";
-import { useSettings } from "../lib/settings";
+import { ACCENTS, useSettings } from "../lib/settings";
 import { useUi, WINDOW_HOURS, type TimeWindow } from "../lib/store";
 import { Attribution, Intro, LiveTicker, MapControls } from "../features/chrome/Chrome";
 import { CommandPalette } from "../features/command/CommandPalette";
@@ -62,6 +62,8 @@ export function Shell() {
   const watchOpen = useWatch((st) => st.panelOpen);
   const settingsOpen = useSettings((st) => st.open) && WINDOWS_APP;
   const surface = useSettings((st) => st.surface);
+  const density = useSettings((st) => st.density);
+  const accent = useSettings((st) => st.accent);
   const phone = useMediaQuery(PHONE_QUERY);
   const webgl = useMemo(() => supportsWebGL(), []);
   useWatchAlerts(incidents);
@@ -90,7 +92,15 @@ export function Shell() {
       root.dataset.app = "windows"; // Windows-app-only styling hooks; the website is unchanged
       root.dataset.surface = surface; // the website keeps its glass panels
     }
-  }, [reducedMotion, highContrast, surface]);
+    root.dataset.density = density;
+    const [a, strong, soft, line] = ACCENTS[accent].colors;
+    root.style.setProperty("--accent", a);
+    root.style.setProperty("--accent-strong", strong);
+    root.style.setProperty("--accent-soft", soft);
+    root.style.setProperty("--accent-line", line);
+    root.style.setProperty("--info", a);
+    root.style.setProperty("--prov-derived", a);
+  }, [reducedMotion, highContrast, surface, density, accent]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

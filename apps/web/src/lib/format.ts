@@ -1,4 +1,5 @@
 /** Formatting helpers. All times are shown in UTC by default, with relative ages alongside. */
+import { useSettings, type Units } from "./settings";
 
 const compactFmt = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 const intFmt = new Intl.NumberFormat("en");
@@ -116,10 +117,54 @@ export function duration(seconds: number | null | undefined): string {
   return `${(s / 86400).toFixed(1)}d`;
 }
 
-export function metricValue(value: unknown, unit?: string | null): string {
-  if (value === null || value === undefined) return "—";
+// ---------------------------------------------------------------- display units
+// Values are stored and labelled in their source units; only the display converts.
+function units(): Units {
+  return useSettings.getState().units;
+}
+
+/** Convert a number shown in `unit` to the user's preferred unit. */
+export function convert(value: number, unit: string): { value: number; unit: string } {
+  const u = units();
+  if ((unit === "km" || unit === "km from source") && u.distance === "mi") return { value: value * 0.621371, unit: unit.replace("km", "mi") };
+  if (unit === "km²" && u.distance === "mi") return { value: value * 0.386102, unit: "mi²" };
+  if (unit === "m" && u.distance === "mi") return { value: value * 3.28084, unit: "ft" };
+  if (unit === "kt" && u.wind === "kmh") return { value: value * 1.852, unit: "km/h" };
+  if (unit === "kt" && u.wind === "mph") return { value: value * 1.150779, unit: "mph" };
+  if ((unit === "°C" || unit === "C") && u.temperature === "F") return { value: (value * 9) / 5 + 32, unit: "°F" };
+  if (unit === "km/h" && u.wind === "kt") return { value: value / 1.852, unit: "kt" };
+  if (unit === "km/h" && u.wind === "mph") return { value: value / 1.609344, unit: "mph" };
+  return { value, unit };
+}
+
+/** "1,234 km" / "767 mi" */
+export function dist(km: number | null | undefined, digits = 0): string {
+  if (km == null || !Number.isFinite(km)) return "—";
+  const c = convert(km, "km");
+  return `${c.value.toLocaleString("en", { maximumFractionDigits: digits })} ${c.unit}`;
+}
+
+/** "45 kt" / "83 km/h" / "52 mph" */
+export function windSpeed(kt: number | null | undefined): string {
+  if (kt == null || !Number.isFinite(kt)) return "—";
+  const c = convert(kt, "kt");
+  return `${Math.round(c.value)} ${c.unit}`;
+}
+
+/** "31.2 °C" / "88.2 °F" */
+export function temperature(c: number | null | undefined, digits = 1): string {
+  if (c == null || !Number.isFinite(c)) return "—";
+  const v = convert(c, "°C");
+  return `${v.value.toFixed(digits)} ${v.unit}`;
+}
+
+export function metricValue(rawValue: unknown, rawUnit?: string | null): string {
+  if (rawValue === null || rawValue === undefined) return "—";
+  let value = rawValue;
+  let unit = rawUnit;
+  if (typeof value === "number" && unit) ({ value, unit } = convert(value, unit));
   if (typeof value === "number") {
-    if (Number.isInteger(value)) return unit ? `${int(value)} ${unit}` : int(value);
+    if (Number.isInteger(value)) return unit ? `${int(value)} ${unit}` : int(value as number);
     const abs = Math.abs(value);
     const txt = abs >= 1000 ? int(value) : abs >= 100 ? value.toFixed(0) : abs >= 10 ? value.toFixed(1) : value.toFixed(abs < 1 && abs > 0 ? 2 : 1);
     return unit ? `${txt} ${unit}` : txt;

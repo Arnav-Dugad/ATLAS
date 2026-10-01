@@ -8,7 +8,7 @@ import { openSimulation } from "../../lib/simulate";
 import { useWatch } from "../../lib/watch";
 import { exportBrief, exportGeoJson, exportJson } from "../../lib/export";
 import { focusIncident } from "../../lib/focus";
-import { coord, metricValue, observedAgo, relTime, titleCase, utcFull, utcShort } from "../../lib/format";
+import { coord, metricValue, observedAgo, relTime, titleCase, utcFull, utcShort, dist } from "../../lib/format";
 import { hazardMeta, PROVENANCE_META, severityColor, sourceLabel } from "../../lib/hazards";
 import { useIncident } from "../../lib/queries";
 import { useUi } from "../../lib/store";
@@ -20,6 +20,7 @@ import { AirQualityCard } from "./AirQualityCard";
 import { WeatherCard } from "./WeatherCard";
 import { TrackChart } from "./TrackChart";
 import s from "./IncidentPanel.module.css";
+import { useUnits } from "../../lib/settings";
 
 const SatelliteTab = lazy(() => import("./SatelliteTab").then((m) => ({ default: m.SatelliteTab })));
 const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.LinksTab })));
@@ -27,6 +28,7 @@ const LinksTab = lazy(() => import("./LinksTab").then((m) => ({ default: m.Links
 type Tab = "brief" | "exposure" | "satellite" | "links" | "timeline" | "sources" | "context";
 
 export function IncidentPanel({ id }: { id: string }) {
+  useUnits(); // re-render when display units change
   const q = useIncident(id);
   const select = useUi((st) => st.select);
   const pinned = useUi((st) => st.pinned);
@@ -79,7 +81,7 @@ export function IncidentPanel({ id }: { id: string }) {
         <div className={s.where}>
           {d.place ? <span>{d.place.description}</span> : null}
           {d.place?.admin1 ? <span className={s.dim}> · {d.place.admin1}</span> : null}
-          {d.place?.offshore_km ? <span className={s.dim}> · offshore ~{Math.round(d.place.offshore_km)} km</span> : null}
+          {d.place?.offshore_km ? <span className={s.dim}> · offshore ~{dist(d.place.offshore_km)}</span> : null}
         </div>
         <div className={s.facts}>
           <Fact label="Onset" value={utcShort(d.started_at)} hint={relTime(d.started_at)} />
@@ -223,7 +225,7 @@ function BriefTab({ d }: { d: IncidentDetail }) {
                   <span className={s.relatedTitle}>{r.title}</span>
                   <span className={s.relatedMeta}>
                     {r.relation !== "nearby" ? <span className={s.relTag}>{RELATION_META[r.relation as RelationType]?.label ?? r.relation}</span> : null}
-                    <span className="num">{Math.round(r.distance_km)} km</span>
+                    <span className="num">{dist(r.distance_km)}</span>
                   </span>
                 </button>
               </li>

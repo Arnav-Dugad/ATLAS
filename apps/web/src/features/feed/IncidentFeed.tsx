@@ -5,12 +5,13 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardE
 import type { IncidentSummary } from "../../lib/api";
 import { captureFlip } from "../../lib/flip";
 import { focusIncident } from "../../lib/focus";
-import { observedAgo } from "../../lib/format";
+import { observedAgo, windSpeed } from "../../lib/format";
 import { hazardMeta, PRIMARY_HAZARDS, type HazardId } from "../../lib/hazards";
 import { useLive } from "../../lib/live";
 import { useUi } from "../../lib/store";
 import { cx, EmptyState, ErrorState, HazardGlyph, Segmented, SeverityMeter, SkeletonRows } from "../../ui/primitives";
 import s from "./IncidentFeed.module.css";
+import { useUnits } from "../../lib/settings";
 
 interface Props {
   incidents: IncidentSummary[];
@@ -213,6 +214,7 @@ const IncidentCard = memo(function IncidentCard({ inc, selected, cursor, fresh }
   cursor: boolean;
   fresh: boolean;
 }) {
+  useUnits(); // re-render when display units change
   const hover = useUi((st) => st.hover);
   const meta = hazardMeta(inc.hazard);
   const headline = inc.headline.find((m) => ["magnitude", "wind", "frp", "alert", "gdacs_alert"].includes(m.key));
@@ -245,7 +247,7 @@ const IncidentCard = memo(function IncidentCard({ inc, selected, cursor, fresh }
           {headline ? (
             <span className={s.metric}>
               {headline.key === "magnitude" ? `M${Number(headline.value).toFixed(1)}` : null}
-              {headline.key === "wind" ? `${headline.value} kt` : null}
+              {headline.key === "wind" ? windSpeed(Number(headline.value)) : null}
               {headline.key === "frp" ? `${Math.round(Number(headline.value)).toLocaleString()} MW` : null}
               {headline.key === "alert" ? `Alert ${headline.value}` : null}
               {headline.key === "gdacs_alert" ? `GDACS ${String(headline.value).toLowerCase()}` : null}

@@ -1,12 +1,14 @@
 import { CloudRain, Droplets, Gauge, Navigation, Thermometer, Wind } from "lucide-react";
 import { LOCAL_ONLY_MESSAGE, STATIC_MODE } from "../../lib/api";
-import { relTime } from "../../lib/format";
+import { convert, relTime } from "../../lib/format";
 import { useWeather } from "../../lib/queries";
 import { ErrorState, Label, ProvenanceBadge, Skeleton, Sparkline } from "../../ui/primitives";
 import s from "./IncidentPanel.module.css";
+import { useUnits } from "../../lib/settings";
 
 export function WeatherCard({ id }: { id: string }) {
   const q = useWeather(id);
+  useUnits(); // re-render when units change
   if (STATIC_MODE) return <ErrorState title="Weather context runs locally" message={LOCAL_ONLY_MESSAGE} />;
   if (q.error) {
     return <ErrorState title="Weather context unavailable" message="Open-Meteo did not respond. This does not affect incident data." onRetry={() => void q.refetch()} />;
@@ -23,6 +25,10 @@ export function WeatherCard({ id }: { id: string }) {
     return i < 0 ? times.length : i;
   })();
 
+  const tUnit = convert(0, "°C").unit;
+  const wUnit = convert(0, "km/h").unit;
+  const tc = (v: number | null | undefined) => (v == null ? null : convert(v, "°C").value);
+  const wc = (v: number | null | undefined) => (v == null ? null : convert(v, "km/h").value);
   return (
     <section className={s.weather}>
       <Label right={<ProvenanceBadge kind="model" compact />}>Weather at the incident</Label>
@@ -35,16 +41,19 @@ export function WeatherCard({ id }: { id: string }) {
         <>
           <div className={s.wxNow}>
             <div className={s.wxTemp}>
-              <span className="num">{num("temperature_2m")?.toFixed(1) ?? "—"}</span>
-              <span className={s.unit}>°C</span>
+              <span className="num">{tc(num("temperature_2m"))?.toFixed(1) ?? "—"}</span>
+              <span className={s.unit}>{tUnit}</span>
             </div>
             <div className={s.wxText}>
               <div>{cur?.weather_text ?? "—"}</div>
-              <div className={s.dim}>feels like {num("apparent_temperature")?.toFixed(0) ?? "—"}°C</div>
+              <div className={s.dim}>
+                feels like {tc(num("apparent_temperature"))?.toFixed(0) ?? "—"}
+                {tUnit}
+              </div>
             </div>
           </div>
           <div className={s.wxGrid}>
-            <WxStat icon={<Wind size={13} />} label="Wind" value={`${num("wind_speed_10m")?.toFixed(0) ?? "—"} km/h`} sub={`gusts ${num("wind_gusts_10m")?.toFixed(0) ?? "—"}`} />
+            <WxStat icon={<Wind size={13} />} label="Wind" value={`${wc(num("wind_speed_10m"))?.toFixed(0) ?? "—"} ${wUnit}`} sub={`gusts ${wc(num("wind_gusts_10m"))?.toFixed(0) ?? "—"}`} />
             <WxStat
               icon={<Navigation size={13} style={{ transform: `rotate(${(num("wind_direction_10m") ?? 0) + 180}deg)` }} />}
               label="From"
@@ -56,9 +65,9 @@ export function WeatherCard({ id }: { id: string }) {
             <WxStat icon={<Thermometer size={13} />} label="Cloud" value={`${num("cloud_cover")?.toFixed(0) ?? "—"}%`} />
           </div>
           <div className={s.wxCharts}>
-            <WxChart label="Temperature °C" values={series("temperature_2m")} color="#f2b84b" nowIdx={nowIdx} />
+            <WxChart label={`Temperature ${tUnit}`} values={series("temperature_2m").map((v) => tc(v) ?? v)} color="#f2b84b" nowIdx={nowIdx} />
             <WxChart label="Precipitation mm" values={series("precipitation")} color="#3ea8f2" nowIdx={nowIdx} />
-            <WxChart label="Wind gusts km/h" values={series("wind_gusts_10m")} color="#9fb6cc" nowIdx={nowIdx} />
+            <WxChart label={`Wind gusts ${wUnit}`} values={series("wind_gusts_10m").map((v) => wc(v) ?? v)} color="#9fb6cc" nowIdx={nowIdx} />
           </div>
           <p className={s.wxNote}>
             {w.model_note} Grid point {w.grid.lat.toFixed(2)}, {w.grid.lon.toFixed(2)}
