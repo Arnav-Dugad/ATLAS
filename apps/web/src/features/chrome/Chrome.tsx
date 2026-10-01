@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Compass, Home, Info, Minus, Pause, Play, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { globeRef } from "../../globe/Globe";
+import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
 import type { IncidentSummary } from "../../lib/api";
 import { focusIncident } from "../../lib/focus";

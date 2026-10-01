@@ -422,6 +422,13 @@ async def _archive_earthquakes(r: Runtime, parsed: query_engine.ParsedQuery) -> 
             if o.lat is not None and (hit := r.geocoder.country(o.lat, o.lon)) and hit.iso3 == parsed.country_iso3
         ]  # type: ignore[arg-type]
     events.sort(key=lambda o: -(o.magnitude or 0))
+    for o in events:
+        # Some ComCat place strings carry '?' where a non-ASCII letter was lost upstream
+        # (e.g. "?arai" for Ōarai). Substitute ATLAS's own offline place description.
+        if "?" in o.title and o.lat is not None and o.lon is not None:
+            place = r.geocoder.describe(o.lat, o.lon)
+            if place and o.magnitude is not None:
+                o.title = f"M{o.magnitude:.1f} earthquake — {place.description} (place derived by ATLAS)"
     return {
         "status": "ok",
         "source": "usgs",

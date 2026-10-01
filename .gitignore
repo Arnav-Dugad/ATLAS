@@ -44,3 +44,5 @@ Thumbs.db
 # Agent tooling state
 .agentrelay/
 .codex/
+.mcp.json
+.playwright-mcp/

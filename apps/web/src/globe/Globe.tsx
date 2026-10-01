@@ -7,9 +7,8 @@ import { qk, useCountries, useEarthquakeLayer, useFireClusters, useFireGrid, use
 import { useUi } from "../lib/store";
 import { AtlasGlobe, DETAIL_HEIGHT, type HoverInfo, type ViewInfo } from "./AtlasGlobe";
 import styles from "./Globe.module.css";
+import { globeRef } from "./ref";
 
-/** Globe instance shared with controls (zoom buttons, snapshots). */
-export const globeRef: { current: AtlasGlobe | null } = { current: null };
 
 export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const host = useRef<HTMLDivElement>(null);
@@ -25,6 +24,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
   const fly = useUi((s) => s.fly);
   const autoRotate = useUi((s) => s.autoRotate);
   const reducedMotion = useUi((s) => s.reducedMotion);
+  const appView = useUi((s) => s.view);
 
   // ---- mount ------------------------------------------------------------------------
   useEffect(() => {
@@ -58,6 +58,7 @@ export function Globe({ incidents }: { incidents: IncidentSummary[] }) {
 
   // ---- state → globe ----------------------------------------------------------------
   useEffect(() => globe?.setReducedMotion(reducedMotion), [globe, reducedMotion]);
+  useEffect(() => globe?.setPaused(appView !== "planet"), [globe, appView]);
   useEffect(() => globe?.setAutoRotate(autoRotate), [globe, autoRotate]);
   useEffect(() => {
     if (!globe) return;

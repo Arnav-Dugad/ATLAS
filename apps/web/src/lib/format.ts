@@ -109,6 +109,7 @@ export function duration(seconds: number | null | undefined): string {
 export function metricValue(value: unknown, unit?: string | null): string {
   if (value === null || value === undefined) return "—";
   if (typeof value === "number") {
+    if (Number.isInteger(value)) return unit ? `${int(value)} ${unit}` : int(value);
     const abs = Math.abs(value);
     const txt = abs >= 1000 ? int(value) : abs >= 100 ? value.toFixed(0) : abs >= 10 ? value.toFixed(1) : value.toFixed(abs < 1 && abs > 0 ? 2 : 1);
     return unit ? `${txt} ${unit}` : txt;

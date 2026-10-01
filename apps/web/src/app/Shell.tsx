@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo } from "react";
-import { globeRef } from "../globe/Globe";
+import { globeRef } from "../globe/ref";
 import { connectLive } from "../lib/live";
 import { useIncidentFeed } from "../lib/queries";
 import { useUi, type TimeWindow } from "../lib/store";
@@ -13,6 +13,7 @@ import { LayerPanel } from "../features/layers/LayerPanel";
 import { OverviewPanel } from "../features/overview/OverviewPanel";
 import { Timeline } from "../features/timeline/Timeline";
 import { TopBar } from "../features/topbar/TopBar";
+import { ErrorBoundary } from "../ui/ErrorBoundary";
 import s from "./Shell.module.css";
 
 // The globe pulls in CesiumJS (~4 MB); load it as its own chunk so the shell paints first.
@@ -32,6 +33,19 @@ export function Shell() {
   const incidents = useMemo(() => feed.data?.items ?? [], [feed.data]);
 
   useEffect(() => connectLive(client), [client]);
+
+  // Warm the secondary views once the planet is up, so opening them is instant.
+  useEffect(() => {
+    const warm = () => {
+      void import("../features/sources/SourcesView");
+      void import("../features/sources/HealthView");
+    };
+    const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    const id = ric ? ric(warm, { timeout: 8000 }) : window.setTimeout(warm, 4000);
+    return () => {
+      if (!ric) window.clearTimeout(id);
+    };
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -88,14 +102,18 @@ export function Shell() {
       <a className={s.skip} href="#incident-stream">
         Skip to incident stream
       </a>
-      <Suspense fallback={<GlobeBoot />}>
-        <Globe incidents={incidents} />
-      </Suspense>
+      <ErrorBoundary region="Globe" fallback={(reset) => <GlobeCrash onRetry={reset} />}>
+        <Suspense fallback={<GlobeBoot />}>
+          <Globe incidents={incidents} />
+        </Suspense>
+      </ErrorBoundary>
 
       <TopBar />
 
       <aside className={s.rail} id="incident-stream">
-        <IncidentFeed incidents={incidents} loading={feed.isLoading} error={feed.error as Error | null} onRetry={() => void feed.refetch()} />
+        <ErrorBoundary region="Incident stream">
+          <IncidentFeed incidents={incidents} loading={feed.isLoading} error={feed.error as Error | null} onRetry={() => void feed.refetch()} />
+        </ErrorBoundary>
       </aside>
 
       <aside className={s.panel} aria-label={selectedId ? "Incident intelligence" : "Planetary overview"}>
@@ -108,7 +126,9 @@ export function Shell() {
             exit={{ opacity: 0, x: -10 }}
             transition={{ type: "spring", stiffness: 380, damping: 36 }}
           >
-            {selectedId ? <IncidentPanel id={selectedId} /> : <OverviewPanel incidents={incidents} />}
+            <ErrorBoundary region={selectedId ? "Incident panel" : "Overview"}>
+              {selectedId ? <IncidentPanel id={selectedId} /> : <OverviewPanel incidents={incidents} />}
+            </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </aside>
@@ -137,6 +157,18 @@ export function Shell() {
 
       <CommandPalette incidents={incidents} />
       <Intro incidents={incidents} />
+    </div>
+  );
+}
+
+function GlobeCrash({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className={s.boot} role="alert">
+      <div className={s.bootOrb} style={{ animation: "none", opacity: 0.5 }} />
+      <div className={s.bootText}>The planetary view stopped unexpectedly. Incident data keeps updating.</div>
+      <button type="button" className={s.retry} onClick={onRetry}>
+        Restart globe
+      </button>
     </div>
   );
 }

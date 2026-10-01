@@ -3,8 +3,8 @@
   inset: var(--topbar-h) 0 0 0;
   z-index: calc(var(--z-chrome) + 2);
   overflow-y: auto;
-  background: linear-gradient(180deg, rgba(4, 6, 10, 0.94), rgba(4, 6, 10, 0.97));
-  backdrop-filter: blur(10px);
+  /* Opaque on purpose: the globe is paused underneath, and blurring a WebGL canvas is costly. */
+  background: linear-gradient(180deg, #05080c, #04060a);
 }
 .inner {
   max-width: 1360px;

@@ -19,7 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { globeRef } from "../../globe/Globe";
+import { globeRef } from "../../globe/ref";
 import { OVERLAYS } from "../../globe/imagery";
 import { api, type IncidentSummary, type SearchResponse } from "../../lib/api";
 import { exportBrief } from "../../lib/export";
@@ -227,7 +227,13 @@ function PaletteBody({ incidents, seed, onClose }: { incidents: IncidentSummary[
 
   useEffect(() => setCursor(0), [q]);
   useEffect(() => {
-    listRef.current?.querySelector(`[data-idx="${cursor}"]`)?.scrollIntoView({ block: "nearest" });
+    // Scroll only the list (scrollIntoView would also scroll ancestors).
+    const list = listRef.current;
+    const row = list?.querySelector<HTMLElement>(`[data-idx="${cursor}"]`);
+    if (list && row) {
+      if (row.offsetTop < list.scrollTop) list.scrollTop = row.offsetTop - 8;
+      else if (row.offsetTop + row.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = row.offsetTop + row.offsetHeight - list.clientHeight + 8;
+    }
   }, [cursor]);
 
   const onKey = (e: React.KeyboardEvent) => {

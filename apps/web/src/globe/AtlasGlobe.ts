@@ -111,6 +111,7 @@ export class AtlasGlobe {
   private lastHover = 0;
   private viewTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
+  private paused = false;
   private layerFlags = { fires: true, fireClusters: true };
   quakeData: Columnar | null = null;
   fireGridData: Columnar | null = null;
@@ -235,8 +236,19 @@ export class AtlasGlobe {
   }
 
   // -- render loop -------------------------------------------------------------------
+  /** Stop producing frames while the globe is fully covered (saves GPU, battery and paint time). */
+  setPaused(paused: boolean) {
+    this.paused = paused;
+    this.widget.useDefaultRenderLoop = !paused;
+    if (!paused) this.requestRender();
+  }
+
   private loop = () => {
     if (this.destroyed) return;
+    if (this.paused) {
+      this.raf = requestAnimationFrame(this.loop);
+      return;
+    }
     const now = performance.now();
     const dt = Math.min(0.1, (now - this.lastFrame) / 1000);
     this.lastFrame = now;
@@ -771,6 +783,9 @@ export class AtlasGlobe {
   destroy() {
     this.destroyed = true;
     cancelAnimationFrame(this.raf);
+    if (this.viewTimer) clearTimeout(this.viewTimer);
+    // Stop Cesium's own render loop first so it never ticks a destroyed scene.
+    if (!this.widget.isDestroyed()) this.widget.useDefaultRenderLoop = false;
     this.handler.destroy();
     if (!this.widget.isDestroyed()) this.widget.destroy();
   }
