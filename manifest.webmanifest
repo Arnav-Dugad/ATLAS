@@ -1,0 +1,19 @@
+{
+  "name": "ATLAS — Planetary Disaster Intelligence",
+  "short_name": "ATLAS",
+  "description": "Open planetary disaster intelligence: earthquakes, wildfires, cyclones, volcanoes and floods from authoritative open data on a live 3D Earth.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#05070a",
+  "theme_color": "#05070a",
+  "categories": ["news", "weather", "education", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "atlas.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
