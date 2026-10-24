@@ -1,0 +1,1 @@
+import{invoke as e}from"./core-Djq8_Zg8.js";async function t(){return await e(`plugin:autostart|is_enabled`)}async function n(){await e(`plugin:autostart|enable`)}async function r(){await e(`plugin:autostart|disable`)}export{r as disable,n as enable,t as isEnabled};
