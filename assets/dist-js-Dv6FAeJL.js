@@ -1,0 +1,1 @@
+import{invoke as e}from"./core-Djq8_Zg8.js";async function t(){await e(`plugin:process|restart`)}export{t as relaunch};
